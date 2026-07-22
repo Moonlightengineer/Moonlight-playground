@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 620" role="img" aria-labelledby="title desc">
+  <title id="title">字陣無雙封面</title>
+  <desc id="desc">深色竹簡背景上的三乘三中文字牌戰陣，黃和忠兩張牌發出金色光芒</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#121925"/><stop offset="1" stop-color="#2a1e15"/></linearGradient>
+    <radialGradient id="glow"><stop stop-color="#ffd980" stop-opacity=".85"/><stop offset="1" stop-color="#ffd980" stop-opacity="0"/></radialGradient>
+    <pattern id="grid" width="56" height="56" patternUnits="userSpaceOnUse"><path d="M56 0H0V56" fill="none" stroke="#92a9c3" stroke-opacity=".08"/></pattern>
+  </defs>
+  <rect width="1000" height="620" fill="url(#bg)"/>
+  <rect width="1000" height="620" fill="url(#grid)"/>
+  <circle cx="740" cy="210" r="230" fill="url(#glow)"/>
+  <g transform="translate(110 105)">
+    <text x="0" y="0" dominant-baseline="hanging" fill="#f6c86f" font-size="28" font-family="system-ui,sans-serif" font-weight="700" letter-spacing="5">MOONLIGHT GAME 001</text>
+    <text x="0" y="70" dominant-baseline="hanging" fill="#f4ead6" font-size="82" font-family="PingFang HK,Noto Sans TC,sans-serif" font-weight="800">字陣無雙</text>
+    <text x="4" y="170" dominant-baseline="hanging" fill="#b9aa91" font-size="31" font-family="PingFang HK,Noto Sans TC,sans-serif">中文字牌合成 × 十波守城</text>
+  </g>
+  <g transform="translate(590 195)">
+    <g fill="#eadfc6" stroke="#8c765f" stroke-width="8">
+      <rect x="0" y="0" width="112" height="112" rx="16"/><rect x="124" y="0" width="112" height="112" rx="16"/><rect x="248" y="0" width="112" height="112" rx="16"/>
+      <rect x="0" y="124" width="112" height="112" rx="16"/><rect x="124" y="124" width="112" height="112" rx="16"/><rect x="248" y="124" width="112" height="112" rx="16"/>
+      <rect x="0" y="248" width="112" height="112" rx="16"/><rect x="124" y="248" width="112" height="112" rx="16"/><rect x="248" y="248" width="112" height="112" rx="16"/>
+    </g>
+    <g font-family="PingFang HK,Noto Sans TC,serif" font-size="70" text-anchor="middle" dominant-baseline="central" fill="#2b2118">
+      <text x="56" y="56">趙</text><text x="180" y="56">雲</text><text x="304" y="56">劍</text>
+      <text x="56" y="180">關</text><text x="180" y="180" fill="#c18d2d">黃</text><text x="304" y="180" fill="#c18d2d">忠</text>
+      <text x="56" y="304">羽</text><text x="180" y="304">呂</text><text x="304" y="304">布</text>
+    </g>
+  </g>
+  <path d="M585 372c90-80 214-72 327-10" fill="none" stroke="#f6c86f" stroke-width="7" stroke-linecap="round" stroke-dasharray="12 17" opacity=".82"/>
+</svg>
