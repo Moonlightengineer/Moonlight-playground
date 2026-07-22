@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-Hant-HK">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#07111f">
+  <meta name="description" content="月光工程師放工後的 AI 試驗場：小型網頁遊戲、工具及概念驗證。">
+  <meta property="og:title" content="月光試驗場｜Moonlight Playground">
+  <meta property="og:description" content="日頭做工程，夜晚用 AI 將想法變成可以即刻試的工具與遊戲。">
+  <meta property="og:type" content="website">
+  <title>月光試驗場｜Moonlight Playground</title>
+  <link rel="icon" href="./assets/moonlight-mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./assets/styles.css">
+  <script src="./assets/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#experiments">跳到實驗項目</a>
+
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="月光試驗場首頁">
+      <img src="./assets/moonlight-mark.svg" alt="" width="42" height="42">
+      <span>
+        <strong>月光試驗場</strong>
+        <small>Moonlight Playground</small>
+      </span>
+    </a>
+    <a class="header-link" href="https://github.com/Moonlightengineer" rel="noreferrer">GitHub ↗</a>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow">香港機電工程師 × AI 實驗</p>
+        <h1 id="hero-title">放工後，將腦內想法<br>變成可以即刻試嘅作品。</h1>
+        <p class="hero-lede">小遊戲、實用工具、介面試驗。先快速整到可玩，再決定值唔值得成為正式項目。</p>
+        <div class="hero-actions">
+          <a class="primary-action" href="#experiments">睇最新實驗</a>
+          <span class="availability"><span aria-hidden="true"></span> ADHD MODE：快速驗證中</span>
+        </div>
+      </div>
+
+      <div class="workbench" aria-label="月光工程師工作台插圖">
+        <div class="moon" aria-hidden="true"></div>
+        <div class="terminal-card">
+          <p><span>01</span> 捕捉一個念頭</p>
+          <p><span>02</span> 用 AI 快速建造</p>
+          <p><span>03</span> 公開試玩與驗證</p>
+          <p class="active"><span>04</span> 有價值先繼續</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="experiments" id="experiments" aria-labelledby="experiments-title">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">NOW PLAYING</p>
+          <h2 id="experiments-title">公開實驗</h2>
+        </div>
+        <div class="filters" aria-label="項目分類">
+          <button type="button" class="filter-button is-active" data-filter="all">全部</button>
+          <button type="button" class="filter-button" data-filter="game">遊戲</button>
+          <button type="button" class="filter-button" data-filter="tool">工具</button>
+        </div>
+      </div>
+
+      <p id="load-status" class="visually-hidden" aria-live="polite"></p>
+      <div id="project-grid" class="project-grid">
+        <article class="project-card featured" data-category="game">
+          <a class="project-cover" href="./games/hanzi-generals/" aria-label="開始遊玩字陣無雙">
+            <img src="./games/hanzi-generals/cover.svg" alt="字陣無雙：黃、忠、趙、雲中文字牌組成的三乘三戰陣">
+          </a>
+          <div class="project-body">
+            <div class="project-meta">
+              <span class="status status-playable">可遊玩</span>
+              <span>網頁遊戲</span>
+            </div>
+            <h3><a href="./games/hanzi-generals/">字陣無雙</a></h3>
+            <p>將中文字牌合成三國武將，在 3×3 戰陣守住固定十波敵軍。</p>
+            <ul class="tag-list" aria-label="項目特色">
+              <li>手機優先</li><li>單局 5–8 分鐘</li><li>無登入</li>
+            </ul>
+            <a class="project-action" href="./games/hanzi-generals/">開始遊戲 <span aria-hidden="true">→</span></a>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="principles" aria-labelledby="principles-title">
+      <div>
+        <p class="eyebrow">PLAYGROUND RULES</p>
+        <h2 id="principles-title">快試，但唔亂嚟。</h2>
+      </div>
+      <ol class="principle-list">
+        <li><strong>先做到可用</strong><span>唔為未發生嘅需求過度設計。</span></li>
+        <li><strong>每個實驗獨立</strong><span>互不影響，壞一個唔會拖垮其他作品。</span></li>
+        <li><strong>成熟先升級</strong><span>有真實價值、使用者或路線圖，先搬去獨立項目。</span></li>
+      </ol>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div>
+      <strong>Moonlight Engineer</strong>
+      <p>日頭 MEP，月光下寫 code。</p>
+    </div>
+    <p>個人實驗，不代表任何僱主、客戶或項目。</p>
+  </footer>
+</body>
+</html>
