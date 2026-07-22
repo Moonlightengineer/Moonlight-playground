@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-23",
+  "projects": [
+    {
+      "id": "hanzi-generals",
+      "title": "字陣無雙",
+      "category": "game",
+      "status": "playable",
+      "description": "將中文字牌合成三國武將，在 3×3 戰陣守住固定十波敵軍。",
+      "path": "./games/hanzi-generals/",
+      "cover": "./games/hanzi-generals/cover.svg",
+      "coverAlt": "字陣無雙：黃、忠、趙、雲中文字牌組成的三乘三戰陣",
+      "actionLabel": "開始遊戲",
+      "tags": ["手機優先", "單局 5–8 分鐘", "無登入"],
+      "createdAt": "2026-07-23",
+      "featured": true,
+      "published": true
+    }
+  ]
+}
