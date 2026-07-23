@@ -4,7 +4,9 @@ import {
   confirmAssembly,
   findRecipe,
   moveCardToCamp,
+  placeBoardCard,
   releaseUnitCards,
+  returnBoardCard,
 } from '../src/deck/assembly.js';
 import { RECIPES } from '../data/recipes.js';
 import { createBoard, placeUnit } from '../src/board/board.js';
@@ -19,6 +21,7 @@ function fixtureGame({ board = createBoard('base'), campCards = [], symbols = {}
     version: 1,
     status: 'configuration',
     board: nextBoard,
+    boardCards: {},
     camp: { capacity: 2, cardIds: [...campCards] },
     cardsById,
     deck: {
@@ -29,6 +32,8 @@ function fixtureGame({ board = createBoard('base'), campCards = [], symbols = {}
       deployed: [],
       freeRerollsRemaining: 1,
     },
+    unlockedRecipes: RECIPES.map(({ id }) => id),
+    evolutions: {},
     nextUnitId: 1,
     selection: null,
   };
@@ -52,6 +57,30 @@ test('recipe matching is order independent and respects duplicate symbols', () =
   assert.equal(findRecipe(['忠', '黃'], RECIPES).id, 'huang-zhong');
   assert.equal(findRecipe(['兵', '盾'], RECIPES).id, 'shield-troop');
   assert.equal(findRecipe(['兵', '兵'], RECIPES), null);
+});
+
+test('adjacent board characters automatically assemble a named general', () => {
+  let game = fixtureGame({ symbols: { c1: '黃', c2: '忠' } });
+  const first = placeBoardCard(game, 'c1', { column: 0, row: 0 });
+  assert.equal(first.ok, true);
+  assert.equal(first.events[0].type, 'CARD_PLACED');
+  assert.equal(first.state.boardCards['0,0'], 'c1');
+
+  const second = placeBoardCard(first.state, 'c2', { column: 1, row: 0 });
+  assert.equal(second.ok, true);
+  assert.equal(second.events[0].type, 'UNIT_ASSEMBLED');
+  assert.equal(second.state.board.units['unit-1'].definitionId, 'huang-zhong');
+  assert.deepEqual(second.state.boardCards, {});
+});
+
+test('unmatched board character occupies a cell and can return to hand', () => {
+  const game = fixtureGame({ symbols: { c1: '黃' } });
+  const placed = placeBoardCard(game, 'c1', { column: 1, row: 1 });
+  assert.equal(placed.state.deck.hand.length, 0);
+  const returned = returnBoardCard(placed.state, { column: 1, row: 1 });
+  assert.equal(returned.ok, true);
+  assert.equal(returned.state.deck.hand[0].id, 'c1');
+  assert.deepEqual(returned.state.boardCards, {});
 });
 
 test('camp assembly requires an immediate legal deployment cell', () => {
