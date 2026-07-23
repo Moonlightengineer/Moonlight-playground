@@ -1,6 +1,8 @@
+import { ENEMY_BY_ID } from '../../data/enemies.js';
 import { GENERAL_BY_ID } from '../../data/generals.js';
 import { deriveLaneWarnings } from '../combat/intents.js';
 import { getUnitAt, listCells } from '../board/board.js';
+import { enemyDistanceToProgress, MAX_VISIBLE_ENEMY_DISTANCE } from './enemy-field.js';
 import { tutorialText } from './tutorial.js';
 
 function node(tag, className, text) {
@@ -43,9 +45,12 @@ function renderStatus(container, game) {
   const routeStages = game.route === 'danger'
     ? ['tutorial', 'shield-line', 'route-danger', 'cavalry-warning', 'elite-mixed', 'hua-xiong']
     : ['tutorial', 'shield-line', 'route-safe', 'cavalry-warning', 'elite-mixed', 'hua-xiong'];
-  for (const stageId of routeStages) {
-    progress.append(node('li', game.completedBattleIds.includes(stageId) ? 'is-complete' : '', stageId));
-  }
+  routeStages.forEach((stageId, index) => {
+    const item = node('li', game.completedBattleIds.includes(stageId) ? 'is-complete' : '', String(index + 1));
+    item.title = stageId;
+    item.setAttribute('aria-label', `第 ${index + 1} 戰${game.completedBattleIds.includes(stageId) ? '，已完成' : ''}`);
+    progress.append(item);
+  });
   container.append(progress);
 
   const tutorial = node('p', 'tutorial-message', tutorialText(game.tutorial));
@@ -55,21 +60,87 @@ function renderStatus(container, game) {
 
 function renderIntents(container, game) {
   container.replaceChildren();
-  if (game.status !== 'combat') {
-    container.append(node('p', 'empty-copy', '開始戰鬥後會顯示每一路敵軍意圖。'));
-    return;
-  }
+  if (game.status !== 'combat') return;
   for (const warning of deriveLaneWarnings(game.combat)) {
     const item = node('article', `intent intent-${warning.level}`);
     item.dataset.lane = String(warning.lane);
-    item.append(node('strong', '', `第 ${warning.lane + 1} 路`));
+    item.append(node('strong', '', `${warning.lane + 1}路`));
     item.append(node('span', 'intent-icon', warning.level === 'danger' ? '⚠' : '•'));
-    item.append(node('span', '', warning.text));
+    item.append(node('span', 'intent-text', warning.text));
     const charge = game.combat.enemies.find((enemy) => (
       enemy.lane === warning.lane && enemy.definitionId === 'heavy-cavalry'
     ));
     if (charge) item.append(node('span', 'intent-countdown', `倒數 ${charge.chargeIn ?? 3}`));
     container.append(item);
+  }
+}
+
+function ensureEnemyLanes(container, columns) {
+  if (container.dataset.columns === String(columns)
+    && container.querySelectorAll('.enemy-lane').length === columns) return;
+
+  container.replaceChildren();
+  container.dataset.columns = String(columns);
+
+  const scale = node('div', 'enemy-scale');
+  scale.append(node('span', '', '遠方'));
+  scale.append(node('span', '', '城牆'));
+  container.append(scale);
+
+  for (let lane = 0; lane < columns; lane += 1) {
+    const row = node('div', 'enemy-lane');
+    row.dataset.lane = String(lane);
+    row.append(node('span', 'enemy-lane-label', `${lane + 1}`));
+    const track = node('div', 'enemy-lane-track');
+    track.dataset.laneTrack = String(lane);
+    row.append(track);
+    container.append(row);
+  }
+}
+
+function renderEnemyField(container, game) {
+  if (game.status !== 'combat') return;
+
+  const columns = game.combat.board.size.columns;
+  ensureEnemyLanes(container, columns);
+
+  const existing = new Map(
+    [...container.querySelectorAll('.enemy-token')].map((token) => [token.dataset.enemyId, token]),
+  );
+  const activeIds = new Set();
+  const laneStacks = new Map();
+  const enemies = [...game.combat.enemies]
+    .filter(({ hp }) => hp > 0)
+    .sort((a, b) => a.lane - b.lane || a.distance - b.distance || a.id.localeCompare(b.id));
+
+  for (const enemy of enemies) {
+    const dataEnemyId = enemy.id;
+    activeIds.add(dataEnemyId);
+    const definition = ENEMY_BY_ID[enemy.definitionId];
+    const track = container.querySelector(`[data-lane-track="${enemy.lane}"]`);
+    if (!track) continue;
+
+    const token = existing.get(dataEnemyId) ?? node('article', 'enemy-token');
+    const stack = laneStacks.get(enemy.lane) ?? 0;
+    laneStacks.set(enemy.lane, stack + 1);
+
+    token.className = `enemy-token enemy-${enemy.definitionId}`;
+    token.dataset.enemyId = dataEnemyId;
+    token.dataset.entityId = dataEnemyId;
+    token.dataset.distance = String(enemy.distance);
+    token.style.setProperty('--enemy-progress', `${enemyDistanceToProgress(enemy.distance, MAX_VISIBLE_ENEMY_DISTANCE)}%`);
+    token.style.setProperty('--enemy-stack', String(stack % 2));
+    token.setAttribute('aria-label', `${definition?.name ?? enemy.definitionId}，第 ${enemy.lane + 1} 路，距離城牆 ${enemy.distance}，生命 ${enemy.hp}/${enemy.maxHp}`);
+    token.replaceChildren(
+      node('strong', 'enemy-name', definition?.name ?? enemy.definitionId),
+      node('small', 'enemy-hp', `${enemy.hp}/${enemy.maxHp}`),
+      node('small', 'enemy-distance', `距 ${enemy.distance}`),
+    );
+    track.append(token);
+  }
+
+  for (const [enemyId, token] of existing) {
+    if (!activeIds.has(enemyId)) token.remove();
   }
 }
 
@@ -247,10 +318,7 @@ function firstAdjacentPair(game) {
 
 function renderOrders(container, game) {
   container.replaceChildren();
-  if (game.status !== 'combat') {
-    container.append(node('p', 'empty-copy', '戰鬥開始後可使用軍令。'));
-    return;
-  }
+  if (game.status !== 'combat') return;
   const paused = Boolean(game.combat.paused);
   container.append(actionButton(paused ? '繼續' : '暫停', paused ? 'resume' : 'pause', { className: 'primary-button' }));
   container.append(actionButton(game.settings.speed === 2 ? '速度 1×' : '速度 2×', 'set-speed', {
@@ -268,14 +336,14 @@ function renderOrders(container, game) {
     data: { orderType: 'focus', enemyId: target?.id ?? '' },
   }));
   for (let lane = 0; lane < game.board.size.columns; lane += 1) {
-    container.append(actionButton(`堅守第 ${lane + 1} 路`, 'issue-order', {
+    container.append(actionButton(`守${lane + 1}路`, 'issue-order', {
       disabled: noOrders,
       data: { orderType: 'fortify', lane },
     }));
   }
   for (const tacticId of game.combat.tactics) {
     if (tacticId === 'fire-arrows') {
-      container.append(actionButton('火矢・第 1 路', 'issue-order', {
+      container.append(actionButton('火矢1路', 'issue-order', {
         data: { orderType: 'tactic', tacticId, lane: 0 },
       }));
     }
@@ -290,7 +358,7 @@ function renderOrders(container, game) {
 }
 
 function renderDetails(container, game) {
-  const summary = container.querySelector('summary') ?? node('summary', '', '牌庫與戰鬥詳情');
+  const summary = container.querySelector('summary') ?? node('summary', '', '牌庫、設定與戰鬥詳情');
   container.replaceChildren(summary);
   const list = node('dl', 'details-list');
   const items = [
@@ -317,16 +385,50 @@ function renderDetails(container, game) {
   container.append(settings);
 }
 
+function setVisible(element, visible) {
+  element.hidden = !visible;
+}
+
 export function renderApp(root, game) {
   root.dataset.status = game.status;
   root.dataset.reducedMotion = String(Boolean(game.settings?.reducedMotion));
+
+  const combat = game.status === 'combat';
+  const configuration = game.status === 'configuration';
+  const boardActive = combat || configuration;
+  const enemyIntents = root.querySelector('#enemy-intents');
+  const enemyField = root.querySelector('#enemy-field');
+  const battleBoard = root.querySelector('#battle-board');
+  const camp = root.querySelector('#camp');
+  const hand = root.querySelector('#hand');
+  const primaryActions = root.querySelector('#primary-actions');
+  const orders = root.querySelector('#orders');
+  const details = root.querySelector('#details-panel');
+
   renderStatus(root.querySelector('#run-status'), game);
-  renderIntents(root.querySelector('#enemy-intents'), game);
-  const boardState = game.status === 'combat' ? { ...game, board: game.combat.board } : game;
-  renderBoard(root.querySelector('#battle-board'), boardState);
-  renderCamp(root.querySelector('#camp'), game);
-  renderHand(root.querySelector('#hand'), game);
-  renderActions(root.querySelector('#primary-actions'), game);
-  renderOrders(root.querySelector('#orders'), game);
-  renderDetails(root.querySelector('#details-panel'), game);
+  setVisible(root.querySelector('.battle-stage'), boardActive);
+  setVisible(enemyIntents, combat);
+  setVisible(enemyField, combat);
+  setVisible(battleBoard, boardActive);
+  setVisible(camp, configuration);
+  setVisible(hand, configuration);
+  setVisible(primaryActions, !combat);
+  setVisible(orders, combat);
+  setVisible(details, !boardActive);
+
+  if (combat) {
+    renderIntents(enemyIntents, game);
+    renderEnemyField(enemyField, game);
+  }
+  if (boardActive) {
+    const boardState = combat ? { ...game, board: game.combat.board } : game;
+    renderBoard(battleBoard, boardState);
+  }
+  if (configuration) {
+    renderCamp(camp, game);
+    renderHand(hand, game);
+  }
+  if (!combat) renderActions(primaryActions, game);
+  if (combat) renderOrders(orders, game);
+  if (!boardActive) renderDetails(details, game);
 }
