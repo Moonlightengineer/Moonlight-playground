@@ -9,6 +9,8 @@ export const ROUTES = Object.freeze({
   danger: Object.freeze(['tutorial', 'shield-line', 'route-danger', 'cavalry-warning', 'elite-mixed', 'hua-xiong']),
 });
 
+const SHARED_OPENING = Object.freeze(['tutorial', 'shield-line']);
+
 function cardsById(deck) {
   return Object.fromEntries(allDeckCards(deck).map((card) => [card.id, card]));
 }
@@ -30,6 +32,7 @@ export function createExpedition(seed) {
     wallMaxHp: TUNING.wallMaxHp,
     boardSizeId: 'base',
     board: createBoard('base'),
+    boardCards: {},
     deck: deckResult.deck,
     cardsById: cardsById(deckResult.deck),
     camp: { capacity: TUNING.campCapacity, cardIds: [] },
@@ -49,14 +52,13 @@ export function createExpedition(seed) {
   };
 }
 
-function resolvedRoute(game, choice) {
+function chosenRoute(game, choice) {
   if (game.route) return game.route;
-  if (choice === 'danger') return 'danger';
-  return 'safe';
+  return ['safe', 'danger'].includes(choice) ? choice : null;
 }
 
 export function advanceExpedition(game, choice) {
-  const route = resolvedRoute(game, choice);
+  const route = chosenRoute(game, choice);
   const stageId = game.currentBattle?.stageId;
   const completed = stageId && !game.completedBattleIds.includes(stageId)
     ? [...game.completedBattleIds, stageId]
@@ -82,9 +84,10 @@ export function advanceExpedition(game, choice) {
     };
   }
 
-  if (battleIndex === 2 && !game.route && !['safe', 'danger'].includes(choice)) {
+  if (battleIndex === 2 && !route) {
     return {
       ...game,
+      route: null,
       completedBattleIds: completed,
       battleIndex,
       wallHp: healed,
@@ -93,9 +96,15 @@ export function advanceExpedition(game, choice) {
       currentBattleResult: null,
       nextStageId: null,
       awaitingRoute: true,
+      rewardChoices: [],
       legalActions: ['CHOOSE_ROUTE'],
     };
   }
+
+  const nextStageId = battleIndex < SHARED_OPENING.length
+    ? SHARED_OPENING[battleIndex]
+    : ROUTES[route]?.[battleIndex];
+  if (!nextStageId) throw new Error(`Missing next expedition stage for battle ${battleIndex}`);
 
   return {
     ...game,
@@ -106,7 +115,7 @@ export function advanceExpedition(game, choice) {
     status: 'expedition-map',
     currentBattle: null,
     currentBattleResult: null,
-    nextStageId: ROUTES[route][battleIndex],
+    nextStageId,
     awaitingRoute: false,
     rewardChoices: [],
     legalActions: ['START_BATTLE'],
