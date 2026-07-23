@@ -49,9 +49,11 @@ Moonlight-playground/
 
 ## 本機預覽與驗證
 
-只需要 Python 3：
+需要 Python 3 及 Node.js 20：
 
 ```bash
+npm test
+python -m unittest tests/test_build_site.py -v
 python scripts/build_site.py
 python -m http.server 8000 --directory _site
 ```
@@ -61,7 +63,7 @@ python -m http.server 8000 --directory _site
 成功建置會顯示：
 
 ```text
-SITE_VERIFY_OK projects=1 game_bytes=58434
+SITE_VERIFY_OK projects=1 game_bytes=58434 v2=1
 ```
 
 ## GitHub Pages 一次性設定
@@ -79,6 +81,17 @@ SITE_VERIFY_OK projects=1 game_bytes=58434
 首次遊戲由 ChatGPT 對話產生完整單檔 HTML。因連接器單次傳輸限制，Repo 內保存經 gzip＋Base64 分段的發佈封裝；`scripts/build_site.py` 會重建成公開頁面，並驗證遊戲標記及檔案大小。
 
 這是首次匯入的特殊處理。日後新增一般實驗，應直接保存正常可讀的 HTML、CSS、JavaScript 原始檔，不需要使用分段封裝。
+
+## 字陣無雙 v2 隱藏測試版
+
+Vertical Slice 完成後由以下路徑提供指定測試者使用：
+
+`/games/hanzi-generals/v2/`
+
+- v2 使用正常可讀 ES modules，唔沿用 Classic 分段封裝作架構基礎。
+- v2 不加入 `projects.json`，Playground 首頁不會顯示。
+- v2 不取代 Classic；兩者有獨立 runtime 及回歸驗證。
+- 設計、實作及試玩規格見 `docs/superpowers/` 與 `docs/playtests/`。
 
 ## 私隱與範圍
 

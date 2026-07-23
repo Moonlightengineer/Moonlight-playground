@@ -1,0 +1,9 @@
+{
+  "name": "moonlight-playground",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "build": "python scripts/build_site.py"
+  }
+}
