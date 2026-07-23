@@ -16,10 +16,6 @@ function definition(context, collection, id) {
   return value;
 }
 
-function hasStatus(entity, type) {
-  return entity.statuses?.some((status) => status.type === type);
-}
-
 function applyBurn(enemy, turn, events) {
   const statuses = enemy.statuses ?? [];
   const burn = statuses.find(({ type }) => type === 'burn');
@@ -62,7 +58,7 @@ function friendlyDamageAgainst(target, baseDamage, enemies) {
       && enemy.distance < target.distance
     ));
   const bossShielded = target.definitionId === 'hua-xiong' && (target.shieldTurns ?? 0) > 0;
-  if (shielded || bossShielded) return Math.max(1, Math.ceil(baseDamage * 0.65));
+  if (shielded || bossShielded) return Math.max(1, Math.floor(baseDamage * 0.65));
   return baseDamage;
 }
 
@@ -115,6 +111,39 @@ function maybeTriggerBossPhase(next, enemy, context, events) {
   }));
 }
 
+function damageLaneTarget(next, enemy, enemyDefinition, events, options = {}) {
+  const preferRear = Boolean(options.preferRear);
+  const impactMultiplier = options.multiplier ?? 1;
+  const target = nearestFriendlyTarget(next.board, enemy.lane, { preferRear });
+  const boostedDamage = enemyDefinition.damage
+    * enemyDamageBoost(enemy, next.enemies)
+    * impactMultiplier;
+
+  if (target) {
+    const reduction = friendlyDirectReduction(next.board, target, enemy.lane, next.fortify);
+    const damage = Math.max(1, Math.floor(boostedDamage * reduction));
+    target.hp -= damage;
+    events.push(eventAt(next.turn, 'FRIENDLY_DAMAGED', {
+      enemyId: enemy.id,
+      unitId: target.id,
+      damage,
+      impact: options.impact ?? 'attack',
+    }));
+  } else {
+    const damage = Math.max(1, Math.floor(
+      boostedDamage * wallDirectReduction(enemy.lane, next.fortify),
+    ));
+    next.wallHp = Math.max(0, next.wallHp - damage);
+    events.push(eventAt(next.turn, 'WALL_DAMAGED', {
+      enemyId: enemy.id,
+      damage,
+      lane: enemy.lane,
+      impact: options.impact ?? 'attack',
+    }));
+  }
+  enemy.cooldown = enemyDefinition.attackEvery;
+}
+
 export function createCombatState({
   board,
   enemies,
@@ -150,7 +179,6 @@ export function stepCombat(combat, context) {
   const next = clone(combat);
   const events = [];
   next.turn += 1;
-
   applyPendingOrders(next, events);
 
   for (const enemy of next.enemies) {
@@ -171,7 +199,6 @@ export function stepCombat(combat, context) {
   for (const unit of units) {
     unit.cooldown = Math.max(0, unit.cooldown - 1);
     if (unit.cooldown > 0) continue;
-
     const unitDefinition = definition(context, 'unitsById', unit.definitionId);
     const focusId = next.focus?.remainingFriendlyTurns > 0 ? next.focus.enemyId : null;
     const targets = findTargets(unit, next.enemies, unitDefinition, { focusId });
@@ -192,20 +219,20 @@ export function stepCombat(combat, context) {
 
   if (next.focus && friendlyActions > 0) {
     next.focus.remainingFriendlyTurns -= friendlyActions;
-    if (next.focus.remainingFriendlyTurns <= 0 || !next.enemies.some(({ id, hp }) => id === next.focus.enemyId && hp > 0)) {
-      next.focus = null;
-    }
+    if (
+      next.focus.remainingFriendlyTurns <= 0
+      || !next.enemies.some(({ id, hp }) => id === next.focus.enemyId && hp > 0)
+    ) next.focus = null;
   }
 
   next.enemies = next.enemies.filter((enemy) => enemy.hp > 0);
-
   const enemyActors = [...next.enemies].sort((a, b) => (
     a.lane - b.lane
     || a.distance - b.distance
     || a.id.localeCompare(b.id)
   ));
 
-  let enemyActions = 0;
+  let anyEnemyAction = false;
   for (const enemy of enemyActors) {
     maybeTriggerBossPhase(next, enemy, context, events);
     const enemyDefinition = definition(context, 'enemiesById', enemy.definitionId);
@@ -221,58 +248,50 @@ export function stepCombat(combat, context) {
           lane: enemy.lane,
           distance: enemy.distance,
         }));
+        if (enemy.distance === 0) {
+          damageLaneTarget(next, enemy, enemyDefinition, events, {
+            multiplier: 1.5,
+            impact: 'charge',
+          });
+        }
       } else if (enemy.distance > 0) {
         enemy.distance -= 1;
-        events.push(eventAt(next.turn, 'ENEMY_MOVED', { enemyId: enemy.id, distance: enemy.distance }));
+        events.push(eventAt(next.turn, 'ENEMY_MOVED', {
+          enemyId: enemy.id,
+          distance: enemy.distance,
+        }));
+      } else if (enemy.cooldown === 0) {
+        damageLaneTarget(next, enemy, enemyDefinition, events);
       }
-      enemyActions += 1;
+      anyEnemyAction = true;
       continue;
     }
 
     if (enemy.definitionId === 'crossbow' && enemy.cooldown === 0) {
-      const target = nearestFriendlyTarget(next.board, enemy.lane, { preferRear: true });
-      const boostedDamage = Math.ceil(enemyDefinition.damage * enemyDamageBoost(enemy, next.enemies));
-      if (target) {
-        const damage = Math.max(1, Math.ceil(
-          boostedDamage * friendlyDirectReduction(next.board, target, enemy.lane, next.fortify),
-        ));
-        target.hp -= damage;
-        events.push(eventAt(next.turn, 'FRIENDLY_DAMAGED', {
-          enemyId: enemy.id,
-          unitId: target.id,
-          damage,
-        }));
-      } else {
-        const damage = Math.max(1, Math.ceil(boostedDamage * wallDirectReduction(enemy.lane, next.fortify)));
-        next.wallHp = Math.max(0, next.wallHp - damage);
-        events.push(eventAt(next.turn, 'WALL_DAMAGED', { enemyId: enemy.id, damage }));
-      }
-      enemy.cooldown = enemyDefinition.attackEvery;
-      enemyActions += 1;
+      damageLaneTarget(next, enemy, enemyDefinition, events, { preferRear: true });
+      anyEnemyAction = true;
       continue;
     }
 
     if (enemy.distance > 0) {
       enemy.distance -= 1;
-      events.push(eventAt(next.turn, 'ENEMY_MOVED', { enemyId: enemy.id, distance: enemy.distance }));
-      enemyActions += 1;
+      events.push(eventAt(next.turn, 'ENEMY_MOVED', {
+        enemyId: enemy.id,
+        distance: enemy.distance,
+      }));
+      anyEnemyAction = true;
       continue;
     }
 
     if (enemy.cooldown === 0) {
-      const boostedDamage = Math.ceil(enemyDefinition.damage * enemyDamageBoost(enemy, next.enemies));
-      const damage = Math.max(1, Math.ceil(boostedDamage * wallDirectReduction(enemy.lane, next.fortify)));
-      next.wallHp = Math.max(0, next.wallHp - damage);
-      enemy.cooldown = enemyDefinition.attackEvery;
-      events.push(eventAt(next.turn, 'WALL_DAMAGED', { enemyId: enemy.id, damage }));
-      enemyActions += 1;
+      damageLaneTarget(next, enemy, enemyDefinition, events);
+      anyEnemyAction = true;
     }
-
     if ((enemy.shieldTurns ?? 0) > 0) enemy.shieldTurns -= 1;
   }
 
-  if (next.fortify && enemyActions > 0) {
-    next.fortify.remainingEnemyTurns -= enemyActions;
+  if (next.fortify && anyEnemyAction) {
+    next.fortify.remainingEnemyTurns -= 1;
     if (next.fortify.remainingEnemyTurns <= 0) next.fortify = null;
   }
 
