@@ -16,6 +16,7 @@ test('v2 shell exposes every fixed semantic game region', async () => {
   const requiredIds = [
     'run-status',
     'enemy-intents',
+    'enemy-field',
     'battle-board',
     'camp',
     'hand',
@@ -25,13 +26,15 @@ test('v2 shell exposes every fixed semantic game region', async () => {
     'action-message',
   ];
   for (const id of requiredIds) assert.match(html, new RegExp(`id="${id}"`));
+  assert.match(html, /class="battle-stage"/);
+  assert.match(html, /class="command-panel"/);
   assert.match(html, /data-action="pause"/);
   assert.match(html, /data-action="set-speed"/);
   assert.match(html, /data-action="issue-order"/);
   assert.match(html, /aria-live="assertive"/);
 });
 
-test('v2 shell keeps mobile accessibility and reduced-motion baselines', async () => {
+test('v2 shell keeps mobile accessibility and compact battle baselines', async () => {
   const css = await readFile(new URL('styles/game.css', root), 'utf8');
   assert.match(css, /min-width:\s*320px/);
   assert.match(css, /min-width:\s*44px/);
@@ -40,6 +43,11 @@ test('v2 shell keeps mobile accessibility and reduced-motion baselines', async (
   assert.match(css, /\.intent-countdown/);
   assert.match(css, /\[data-reduced-motion="true"\]/);
   assert.match(css, /@media\s*\(max-width:\s*359px\)/);
+  assert.match(css, /#enemy-field/);
+  assert.match(css, /\.enemy-lane-track/);
+  assert.match(css, /\.enemy-token/);
+  assert.match(css, /transition:\s*left/);
+  assert.match(css, /\[hidden\]\s*\{\s*display:\s*none/);
 });
 
 test('interaction layer contains tap alternatives for every core action', async () => {
@@ -57,4 +65,12 @@ test('interaction layer contains tap alternatives for every core action', async 
   ]) {
     assert.match(source, new RegExp(`'${action}'`));
   }
+});
+
+test('render layer spatially renders enemies instead of only warning text', async () => {
+  const source = await readFile(new URL('src/ui/render.js', root), 'utf8');
+  assert.match(source, /renderEnemyField/);
+  assert.match(source, /dataEnemyId/);
+  assert.match(source, /--enemy-progress/);
+  assert.match(source, /enemy\.distance/);
 });
