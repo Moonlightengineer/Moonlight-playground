@@ -26,7 +26,33 @@ jobs:
         with:
           node-version: 20
 
-      - name: Run JavaScript tests
+      - name: Test v2 foundations
+        run: >-
+          node --test
+          games/hanzi-generals/v2/tests/data-validator.test.js
+          games/hanzi-generals/v2/tests/rng.test.js
+          games/hanzi-generals/v2/tests/storage.test.js
+          games/hanzi-generals/v2/tests/board.test.js
+          games/hanzi-generals/v2/tests/deck.test.js
+          games/hanzi-generals/v2/tests/assembly.test.js
+
+      - name: Test v2 combat rules
+        run: >-
+          node --test
+          games/hanzi-generals/v2/tests/combat-engine.test.js
+          games/hanzi-generals/v2/tests/enemy-intents.test.js
+          games/hanzi-generals/v2/tests/orders.test.js
+
+      - name: Test v2 expedition flow
+        run: >-
+          node --test
+          games/hanzi-generals/v2/tests/expedition.test.js
+          games/hanzi-generals/v2/tests/state-machine.test.js
+
+      - name: Test v2 UI contracts
+        run: node --test games/hanzi-generals/v2/tests/ui-contract.test.js
+
+      - name: Run complete JavaScript suite
         run: npm test
 
       - name: Run build regression tests
