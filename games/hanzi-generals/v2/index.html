@@ -21,19 +21,27 @@
     </header>
 
     <section id="run-status" aria-label="遠征狀態"></section>
-    <section id="enemy-intents" aria-label="敵軍意圖"></section>
-    <section id="battle-board" aria-label="戰陣棋盤"></section>
-    <section id="camp" aria-label="兩格軍營"></section>
-    <section id="hand" aria-label="手牌"></section>
-    <section id="primary-actions" aria-label="主要操作"></section>
-    <section id="orders" aria-label="軍令">
-      <button type="button" data-action="pause">暫停</button>
-      <button type="button" data-action="set-speed" data-speed="2">速度 2×</button>
-      <button type="button" data-action="issue-order" data-order-type="fortify" data-lane="0">堅守</button>
+
+    <section class="battle-stage" aria-label="戰場">
+      <section id="enemy-intents" aria-label="敵軍意圖"></section>
+      <section id="enemy-field" aria-label="敵軍推進跑道"></section>
+      <section id="battle-board" aria-label="戰陣棋盤"></section>
     </section>
 
+    <section class="command-panel" aria-label="整軍及戰鬥操作">
+      <section id="camp" aria-label="兩格軍營"></section>
+      <section id="primary-actions" aria-label="主要操作"></section>
+      <section id="orders" aria-label="軍令">
+        <button type="button" data-action="pause">暫停</button>
+        <button type="button" data-action="set-speed" data-speed="2">速度 2×</button>
+        <button type="button" data-action="issue-order" data-order-type="fortify" data-lane="0">堅守</button>
+      </section>
+    </section>
+
+    <section id="hand" aria-label="手牌"></section>
+
     <details id="details-panel">
-      <summary>牌庫與戰鬥詳情</summary>
+      <summary>牌庫、設定與戰鬥詳情</summary>
     </details>
 
     <p id="action-message" role="alert" aria-live="assertive"></p>
