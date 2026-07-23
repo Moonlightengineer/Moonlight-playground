@@ -95,6 +95,7 @@ function playEvents(events) {
   const important = events.at(-1);
   if (important) {
     const labels = {
+      CARD_PLACED: '字牌已放入戰陣，相鄰配對會自動合成。',
       UNIT_ASSEMBLED: '武將合成完成。',
       WALL_DAMAGED: '城牆受到攻擊。',
       BOSS_PHASE_CHANGED: '華雄進入第二階段，重騎增援到達。',
@@ -108,7 +109,7 @@ function playEvents(events) {
 }
 
 function vibrationFor(events) {
-  if (!game.settings.vibration || !navigator.vibrate) return;
+  if (typeof navigator === 'undefined' || !game.settings.vibration || !navigator.vibrate) return;
   if (!events.some(({ type }) => ['UNIT_HIT', 'WALL_DAMAGED', 'BOSS_PHASE_CHANGED'].includes(type))) return;
   try {
     navigator.vibrate(events.some(({ type }) => type === 'BOSS_PHASE_CHANGED') ? [40, 40, 80] : 25);
@@ -126,7 +127,7 @@ function scheduleBattleTick() {
 }
 
 function completedTutorialAction(action, events) {
-  if (action.type === 'SELECT_CARD' && (game.selection?.cardIds?.length ?? 0) >= 2) return 'SELECT_CARD';
+  if (action.type === 'ASSEMBLE' && events.some(({ type }) => type === 'CARD_PLACED')) return 'PLACE_CARD';
   if (action.type === 'ASSEMBLE' && events.some(({ type }) => type === 'UNIT_ASSEMBLED')) return 'ASSEMBLE_UNIT';
   if (action.type === 'START_PHASE') return 'START_PHASE';
   if (action.type === 'ISSUE_ORDER') return 'USE_ORDER';
@@ -198,9 +199,9 @@ function dispatch(action) {
 
   if (action.type === 'SET_SPEED') saveSettings(game.settings);
   maybeSave(game);
-  vibrationFor(result.events);
-  playEvents(result.events);
   render();
+  playEvents(result.events);
+  vibrationFor(result.events);
   scheduleBattleTick();
 }
 
