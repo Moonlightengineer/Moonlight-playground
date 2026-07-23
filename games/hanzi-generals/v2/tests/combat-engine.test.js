@@ -63,7 +63,7 @@ test('same-lane ranged unit selects the nearest reachable enemy', () => {
   );
 });
 
-test('enemy at distance zero damages wall and emits an event', () => {
+test('enemy at distance zero damages wall when the lane is empty', () => {
   const combat = createCombatState({
     board: createBoard('base'),
     enemies: [enemyAtWall()],
@@ -74,6 +74,41 @@ test('enemy at distance zero damages wall and emits an event', () => {
   const result = stepCombat(combat, context);
   assert.equal(result.combat.wallHp, 98);
   assert.equal(result.events.some(({ type }) => type === 'WALL_DAMAGED'), true);
+});
+
+test('frontline unit blocks melee enemy before the wall is damaged', () => {
+  let board = createBoard('base');
+  board = placeUnit(board, unit('shield-troop', { id: 'front' }), { column: 1, row: 0 });
+  const combat = createCombatState({
+    board,
+    enemies: [enemyAtWall()],
+    wallHp: 100,
+    phaseIndex: 0,
+    ordersRemaining: 3,
+  });
+  const result = stepCombat(combat, context);
+  assert.equal(result.combat.wallHp, 100);
+  assert.equal(result.combat.board.units.front.hp, 20);
+  assert.equal(result.events.some(({ type }) => type === 'FRIENDLY_DAMAGED'), true);
+});
+
+test('heavy cavalry charge reaches the lane and causes impact damage', () => {
+  let board = createBoard('base');
+  board = placeUnit(board, unit('shield-troop', { id: 'front' }), { column: 1, row: 0 });
+  const combat = createCombatState({
+    board,
+    enemies: [{
+      id: 'cavalry', definitionId: 'heavy-cavalry', lane: 1, distance: 1,
+      hp: 16, maxHp: 16, cooldown: 0, chargeIn: 1, statuses: [],
+    }],
+    wallHp: 100,
+    phaseIndex: 0,
+    ordersRemaining: 3,
+  });
+  const result = stepCombat(combat, context);
+  assert.equal(result.combat.board.units.front.hp, 15);
+  assert.equal(result.events.some(({ type }) => type === 'CAVALRY_CHARGED'), true);
+  assert.equal(result.events.some(({ payload }) => payload.impact === 'charge'), true);
 });
 
 test('same combat input produces the same state and event payloads', () => {
@@ -103,5 +138,18 @@ test('crossbow attacks the rear unit and shield troop reduces direct damage', ()
     ordersRemaining: 3,
   });
   const result = stepCombat(combat, context);
-  assert.equal(result.combat.board.units.rear.hp, 15);
+  assert.equal(result.combat.board.units.rear.hp, 16);
+});
+
+test('fortify duration decreases once per enemy action round', () => {
+  const combat = createCombatState({
+    board: createBoard('base'),
+    enemies: [enemyAtWall({ id: 'a' }), enemyAtWall({ id: 'b', lane: 2 })],
+    wallHp: 100,
+    phaseIndex: 0,
+    ordersRemaining: 2,
+  });
+  combat.fortify = { lane: 1, remainingEnemyTurns: 2, reduction: 0.4 };
+  const result = stepCombat(combat, context);
+  assert.equal(result.combat.fortify.remainingEnemyTurns, 1);
 });
