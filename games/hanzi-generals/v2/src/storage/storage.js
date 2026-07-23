@@ -14,7 +14,13 @@ export function saveSnapshot(game, storage) {
 }
 
 export function loadSnapshot(storage) {
-  const target = resolveStorage(storage);
+  let target;
+  try {
+    target = resolveStorage(storage);
+  } catch {
+    return { ok: false, error: { code: 'STORAGE_UNAVAILABLE', message: '瀏覽器暫時無法使用本機存檔。' } };
+  }
+
   const raw = target.getItem(SAVE_KEY);
   if (!raw) {
     return { ok: false, error: { code: 'NO_SAVE', message: '未有 v2 測試存檔。' } };
@@ -42,7 +48,13 @@ export function saveSettings(settings, storage) {
 }
 
 export function loadSettings(storage) {
-  const raw = resolveStorage(storage).getItem(SETTINGS_KEY);
+  let target;
+  try {
+    target = resolveStorage(storage);
+  } catch {
+    return { reducedMotion: false, vibration: true, speed: 1 };
+  }
+  const raw = target.getItem(SETTINGS_KEY);
   if (!raw) return { reducedMotion: false, vibration: true, speed: 1 };
   try {
     const parsed = JSON.parse(raw);
@@ -53,6 +65,22 @@ export function loadSettings(storage) {
     };
   } catch {
     return { reducedMotion: false, vibration: true, speed: 1 };
+  }
+}
+
+export function isApprovedSaveBoundary(game) {
+  if (!game || typeof game !== 'object') return false;
+  if (['expedition-map', 'reward', 'victory', 'defeat'].includes(game.status)) return true;
+  return game.status === 'configuration' && game.currentBattle?.phaseIndex === 0;
+}
+
+export function maybeSave(game, storage) {
+  if (!isApprovedSaveBoundary(game)) return false;
+  try {
+    saveSnapshot(game, storage);
+    return true;
+  } catch {
+    return false;
   }
 }
 
