@@ -1,0 +1,16 @@
+export const TUNING = Object.freeze({
+  schemaVersion: 1,
+  wallMaxHp: 100,
+  postBattleHealRatio: 0.15,
+  handSize: 5,
+  retainLimit: 2,
+  freeRerollsPerBattle: 1,
+  campCapacity: 2,
+  ordersPerBattle: 3,
+  focusFriendlyTurns: 3,
+  fortifyEnemyTurns: 2,
+  fortifyReduction: 0.4,
+  bossPhaseTwoHpRatio: 0.5,
+  burnTurns: 2,
+  firstAidRatio: 0.3,
+});
