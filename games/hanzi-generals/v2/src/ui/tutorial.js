@@ -1,6 +1,6 @@
 const STEPS = Object.freeze([
-  { action: 'SELECT_CARD', text: '第一步：點選兩張可以組成武將嘅中文字牌。' },
-  { action: 'ASSEMBLE_UNIT', text: '第二步：點一個高亮空格，將字牌合成並部署武將。' },
+  { action: 'PLACE_CARD', text: '第一步：點一張中文字牌，再點高亮空格放入戰陣。' },
+  { action: 'ASSEMBLE_UNIT', text: '第二步：將配對字放到相鄰格，自動合成武將。' },
   { action: 'OPEN_RANGE', text: '第三步：點已部署武將，查看攻擊方向同射程。' },
   { action: 'START_PHASE', text: '第四步：開始第一段戰鬥。' },
   { action: 'USE_ORDER', text: '第五步：暫停戰鬥，使用一次軍令。' },
