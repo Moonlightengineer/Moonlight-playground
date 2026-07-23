@@ -4,19 +4,40 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#241b15">
-  <meta name="description" content="字陣無雙 v2｜群雄遠征隱藏測試版。">
+  <meta name="description" content="字陣無雙 v2｜中文字牌合成、戰陣構築與六戰群雄遠征隱藏測試版。">
   <title>字陣無雙 v2｜群雄遠征測試版</title>
   <link rel="stylesheet" href="./styles/game.css">
   <script type="module" src="./src/app.js"></script>
 </head>
 <body>
-  <main id="v2-game-app" aria-live="polite">
-    <section class="shell-card" aria-labelledby="v2-title">
-      <p class="eyebrow">HIDDEN VERTICAL SLICE</p>
-      <h1 id="v2-title">字陣無雙 v2</h1>
-      <p class="subtitle">群雄遠征隱藏測試版準備中。</p>
-      <p class="status" data-v2-status>正在載入測試殼…</p>
+  <main id="v2-game-app" aria-labelledby="v2-title">
+    <header class="game-header">
+      <div>
+        <p class="eyebrow">HIDDEN VERTICAL SLICE</p>
+        <h1 id="v2-title">字陣無雙 v2</h1>
+        <p class="subtitle">群雄遠征｜隱藏測試版</p>
+      </div>
+      <button type="button" data-action="skip-tutorial" class="quiet-button">略過教學</button>
+    </header>
+
+    <section id="run-status" aria-label="遠征狀態"></section>
+    <section id="enemy-intents" aria-label="敵軍意圖"></section>
+    <section id="battle-board" aria-label="戰陣棋盤"></section>
+    <section id="camp" aria-label="兩格軍營"></section>
+    <section id="hand" aria-label="手牌"></section>
+    <section id="primary-actions" aria-label="主要操作"></section>
+    <section id="orders" aria-label="軍令">
+      <button type="button" data-action="pause">暫停</button>
+      <button type="button" data-action="set-speed" data-speed="2">速度 2×</button>
+      <button type="button" data-action="issue-order" data-order-type="fortify" data-lane="0">堅守</button>
     </section>
+
+    <details id="details-panel">
+      <summary>牌庫與戰鬥詳情</summary>
+    </details>
+
+    <p id="action-message" role="alert" aria-live="assertive"></p>
+    <p class="disclaimer">個人遊戲實驗；測試數值未經完整平衡。</p>
   </main>
 </body>
 </html>
