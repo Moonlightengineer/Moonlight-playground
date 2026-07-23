@@ -39,6 +39,12 @@ export function bindInteractions(root, dispatch) {
           target: { column: number(target.dataset.column), row: number(target.dataset.row) },
         });
         break;
+      case 'return-board-card':
+        dispatch({
+          type: 'RETURN_BOARD_CARD',
+          target: { column: number(target.dataset.column), row: number(target.dataset.row) },
+        });
+        break;
       case 'move-card-to-camp':
         dispatch({ type: 'MOVE_CARD_TO_CAMP', cardId: target.dataset.cardId });
         break;
@@ -47,6 +53,9 @@ export function bindInteractions(root, dispatch) {
         break;
       case 'draw-cards':
         dispatch({ type: 'DRAW_CARDS' });
+        break;
+      case 'retain-cards':
+        dispatch({ type: 'RETAIN_CARDS', cardIds: target.dataset.cardIds.split(',').filter(Boolean) });
         break;
       case 'reroll':
         dispatch({ type: 'REROLL', lockedCardIds: [] });
@@ -61,7 +70,15 @@ export function bindInteractions(root, dispatch) {
         dispatch({ type: 'CHOOSE_ROUTE', route: target.dataset.route });
         break;
       case 'choose-reward':
-        dispatch({ type: 'CHOOSE_REWARD', rewardId: target.dataset.rewardId });
+        dispatch({
+          type: 'CHOOSE_REWARD',
+          rewardId: target.dataset.rewardId,
+          payload: {
+            cardId: target.dataset.cardId || undefined,
+            generalId: target.dataset.generalId || undefined,
+            evolutionId: target.dataset.evolutionId || undefined,
+          },
+        });
         break;
       case 'pause':
         dispatch({ type: 'PAUSE' });
@@ -88,6 +105,12 @@ export function bindInteractions(root, dispatch) {
         break;
       case 'skip-tutorial':
         dispatch({ type: 'UI_SKIP_TUTORIAL' });
+        break;
+      case 'toggle-reduced-motion':
+        dispatch({ type: 'UI_TOGGLE_REDUCED_MOTION' });
+        break;
+      case 'toggle-vibration':
+        dispatch({ type: 'UI_TOGGLE_VIBRATION' });
         break;
       default:
         break;
