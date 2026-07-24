@@ -93,6 +93,10 @@ async function measurePage(page, phase) {
   }
 }
 
+async function visible(locator) {
+  return (await locator.count()) > 0 && await locator.first().isVisible();
+}
+
 async function play() {
   await mkdir(ARTIFACT_DIR, { recursive: true });
   const server = spawn('python', ['-m', 'http.server', '8000', '--directory', '_site'], {
@@ -142,14 +146,14 @@ async function play() {
       elements.map((element) => ({ action: element.dataset.action, text: element.textContent?.trim() }))
     ));
     observations.push({ phase: 'camp', campActions });
-    const campCanSelect = campActions.filter(({ action }) => action === 'select-card').length >= 2;
+    const campCanSelect = campActions.filter(({ action }) => action === 'select-camp-card').length >= 2;
     const campCanReturn = campActions.some(({ action }) => action === 'return-camp-card');
     if (!campCanSelect || !campCanReturn) {
       bug('camp-not-actionable', 'Camp cards do not expose both select and return actions', { campActions });
     }
 
     if (campCanSelect) {
-      const campSelect = page.locator('#camp [data-action="select-card"]');
+      const campSelect = page.locator('#camp [data-action="select-camp-card"]');
       await campSelect.nth(0).click();
       await campSelect.nth(1).click();
       const selected = await page.locator('#camp [aria-pressed="true"]').count();
@@ -172,10 +176,12 @@ async function play() {
     await screenshot(page, '04-assembled');
 
     await (await exactButton(page, '開始呢一段')).click();
-    const speedButton = page.locator('#orders [data-action="set-speed"]');
-    if (await speedButton.count()) await speedButton.click();
-    await page.waitForTimeout(100);
-    await screenshot(page, '05-combat-start');
+    await page.waitForTimeout(60);
+    const pauseButton = page.locator('#orders [data-action="pause"]');
+    if (await visible(pauseButton)) await pauseButton.click();
+    else bug('pause-not-immediately-available', 'Pause control is not available immediately after combat starts');
+
+    await screenshot(page, '05-combat-paused');
     await measurePage(page, 'combat');
 
     const enemy = page.locator('#enemy-field .enemy-token').first();
@@ -183,14 +189,72 @@ async function play() {
       bug('enemy-not-visible', 'Combat started without a visible enemy token');
       return;
     }
+
+    const swapButton = page.getByRole('button', { name: '變陣', exact: true });
+    if (!(await visible(swapButton)) || await swapButton.isDisabled()) {
+      bug('swap-order-unavailable', '變陣 is unavailable with one deployed unit and adjacent empty cells');
+    } else {
+      await swapButton.click();
+      const source = page.locator('#battle-board .board-cell.is-order-target.has-unit').first();
+      if (!(await visible(source))) {
+        bug('swap-has-no-source-selection', '變陣 does not expose a selectable source unit');
+      } else {
+        await source.click();
+        const target = page.locator('#battle-board .board-cell.is-order-target:not(.has-unit)').first();
+        if (!(await visible(target))) {
+          bug('swap-has-no-empty-target', '變陣 does not expose an adjacent empty destination');
+        } else {
+          await target.click();
+          observations.push({ phase: 'swap-order', message: await page.locator('#action-message').textContent() });
+        }
+      }
+    }
+
+    const focusButton = page.getByRole('button', { name: '集火', exact: true });
+    if (!(await visible(focusButton)) || await focusButton.isDisabled()) {
+      bug('focus-order-unavailable', '集火 is unavailable while a legal enemy is visible');
+    } else {
+      await focusButton.click();
+      const target = page.locator('#enemy-field .enemy-token.is-order-target').first();
+      if (!(await visible(target))) {
+        bug('focus-has-no-target-selection', '集火 does not expose selectable enemy targets');
+      } else {
+        await target.click();
+        const focused = await page.locator('#enemy-field .enemy-token.is-focused').count();
+        const orderStatus = await page.locator('#orders .order-status').textContent().catch(() => null);
+        observations.push({ phase: 'focus-order', focused, orderStatus });
+        if (!focused || !/剩餘\s*3\s*輪/.test(orderStatus ?? '')) {
+          bug('focus-feedback-missing', '集火 target or remaining duration is not visibly confirmed', { focused, orderStatus });
+        }
+      }
+    }
+
+    const fortifyButton = page.getByRole('button', { name: '守1路', exact: true });
+    if (await visible(fortifyButton) && !(await fortifyButton.isDisabled())) {
+      await fortifyButton.click();
+      const statusText = await page.locator('#orders .order-status').textContent().catch(() => null);
+      const highlightedLane = await page.locator('#enemy-field .enemy-lane.is-fortified').count();
+      observations.push({ phase: 'fortify-order', statusText, highlightedLane });
+      if (!/剩餘\s*2\s*輪/.test(statusText ?? '') || !highlightedLane) {
+        bug('fortify-feedback-missing', '堅守 does not visibly confirm its lane and remaining duration', { statusText, highlightedLane });
+      }
+    } else {
+      bug('fortify-order-unavailable', '堅守 is unavailable before all three command points are spent');
+    }
+
+    await screenshot(page, '06-orders-applied');
+
     const before = {
       distance: await enemy.getAttribute('data-distance'),
       box: await enemy.boundingBox(),
     };
-    await page.waitForTimeout(900);
+    const resumeButton = page.locator('#orders [data-action="resume"]');
+    if (await visible(resumeButton)) await resumeButton.click();
+    await page.waitForTimeout(760);
+    const movingEnemy = page.locator('#enemy-field .enemy-token').first();
     const after = {
-      distance: await enemy.getAttribute('data-distance'),
-      box: await enemy.boundingBox(),
+      distance: await movingEnemy.getAttribute('data-distance'),
+      box: await movingEnemy.boundingBox(),
     };
     observations.push({ phase: 'enemy-movement', before, after });
     if (before.distance === after.distance) {
@@ -203,42 +267,10 @@ async function play() {
       if (dy < 2) bug('enemy-motion-not-visible', 'Enemy distance changes but token has no visible vertical movement', { dx, dy, before, after });
     }
 
-    const pauseButton = page.locator('#orders [data-action="pause"]');
-    if (await pauseButton.count()) await pauseButton.click();
+    const speedButton = page.locator('#orders [data-action="set-speed"]');
+    if (await visible(speedButton)) await speedButton.click();
 
-    const swapButton = page.getByRole('button', { name: /變陣/ }).first();
-    if (!(await swapButton.count()) || await swapButton.isDisabled()) {
-      bug('swap-order-unavailable', '變陣 is unavailable with one deployed unit and adjacent empty cells');
-    } else {
-      await swapButton.click();
-      const selectableUnits = await page.locator('#battle-board .order-source').count();
-      if (!selectableUnits) bug('swap-has-no-source-selection', '變陣 does not enter a visible source-selection mode');
-    }
-
-    const focusButton = page.getByRole('button', { name: /集火/ }).first();
-    if (!(await focusButton.count()) || await focusButton.isDisabled()) {
-      bug('focus-order-unavailable', '集火 is unavailable while a legal enemy is visible');
-    } else {
-      await focusButton.click();
-      const selectableEnemies = await page.locator('#enemy-field .order-target').count();
-      if (!selectableEnemies) bug('focus-has-no-target-selection', '集火 does not expose selectable enemy targets');
-    }
-
-    const fortifyButton = page.getByRole('button', { name: /守1路|堅守/ }).first();
-    if (await fortifyButton.count() && !(await fortifyButton.isDisabled())) {
-      await fortifyButton.click();
-      const statusText = await page.locator('#orders').textContent();
-      const highlightedLane = await page.locator('#enemy-field .is-fortified, #battle-board .is-fortified').count();
-      if (!/剩餘|堅守/.test(statusText ?? '') && !highlightedLane) {
-        bug('fortify-feedback-missing', '堅守 spends an order but gives no persistent visual feedback', { statusText, highlightedLane });
-      }
-    }
-
-    await screenshot(page, '06-orders');
-
-    const resumeButton = page.locator('#orders [data-action="resume"]');
-    if (await resumeButton.count()) await resumeButton.click();
-    const deadline = Date.now() + 25000;
+    const deadline = Date.now() + 30000;
     let terminal = null;
     while (Date.now() < deadline) {
       const status = await page.locator('#v2-game-app').getAttribute('data-status');
@@ -253,7 +285,7 @@ async function play() {
       await page.waitForTimeout(500);
     }
     observations.push({ phase: 'first-battle-result', terminal });
-    if (!terminal) bug('battle-flow-stalls', 'First battle did not reach reward or defeat within 25 seconds at 2× speed');
+    if (!terminal) bug('battle-flow-stalls', 'First battle did not reach reward or defeat within 30 seconds');
     await screenshot(page, '07-result');
 
     if (runtimeErrors.length) bug('runtime-errors', 'Browser emitted runtime errors', { runtimeErrors });
