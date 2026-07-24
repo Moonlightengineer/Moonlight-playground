@@ -1,0 +1,45 @@
+name: Hanzi v2 browser playtest
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hanzi-v2-playtest-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  playtest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install browser harness
+        run: npm install --no-audit --no-fund
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build static site
+        run: python scripts/build_site.py
+
+      - name: Run scripted iPhone playthrough
+        run: npm run playtest:hanzi-v2
+
+      - name: Upload playtest report and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hanzi-v2-browser-playtest
+          path: artifacts/hanzi-v2-playtest
+          if-no-files-found: warn
