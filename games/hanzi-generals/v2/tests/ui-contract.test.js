@@ -48,12 +48,17 @@ test('v2 shell keeps mobile accessibility and compact battle baselines', async (
   assert.match(css, /\.enemy-token/);
   assert.match(css, /transition:\s*left/);
   assert.match(css, /\[hidden\]\s*\{\s*display:\s*none/);
+  assert.match(css, /\.is-focused/);
+  assert.match(css, /\.is-fortified/);
+  assert.match(css, /\.is-order-target/);
 });
 
 test('interaction layer contains tap alternatives for every core action', async () => {
   const source = await readFile(new URL('src/ui/interactions.js', root), 'utf8');
   for (const action of [
     'select-card',
+    'select-camp-card',
+    'return-camp-card',
     'choose-cell',
     'move-card-to-camp',
     'draw-cards',
@@ -61,6 +66,11 @@ test('interaction layer contains tap alternatives for every core action', async 
     'start-phase',
     'choose-route',
     'choose-reward',
+    'begin-order',
+    'order-select-unit',
+    'order-reposition-target',
+    'order-focus-target',
+    'cancel-order',
     'issue-order',
   ]) {
     assert.match(source, new RegExp(`'${action}'`));
@@ -73,4 +83,14 @@ test('render layer spatially renders enemies instead of only warning text', asyn
   assert.match(source, /dataEnemyId/);
   assert.match(source, /--enemy-progress/);
   assert.match(source, /enemy\.distance/);
+});
+
+test('render layer exposes camp selection and visible order state', async () => {
+  const source = await readFile(new URL('src/ui/render.js', root), 'utf8');
+  assert.match(source, /select-camp-card/);
+  assert.match(source, /orderMode/);
+  assert.match(source, /remainingFriendlyTurns/);
+  assert.match(source, /remainingEnemyTurns/);
+  assert.match(source, /order-reposition-target/);
+  assert.match(source, /order-focus-target/);
 });
