@@ -91,6 +91,11 @@
   animation: order-target-pulse 850ms ease-in-out infinite alternate;
 }
 
+.enemy-token.is-order-target {
+  z-index: 6;
+  pointer-events: auto;
+}
+
 .board-cell.is-order-source {
   color: #fff8ec;
   outline: 3px solid var(--safe);
