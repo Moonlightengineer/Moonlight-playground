@@ -1,0 +1,180 @@
+/* Interaction and playtest corrections layered after game.css. */
+
+#enemy-field {
+  --enemy-columns: 3;
+  display: grid;
+  grid-template-columns: repeat(var(--enemy-columns), minmax(0, 1fr));
+  gap: 5px;
+  padding: 6px 6px 7px;
+  border-bottom: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(76, 122, 87, 0.05), rgba(157, 45, 36, 0.1));
+}
+
+.enemy-scale { display: none; }
+
+.enemy-lane {
+  position: relative;
+  display: block;
+  min-width: 0;
+  min-height: 148px;
+  padding: 23px 3px 3px;
+  border: 1px solid rgba(75, 55, 39, 0.14);
+  border-radius: 9px;
+  background: rgba(255, 249, 236, 0.45);
+}
+
+.enemy-lane + .enemy-lane { border-top: 1px solid rgba(75, 55, 39, 0.14); }
+.enemy-lane.is-fortified { box-shadow: inset 0 -5px var(--safe); }
+
+.enemy-lane-label {
+  position: absolute;
+  top: 2px;
+  left: 50%;
+  z-index: 4;
+  transform: translateX(-50%);
+}
+
+.enemy-lane-track {
+  position: relative;
+  width: 100%;
+  height: 119px;
+  margin: 0;
+}
+
+.enemy-lane-track::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  height: auto;
+  content: "";
+  background: repeating-linear-gradient(180deg, rgba(75, 55, 39, 0.26) 0 9%, transparent 9% 14%);
+  transform: translateX(-50%);
+}
+
+.enemy-lane-track::after {
+  position: absolute;
+  right: 5px;
+  bottom: -1px;
+  left: 5px;
+  width: auto;
+  height: 5px;
+  content: "";
+  border-radius: 2px;
+  background: var(--seal);
+  box-shadow: 0 -4px rgba(157, 45, 36, 0.2);
+}
+
+.enemy-token {
+  top: var(--enemy-progress);
+  left: calc(50% + ((var(--enemy-stack) - 0.5) * 13px));
+  min-width: 47px;
+  max-width: calc(100% - 5px);
+  min-height: 22px;
+  padding: 2px 4px;
+  transform: translate(-50%, -50%);
+  transition: top 520ms linear;
+}
+
+.enemy-token.is-focused {
+  outline: 3px solid var(--gold);
+  outline-offset: 1px;
+  box-shadow: 0 0 0 4px rgba(185, 130, 47, 0.22), 0 3px 8px rgba(43, 33, 24, 0.22);
+}
+
+.enemy-token.is-order-target,
+.board-cell.is-order-target {
+  cursor: pointer;
+  outline: 3px solid var(--gold);
+  outline-offset: 1px;
+  animation: order-target-pulse 850ms ease-in-out infinite alternate;
+}
+
+.board-cell.is-order-source {
+  color: #fff8ec;
+  outline: 3px solid var(--safe);
+  outline-offset: 1px;
+}
+
+.board-cell.is-fortified {
+  box-shadow: inset 0 -5px var(--safe);
+}
+
+.camp-card-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px;
+  min-width: 0;
+}
+
+.camp-select.is-selected {
+  color: #fff8ec;
+  border-color: var(--seal);
+  background: var(--seal);
+  transform: translateY(-2px);
+}
+
+.camp-return {
+  min-width: 40px;
+  min-height: 44px;
+  padding-inline: 5px;
+  color: var(--muted);
+  font-size: 0.62rem;
+}
+
+#orders .order-status,
+#orders .order-prompt {
+  flex: 1 0 100%;
+  margin: 0;
+  padding: 6px 8px;
+  color: var(--seal);
+  border-left: 3px solid var(--seal);
+  background: var(--seal-soft);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+#orders button.is-active-order {
+  color: #fff8ec;
+  border-color: var(--safe);
+  background: var(--safe);
+}
+
+@keyframes order-target-pulse {
+  from { filter: brightness(1); }
+  to { filter: brightness(1.13); }
+}
+
+[data-reduced-motion="true"] .enemy-token { transition: none; }
+[data-reduced-motion="true"] .is-order-target { animation: none; }
+
+@media (min-width: 680px) {
+  .battle-stage {
+    display: block;
+  }
+
+  #enemy-intents,
+  #enemy-field,
+  #battle-board {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  #enemy-field {
+    max-width: 520px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-height: 760px) and (max-width: 679px) {
+  .enemy-lane { min-height: 125px; }
+  .enemy-lane-track { height: 96px; }
+  .board-cell { min-height: 44px; }
+  #orders button { min-height: 40px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enemy-token { transition: none; }
+  .is-order-target { animation: none; }
+}

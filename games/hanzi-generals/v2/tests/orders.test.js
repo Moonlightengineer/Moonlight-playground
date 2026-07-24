@@ -47,6 +47,19 @@ function fixtureCombat({ tactics = [] } = {}) {
   });
 }
 
+function multiAttackerCombat() {
+  let board = createBoard('base');
+  board = placeUnit(board, makeUnit({ id: 'u1', column: 0, row: 0 }), { column: 0, row: 0 });
+  board = placeUnit(board, makeUnit({ id: 'u2', column: 0, row: 1 }), { column: 0, row: 1 });
+  return createCombatState({
+    board,
+    enemies: [{ id: 'e1', definitionId: 'soldier', lane: 0, distance: 1, hp: 100, maxHp: 100, cooldown: 0, statuses: [] }],
+    wallHp: 100,
+    phaseIndex: 0,
+    ordersRemaining: 3,
+  });
+}
+
 test('swap requires adjacent living idle units and spends one order', () => {
   const combat = fixtureCombat();
   const result = applyOrder(combat, { type: 'swap', unitIds: ['u1', 'u2'] }, context);
@@ -56,6 +69,27 @@ test('swap requires adjacent living idle units and spends one order', () => {
   const stepped = stepCombat(result.state, context);
   assert.deepEqual(stepped.combat.board.units.u1.cell, { column: 1, row: 1 });
   assert.deepEqual(stepped.combat.board.units.u2.cell, { column: 0, row: 1 });
+});
+
+test('reposition can move one living unit into an adjacent empty cell', () => {
+  const combat = fixtureCombat();
+  const result = applyOrder(combat, {
+    type: 'swap',
+    unitId: 'u1',
+    targetCell: { column: 0, row: 0 },
+  }, context);
+  assert.equal(result.ok, true);
+  assert.equal(result.state.ordersRemaining, 2);
+  assert.equal(result.state.pendingOrders[0].type, 'reposition');
+  const stepped = stepCombat(result.state, context);
+  assert.deepEqual(stepped.combat.board.units.u1.cell, { column: 0, row: 0 });
+});
+
+test('focus lasts three friendly action rounds, not three individual attackers', () => {
+  const focus = applyOrder(multiAttackerCombat(), { type: 'focus', enemyId: 'e1' }, context);
+  assert.equal(focus.ok, true);
+  const firstRound = stepCombat(focus.state, context);
+  assert.equal(firstRound.combat.focus.remainingFriendlyTurns, 2);
 });
 
 test('focus lasts three friendly turns and fortify lasts two enemy turns', () => {
