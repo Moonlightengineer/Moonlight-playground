@@ -4,12 +4,32 @@ import { chromium } from 'playwright';
 
 const ARTIFACT_DIR = 'artifacts/hanzi-v2-playtest';
 const BASE_URL = 'http://127.0.0.1:8000/games/hanzi-generals/v2/?seed=playtest-0';
+const OPENING_RECIPES = [
+  { symbols: ['黃', '忠'], unit: '黃忠' },
+  { symbols: ['趙', '雲'], unit: '趙雲' },
+  { symbols: ['關', '羽'], unit: '關羽' },
+  { symbols: ['呂', '布'], unit: '呂布' },
+  { symbols: ['弓', '兵'], unit: '弓兵' },
+  { symbols: ['盾', '兵'], unit: '盾兵' },
+];
 const bugs = [];
 const observations = [];
 const runtimeErrors = [];
 
 function bug(id, summary, evidence = {}) {
   if (!bugs.some((item) => item.id === id)) bugs.push({ id, summary, evidence });
+}
+
+function findOpeningRecipe(hand) {
+  return OPENING_RECIPES.find(({ symbols }) => {
+    const remaining = [...hand];
+    return symbols.every((symbol) => {
+      const index = remaining.indexOf(symbol);
+      if (index < 0) return false;
+      remaining.splice(index, 1);
+      return true;
+    });
+  }) ?? null;
 }
 
 async function waitForServer(url, timeoutMs = 15000) {
@@ -103,14 +123,15 @@ async function play() {
     await (await exactButton(page, '抽牌')).click();
     await screenshot(page, '02-draw');
 
-    const initialHand = await page.locator('#hand .hand-card').allTextContents();
-    observations.push({ phase: 'draw', initialHand });
-    if (!initialHand.includes('兵') || !initialHand.includes('盾')) {
-      bug('seed-not-reproducible', 'Deterministic playtest seed did not produce 兵＋盾', { initialHand });
+    const initialHand = (await page.locator('#hand .hand-card').allTextContents()).map((text) => text.trim());
+    const openingRecipe = findOpeningRecipe(initialHand);
+    observations.push({ phase: 'draw', initialHand, openingRecipe });
+    if (!openingRecipe) {
+      bug('opening-hand-has-no-recipe', 'Opening hand has no immediately usable recipe', { initialHand });
       return;
     }
 
-    for (const symbol of ['兵', '盾']) {
+    for (const symbol of openingRecipe.symbols) {
       const wrap = await handWrapBySymbol(page, symbol);
       if (!wrap) throw new Error(`Could not find ${symbol} before moving to camp`);
       await wrap.locator('.card-secondary-action').click();
@@ -137,15 +158,15 @@ async function play() {
       await target.click();
     } else {
       await returnCampCardsToHand(page);
-      await selectHandAndPlace(page, '兵', 0, 0);
-      await selectHandAndPlace(page, '盾', 1, 0);
+      await selectHandAndPlace(page, openingRecipe.symbols[0], 0, 0);
+      await selectHandAndPlace(page, openingRecipe.symbols[1], 1, 0);
     }
 
     await page.waitForTimeout(150);
     const unitNames = await page.locator('#battle-board .has-unit').allTextContents();
-    observations.push({ phase: 'assembly', unitNames });
-    if (!unitNames.some((text) => text.includes('盾兵'))) {
-      bug('assembly-flow-blocked', 'Could not assemble and deploy 盾兵 through visible controls', { unitNames });
+    observations.push({ phase: 'assembly', unitNames, expectedUnit: openingRecipe.unit });
+    if (!unitNames.some((text) => text.includes(openingRecipe.unit))) {
+      bug('assembly-flow-blocked', `Could not assemble and deploy ${openingRecipe.unit} through visible controls`, { unitNames });
       return;
     }
     await screenshot(page, '04-assembled');
