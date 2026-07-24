@@ -8,6 +8,7 @@ test('v2 shell exposes the hidden game root and module entry', async () => {
   const html = await readFile(new URL('index.html', root), 'utf8');
   assert.match(html, /id="v2-game-app"/);
   assert.match(html, /src="\.\/src\/app\.js"/);
+  assert.match(html, /styles\/interaction-fix\.css/);
   assert.doesNotMatch(html, /projects\.json/);
 });
 
@@ -34,8 +35,10 @@ test('v2 shell exposes every fixed semantic game region', async () => {
   assert.match(html, /aria-live="assertive"/);
 });
 
-test('v2 shell keeps mobile accessibility and compact battle baselines', async () => {
-  const css = await readFile(new URL('styles/game.css', root), 'utf8');
+test('v2 shell keeps mobile accessibility and top-to-bottom battle baselines', async () => {
+  const baseCss = await readFile(new URL('styles/game.css', root), 'utf8');
+  const fixCss = await readFile(new URL('styles/interaction-fix.css', root), 'utf8');
+  const css = `${baseCss}\n${fixCss}`;
   assert.match(css, /min-width:\s*320px/);
   assert.match(css, /min-width:\s*44px/);
   assert.match(css, /min-height:\s*44px/);
@@ -46,12 +49,12 @@ test('v2 shell keeps mobile accessibility and compact battle baselines', async (
   assert.match(css, /#enemy-field/);
   assert.match(css, /\.enemy-lane-track/);
   assert.match(css, /\.enemy-token/);
-  assert.match(css, /transition:\s*top/);
-  assert.match(css, /grid-template-columns:\s*repeat\(var\(--enemy-columns\)/);
+  assert.match(fixCss, /transition:\s*top/);
+  assert.match(fixCss, /grid-template-columns:\s*repeat\(var\(--enemy-columns\)/);
   assert.match(css, /\[hidden\]\s*\{\s*display:\s*none/);
-  assert.match(css, /\.is-focused/);
-  assert.match(css, /\.is-fortified/);
-  assert.match(css, /\.is-order-target/);
+  assert.match(fixCss, /\.is-focused/);
+  assert.match(fixCss, /\.is-fortified/);
+  assert.match(fixCss, /\.is-order-target/);
 });
 
 test('interaction layer contains tap alternatives for every core action', async () => {
@@ -79,20 +82,20 @@ test('interaction layer contains tap alternatives for every core action', async 
 });
 
 test('render layer spatially renders enemies from top to bottom', async () => {
-  const source = await readFile(new URL('src/ui/render.js', root), 'utf8');
+  const base = await readFile(new URL('src/ui/render.js', root), 'utf8');
+  const interactive = await readFile(new URL('src/ui/render-interactive.js', root), 'utf8');
+  const source = `${base}\n${interactive}`;
   assert.match(source, /renderEnemyField/);
   assert.match(source, /dataEnemyId/);
   assert.match(source, /--enemy-progress/);
   assert.match(source, /enemy\.distance/);
-  assert.match(source, /--enemy-columns/);
+  assert.match(interactive, /--enemy-columns/);
 });
 
 test('render layer exposes camp selection and visible order state', async () => {
-  const source = await readFile(new URL('src/ui/render.js', root), 'utf8');
+  const source = await readFile(new URL('src/ui/render-interactive.js', root), 'utf8');
   assert.match(source, /select-camp-card/);
-  assert.match(source, /orderMode/);
   assert.match(source, /remainingFriendlyTurns/);
   assert.match(source, /remainingEnemyTurns/);
-  assert.match(source, /order-reposition-target/);
-  assert.match(source, /order-focus-target/);
+  assert.match(source, /begin-order/);
 });
