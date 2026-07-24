@@ -2,6 +2,13 @@ name: Hanzi v2 browser playtest
 
 on:
   pull_request:
+    paths:
+      - "games/hanzi-generals/v2/**"
+      - "scripts/hanzi_v2_browser_*.mjs"
+      - "scripts/build_site.py"
+      - "tests/test_build_site.py"
+      - "package.json"
+      - ".github/workflows/hanzi-v2-browser-playtest.yml"
   workflow_dispatch:
 
 permissions:
