@@ -4,6 +4,10 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "build": "python scripts/build_site.py"
+    "build": "python scripts/build_site.py",
+    "playtest:hanzi-v2": "node scripts/hanzi_v2_browser_playtest.mjs"
+  },
+  "devDependencies": {
+    "playwright": "1.55.0"
   }
 }
