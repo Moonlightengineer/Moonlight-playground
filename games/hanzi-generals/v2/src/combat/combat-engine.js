@@ -29,22 +29,43 @@ function applyBurn(enemy, turn, events) {
   enemy.statuses = statuses.filter((status) => status.type !== 'burn' || status.remaining > 0);
 }
 
+function applySwap(next, order, events) {
+  const [firstId, secondId] = order.unitIds;
+  const first = next.board.units[firstId];
+  const second = next.board.units[secondId];
+  if (!first || !second || first.hp <= 0 || second.hp <= 0) return;
+  const firstCell = { ...first.cell };
+  const secondCell = { ...second.cell };
+  let board = { ...next.board, units: { ...next.board.units } };
+  delete board.units[firstId];
+  delete board.units[secondId];
+  board = moveUnit({ ...board, units: { ...board.units, [firstId]: first } }, firstId, secondCell);
+  board = moveUnit({ ...board, units: { ...board.units, [secondId]: second } }, secondId, firstCell);
+  next.board = board;
+  events.push(eventAt(next.turn, 'UNITS_SWAPPED', { unitIds: [firstId, secondId] }));
+}
+
+function applyReposition(next, order, events) {
+  const unit = next.board.units[order.unitId];
+  if (!unit || unit.hp <= 0) return;
+  try {
+    next.board = moveUnit(next.board, unit.id, order.targetCell);
+    events.push(eventAt(next.turn, 'UNIT_REPOSITIONED', {
+      unitId: unit.id,
+      targetCell: order.targetCell,
+    }));
+  } catch {
+    events.push(eventAt(next.turn, 'ORDER_CANCELLED', {
+      type: 'reposition',
+      unitId: unit.id,
+    }));
+  }
+}
+
 function applyPendingOrders(next, events) {
   for (const order of next.pendingOrders ?? []) {
-    if (order.type !== 'swap') continue;
-    const [firstId, secondId] = order.unitIds;
-    const first = next.board.units[firstId];
-    const second = next.board.units[secondId];
-    if (!first || !second || first.hp <= 0 || second.hp <= 0) continue;
-    const firstCell = { ...first.cell };
-    const secondCell = { ...second.cell };
-    let board = { ...next.board, units: { ...next.board.units } };
-    delete board.units[firstId];
-    delete board.units[secondId];
-    board = moveUnit({ ...board, units: { ...board.units, [firstId]: first } }, firstId, secondCell);
-    board = moveUnit({ ...board, units: { ...board.units, [secondId]: second } }, secondId, firstCell);
-    next.board = board;
-    events.push(eventAt(next.turn, 'UNITS_SWAPPED', { unitIds: [firstId, secondId] }));
+    if (order.type === 'swap') applySwap(next, order, events);
+    if (order.type === 'reposition') applyReposition(next, order, events);
   }
   next.pendingOrders = [];
 }
@@ -195,7 +216,7 @@ export function stepCombat(combat, context) {
       || a.id.localeCompare(b.id)
     ));
 
-  let friendlyActions = 0;
+  let anyFriendlyAction = false;
   for (const unit of units) {
     unit.cooldown = Math.max(0, unit.cooldown - 1);
     if (unit.cooldown > 0) continue;
@@ -213,12 +234,12 @@ export function stepCombat(combat, context) {
         damage,
       }));
     }
-    friendlyActions += 1;
+    anyFriendlyAction = true;
     unit.cooldown = unitDefinition.attackEvery;
   }
 
-  if (next.focus && friendlyActions > 0) {
-    next.focus.remainingFriendlyTurns -= friendlyActions;
+  if (next.focus && anyFriendlyAction) {
+    next.focus.remainingFriendlyTurns -= 1;
     if (
       next.focus.remainingFriendlyTurns <= 0
       || !next.enemies.some(({ id, hp }) => id === next.focus.enemyId && hp > 0)
