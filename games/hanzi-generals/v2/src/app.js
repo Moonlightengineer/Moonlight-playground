@@ -16,7 +16,7 @@ import {
   saveSettings,
 } from './storage/storage.js';
 import { bindInteractions } from './ui/interactions.js';
-import { renderApp } from './ui/render.js';
+import { renderApp } from './ui/render-interactive.js';
 import {
   advanceTutorial,
   createTutorial,
@@ -97,6 +97,12 @@ function playEvents(events) {
     const labels = {
       CARD_PLACED: '字牌已放入戰陣，相鄰配對會自動合成。',
       UNIT_ASSEMBLED: '武將合成完成。',
+      ORDER_QUEUED: important.payload.type === 'reposition' ? '變陣已下令，武將會立即移位。' : '變陣已下令，兩名武將會交換位置。',
+      UNIT_REPOSITIONED: '武將已完成移位。',
+      UNITS_SWAPPED: '兩名武將已完成換位。',
+      FOCUS_ORDERED: `集火已生效，持續 ${important.payload.turns ?? 3} 輪。`,
+      FORTIFY_ORDERED: `第 ${(important.payload.lane ?? 0) + 1} 路已堅守，持續 ${important.payload.turns ?? 2} 輪。`,
+      ORDER_CANCELLED: '戰場已改變，變陣指令未能執行。',
       WALL_DAMAGED: '城牆受到攻擊。',
       BOSS_PHASE_CHANGED: '華雄進入第二階段，重騎增援到達。',
       BATTLE_COMPLETED: '戰鬥勝利，請選擇獎勵。',
@@ -183,14 +189,14 @@ function dispatch(action) {
   if (handleUiAction(action)) {
     render();
     scheduleBattleTick();
-    return;
+    return true;
   }
 
   const result = reduceGame(game, action);
   if (!result.ok) {
     showMessage(result.error.message);
     render();
-    return;
+    return false;
   }
 
   game = result.state;
@@ -203,6 +209,7 @@ function dispatch(action) {
   playEvents(result.events);
   vibrationFor(result.events);
   scheduleBattleTick();
+  return true;
 }
 
 function renderFatalDataError(errors) {
