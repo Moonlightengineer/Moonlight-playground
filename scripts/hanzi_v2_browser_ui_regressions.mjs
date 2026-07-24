@@ -23,6 +23,17 @@ async function waitForServer() {
   throw new Error('Regression server did not start');
 }
 
+async function handWrapBySymbol(page, symbol) {
+  const cards = page.locator('#hand .hand-card-wrap');
+  const count = await cards.count();
+  for (let index = 0; index < count; index += 1) {
+    const wrap = cards.nth(index);
+    const text = (await wrap.locator('.hand-card').textContent())?.trim();
+    if (text === symbol) return wrap;
+  }
+  throw new Error(`Hand does not contain ${symbol}`);
+}
+
 async function run() {
   await mkdir(ARTIFACT_DIR, { recursive: true });
   const server = spawn('python', ['-m', 'http.server', '8001', '--directory', '_site'], {
@@ -45,7 +56,7 @@ async function run() {
     await page.getByRole('button', { name: '抽牌', exact: true }).click();
 
     for (const symbol of ['黃', '忠']) {
-      const wrap = page.locator('#hand .hand-card-wrap').filter({ has: page.getByRole('button', { name: symbol, exact: true }) }).first();
+      const wrap = await handWrapBySymbol(page, symbol);
       await wrap.locator('.card-secondary-action').click();
     }
 
