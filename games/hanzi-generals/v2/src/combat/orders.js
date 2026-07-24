@@ -1,4 +1,8 @@
-import { areAdjacent } from '../board/board.js';
+import {
+  areAdjacent,
+  getUnitAt,
+  isValidCell,
+} from '../board/board.js';
 import { gameEvent } from '../core/events.js';
 import { findTargets } from './targeting.js';
 
@@ -12,7 +16,7 @@ function spendOrder(combat) {
 }
 
 function unitIsIdle(unit) {
-  return unit.hp > 0 && !(unit.statuses ?? []).some(({ type }) => type === 'busy');
+  return Boolean(unit?.hp > 0 && !(unit.statuses ?? []).some(({ type }) => type === 'busy'));
 }
 
 function canFocusEnemy(combat, enemyId, context) {
@@ -34,23 +38,63 @@ function consumeTactic(combat, tacticId) {
   return { ...structuredClone(combat), tactics };
 }
 
+function applyTargetedReposition(combat, order) {
+  const unit = combat.board.units[order.unitId];
+  if (!unitIsIdle(unit)) {
+    return fail(combat, 'INVALID_SWAP_UNITS', '只可以移動存活而且空閒嘅單位。');
+  }
+  if (!isValidCell(combat.board, order.targetCell)) {
+    return fail(combat, 'ILLEGAL_REPOSITION_CELL', '變陣目標位置不存在。');
+  }
+  if (!areAdjacent(unit.cell, order.targetCell)) {
+    return fail(combat, 'UNITS_NOT_ADJACENT', '變陣只可以移去相鄰位置。');
+  }
+
+  const occupant = getUnitAt(combat.board, order.targetCell);
+  if (occupant && !unitIsIdle(occupant)) {
+    return fail(combat, 'INVALID_SWAP_UNITS', '目標單位暫時不可移動。');
+  }
+
+  const next = spendOrder(combat);
+  if (!next) return fail(combat, 'NO_ORDERS', '軍令不足。');
+  if (occupant) {
+    next.pendingOrders.push({ type: 'swap', unitIds: [unit.id, occupant.id] });
+  } else {
+    next.pendingOrders.push({ type: 'reposition', unitId: unit.id, targetCell: { ...order.targetCell } });
+  }
+  return {
+    ok: true,
+    state: next,
+    events: [gameEvent('ORDER_QUEUED', {
+      type: occupant ? 'swap' : 'reposition',
+      unitId: unit.id,
+      targetCell: order.targetCell,
+      targetUnitId: occupant?.id,
+    }, combat.turn)],
+  };
+}
+
 export function applyOrder(combat, order, context = {}) {
   if (combat.status !== 'running') {
     return fail(combat, 'COMBAT_NOT_RUNNING', '戰鬥未進行，暫時不可使用軍令。');
   }
 
+  if (order.type === 'swap' && order.unitId && order.targetCell) {
+    return applyTargetedReposition(combat, order);
+  }
+
   if (order.type === 'swap') {
-    const next = spendOrder(combat);
-    if (!next) return fail(combat, 'NO_ORDERS', '軍令不足。');
     const [firstId, secondId] = order.unitIds ?? [];
     const first = combat.board.units[firstId];
     const second = combat.board.units[secondId];
-    if (!first || !second || !unitIsIdle(first) || !unitIsIdle(second)) {
+    if (!unitIsIdle(first) || !unitIsIdle(second)) {
       return fail(combat, 'INVALID_SWAP_UNITS', '只可以交換兩名存活而且空閒嘅單位。');
     }
     if (!areAdjacent(first.cell, second.cell)) {
       return fail(combat, 'UNITS_NOT_ADJACENT', '變陣只可以交換相鄰單位。');
     }
+    const next = spendOrder(combat);
+    if (!next) return fail(combat, 'NO_ORDERS', '軍令不足。');
     next.pendingOrders.push({ type: 'swap', unitIds: [firstId, secondId] });
     return {
       ok: true,
