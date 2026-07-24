@@ -128,10 +128,25 @@
   font-size: 0.62rem;
 }
 
+#orders {
+  display: block;
+  overflow: visible;
+}
+
+.order-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.order-actions::-webkit-scrollbar { display: none; }
+.order-actions button { flex: 0 0 auto; }
+
 #orders .order-status,
 #orders .order-prompt {
-  flex: 1 0 100%;
-  margin: 0;
+  margin: 0 0 6px;
   padding: 6px 8px;
   color: var(--seal);
   border-left: 3px solid var(--seal);
@@ -176,7 +191,7 @@
   .enemy-lane { min-height: 125px; }
   .enemy-lane-track { height: 96px; }
   .board-cell { min-height: 44px; }
-  #orders button { min-height: 40px; }
+  .order-actions button { min-height: 40px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
