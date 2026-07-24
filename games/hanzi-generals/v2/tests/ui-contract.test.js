@@ -46,7 +46,8 @@ test('v2 shell keeps mobile accessibility and compact battle baselines', async (
   assert.match(css, /#enemy-field/);
   assert.match(css, /\.enemy-lane-track/);
   assert.match(css, /\.enemy-token/);
-  assert.match(css, /transition:\s*left/);
+  assert.match(css, /transition:\s*top/);
+  assert.match(css, /grid-template-columns:\s*repeat\(var\(--enemy-columns\)/);
   assert.match(css, /\[hidden\]\s*\{\s*display:\s*none/);
   assert.match(css, /\.is-focused/);
   assert.match(css, /\.is-fortified/);
@@ -77,12 +78,13 @@ test('interaction layer contains tap alternatives for every core action', async 
   }
 });
 
-test('render layer spatially renders enemies instead of only warning text', async () => {
+test('render layer spatially renders enemies from top to bottom', async () => {
   const source = await readFile(new URL('src/ui/render.js', root), 'utf8');
   assert.match(source, /renderEnemyField/);
   assert.match(source, /dataEnemyId/);
   assert.match(source, /--enemy-progress/);
   assert.match(source, /enemy\.distance/);
+  assert.match(source, /--enemy-columns/);
 });
 
 test('render layer exposes camp selection and visible order state', async () => {
