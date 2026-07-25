@@ -169,6 +169,7 @@ function renderBoard(container, game) {
       descriptionId: !unit && !card && !allowed ? 'cell-disabled-help' : undefined,
     });
     button.dataset.entityId = unit?.id ?? cardId ?? `cell-${cell.column}-${cell.row}`;
+    if (unit) button.dataset.unitId = unit.id;
     button.setAttribute('aria-label', unit
       ? `${GENERAL_BY_ID[unit.definitionId]?.name ?? unit.definitionId}，生命 ${unit.hp}/${unit.maxHp}`
       : card
