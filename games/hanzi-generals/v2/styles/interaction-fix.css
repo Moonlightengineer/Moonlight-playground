@@ -130,14 +130,21 @@
 
 #orders {
   display: block;
-  overflow: visible;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .order-actions {
   display: flex;
   flex-wrap: nowrap;
   gap: 6px;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-inline: contain;
   scrollbar-width: none;
 }
 
@@ -146,8 +153,11 @@
 
 #orders .order-status,
 #orders .order-prompt {
+  width: 100%;
+  max-width: 100%;
   margin: 0 0 6px;
   padding: 6px 8px;
+  overflow-wrap: anywhere;
   color: var(--seal);
   border-left: 3px solid var(--seal);
   background: var(--seal-soft);
