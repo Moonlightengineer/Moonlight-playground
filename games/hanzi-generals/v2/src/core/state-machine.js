@@ -14,6 +14,7 @@ import { advanceExpedition, createExpedition, ROUTES } from '../expedition/exped
 import { applyReward, generateRewardChoices } from '../expedition/rewards.js';
 import { ENEMY_BY_ID } from '../../data/enemies.js';
 import { GENERAL_BY_ID } from '../../data/generals.js';
+import { resolveEvolvedDefinition } from '../../data/evolutions.js';
 import { REWARDS } from '../../data/rewards.js';
 import { STAGE_BY_ID } from '../../data/stages.js';
 import { TUNING } from '../../data/tuning.js';
@@ -41,12 +42,15 @@ function failure(game, code, message) {
   return { ok: false, state: game, events: [], error: { code, message } };
 }
 
-function combatContext() {
+function combatContext(game) {
   return {
     unitsById: GENERAL_BY_ID,
     enemiesById: ENEMY_BY_ID,
+    resolveUnitDefinition(unit) {
+      return resolveEvolvedDefinition(GENERAL_BY_ID[unit.definitionId], unit.evolution);
+    },
     canAttack(unit, enemy) {
-      const definition = GENERAL_BY_ID[unit.definitionId];
+      const definition = resolveEvolvedDefinition(GENERAL_BY_ID[unit.definitionId], unit.evolution);
       return Boolean(definition) && enemy.hp > 0 && enemy.distance + unit.cell.row <= definition.range;
     },
     spawnHeavyCavalryPair(lane) {
@@ -281,7 +285,7 @@ function rewardChoicesFor(game) {
 }
 
 function stepCombatAction(game) {
-  const result = stepCombat(game.combat, combatContext());
+  const result = stepCombat(game.combat, combatContext(game));
   let next = syncDefeatedUnitCards(game, result.combat);
   next = {
     ...next,
@@ -410,7 +414,7 @@ export function reduceGame(game, action) {
     case 'START_PHASE':
       return startPhase(game);
     case 'ISSUE_ORDER': {
-      const result = applyOrder(game.combat, action.order, combatContext());
+      const result = applyOrder(game.combat, action.order, combatContext(game));
       return result.ok ? success({ ...game, combat: result.state }, result.events) : { ...result, state: game };
     }
     case 'STEP_COMBAT':
