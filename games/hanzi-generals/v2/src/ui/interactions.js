@@ -264,6 +264,12 @@ export function bindInteractions(root, dispatch) {
       case 'close-help':
         dispatch({ type: 'UI_CLOSE_HELP' });
         break;
+      case 'restart-expedition':
+        dispatch({ type: 'UI_RESTART_EXPEDITION' });
+        break;
+      case 'clear-all-v2-data':
+        dispatch({ type: 'UI_CLEAR_ALL_V2_DATA' });
+        break;
       case 'skip-tutorial':
         dispatch({ type: 'UI_SKIP_TUTORIAL' });
         break;
