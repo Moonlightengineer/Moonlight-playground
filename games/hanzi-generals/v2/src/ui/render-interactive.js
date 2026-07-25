@@ -97,9 +97,17 @@ function renderInteractiveOrders(root, game) {
   if (!container || game.status !== 'combat') return;
   container.replaceChildren();
 
+  const statuses = orderStatus(game);
+  if (statuses.length) {
+    const status = node('p', 'order-status', statuses.join('｜'));
+    status.setAttribute('aria-live', 'polite');
+    container.append(status);
+  }
+
+  const actions = node('div', 'order-actions');
   const paused = Boolean(game.combat.paused);
-  container.append(actionButton(paused ? '繼續' : '暫停', paused ? 'resume' : 'pause', {}, 'primary-button'));
-  container.append(actionButton(game.settings.speed === 2 ? '速度 1×' : '速度 2×', 'set-speed', {
+  actions.append(actionButton(paused ? '繼續' : '暫停', paused ? 'resume' : 'pause', {}, 'primary-button'));
+  actions.append(actionButton(game.settings.speed === 2 ? '速度 1×' : '速度 2×', 'set-speed', {
     speed: game.settings.speed === 2 ? 1 : 2,
   }));
 
@@ -108,7 +116,7 @@ function renderInteractiveOrders(root, game) {
   reposition.disabled = noOrders;
   const focus = actionButton('集火', 'begin-order', { orderType: 'focus' });
   focus.disabled = noOrders || game.combat.enemies.length === 0;
-  container.append(reposition, focus);
+  actions.append(reposition, focus);
 
   for (let lane = 0; lane < game.combat.board.size.columns; lane += 1) {
     const button = actionButton(`守${lane + 1}路`, 'issue-order', {
@@ -117,12 +125,12 @@ function renderInteractiveOrders(root, game) {
     });
     button.disabled = noOrders;
     button.classList.toggle('is-active-order', game.combat.fortify?.lane === lane);
-    container.append(button);
+    actions.append(button);
   }
 
   for (const tacticId of game.combat.tactics) {
     if (tacticId === 'fire-arrows') {
-      container.append(actionButton('火矢1路', 'issue-order', {
+      actions.append(actionButton('火矢1路', 'issue-order', {
         orderType: 'tactic',
         tacticId,
         lane: 0,
@@ -136,16 +144,11 @@ function renderInteractiveOrders(root, game) {
         unitId: unit?.id,
       });
       button.disabled = !unit;
-      container.append(button);
+      actions.append(button);
     }
   }
 
-  const statuses = orderStatus(game);
-  if (statuses.length) {
-    const status = node('p', 'order-status', statuses.join('｜'));
-    status.setAttribute('aria-live', 'polite');
-    container.append(status);
-  }
+  container.append(actions);
 }
 
 export function renderApp(root, game) {

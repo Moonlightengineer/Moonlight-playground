@@ -19,6 +19,7 @@ import { bindInteractions } from './ui/interactions.js';
 import { renderApp } from './ui/render-interactive.js';
 import {
   advanceTutorial,
+  advanceTutorialForResult,
   createTutorial,
   skipTutorial,
 } from './ui/tutorial.js';
@@ -132,14 +133,6 @@ function scheduleBattleTick() {
   timer = window.setTimeout(() => dispatch({ type: 'STEP_COMBAT' }), delay);
 }
 
-function completedTutorialAction(action, events) {
-  if (action.type === 'ASSEMBLE' && events.some(({ type }) => type === 'CARD_PLACED')) return 'PLACE_CARD';
-  if (action.type === 'ASSEMBLE' && events.some(({ type }) => type === 'UNIT_ASSEMBLED')) return 'ASSEMBLE_UNIT';
-  if (action.type === 'START_PHASE') return 'START_PHASE';
-  if (action.type === 'ISSUE_ORDER') return 'USE_ORDER';
-  return null;
-}
-
 function handleUiAction(action) {
   if (action.type === 'UI_CLEAR_SELECTION') {
     game = { ...game, selection: { cardIds: [] } };
@@ -199,9 +192,10 @@ function dispatch(action) {
     return false;
   }
 
-  game = result.state;
-  const tutorialAction = completedTutorialAction(action, result.events);
-  if (tutorialAction) game = { ...game, tutorial: advanceTutorial(game.tutorial, tutorialAction) };
+  game = {
+    ...result.state,
+    tutorial: advanceTutorialForResult(game.tutorial, action.type, result.events),
+  };
 
   if (action.type === 'SET_SPEED') saveSettings(game.settings);
   maybeSave(game);

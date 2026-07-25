@@ -17,6 +17,27 @@ export function advanceTutorial(tutorial, completedAction) {
   return { ...tutorial, index, complete: index >= STEPS.length };
 }
 
+export function advanceTutorialForResult(tutorial, actionType, events = []) {
+  const completed = [];
+
+  if (actionType === 'ASSEMBLE') {
+    const placed = events.some(({ type }) => type === 'CARD_PLACED');
+    const assembled = events.some(({ type }) => type === 'UNIT_ASSEMBLED');
+    if (placed) completed.push('PLACE_CARD');
+    if (assembled) {
+      if (!placed) completed.push('PLACE_CARD');
+      completed.push('ASSEMBLE_UNIT');
+    }
+  }
+  if (actionType === 'START_PHASE') completed.push('START_PHASE');
+  if (actionType === 'ISSUE_ORDER') completed.push('USE_ORDER');
+
+  return completed.reduce(
+    (next, completedAction) => advanceTutorial(next, completedAction),
+    tutorial,
+  );
+}
+
 export function skipTutorial(tutorial) {
   return { ...tutorial, skipped: true, complete: true };
 }

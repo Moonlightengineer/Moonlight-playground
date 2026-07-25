@@ -55,6 +55,11 @@ test('v2 shell keeps mobile accessibility and top-to-bottom battle baselines', a
   assert.match(fixCss, /\.is-focused/);
   assert.match(fixCss, /\.is-fortified/);
   assert.match(fixCss, /\.is-order-target/);
+  assert.match(
+    fixCss,
+    /\.enemy-token\.is-order-target[\s\S]*?pointer-events:\s*auto/,
+    'focus targets must override the base pointer-events:none rule',
+  );
 });
 
 test('interaction layer contains tap alternatives for every core action', async () => {
