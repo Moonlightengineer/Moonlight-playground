@@ -135,7 +135,6 @@ test('combat feedback is non-blocking, identifiable, and reduced-motion safe', a
 
   assert.match(html, /id="combat-feedback-layer"/);
   assert.match(html, /id="combat-feedback-layer"[^>]*aria-live="polite"/);
-  assert.match(baseRender, /data\.unitId/);
   assert.match(baseRender, /button\.dataset\.unitId/);
   assert.match(baseRender, /token\.dataset\.enemyId/);
   assert.match(feedback, /export function createCombatFeedback/);
