@@ -11,10 +11,6 @@ const enemiesById = Object.fromEntries(ENEMIES.map((item) => [item.id, item]));
 const context = {
   unitsById,
   enemiesById,
-  canAttack(unit, enemy) {
-    const definition = unitsById[unit.definitionId];
-    return enemy.hp > 0 && enemy.distance + unit.cell.row <= definition.range;
-  },
   spawnHeavyCavalryPair: () => [],
 };
 
@@ -47,6 +43,21 @@ function fixtureCombat({ tactics = [] } = {}) {
   });
 }
 
+function oneUnitTwoLaneCombat() {
+  let board = createBoard('base');
+  board = placeUnit(board, makeUnit({ id: 'u1', column: 0, row: 0 }), { column: 0, row: 0 });
+  return createCombatState({
+    board,
+    enemies: [
+      { id: 'same-lane', definitionId: 'soldier', lane: 0, distance: 2, hp: 20, maxHp: 20, cooldown: 0, statuses: [] },
+      { id: 'cross-lane', definitionId: 'soldier', lane: 2, distance: 1, hp: 20, maxHp: 20, cooldown: 0, statuses: [] },
+    ],
+    wallHp: 100,
+    phaseIndex: 0,
+    ordersRemaining: 3,
+  });
+}
+
 function multiAttackerCombat() {
   let board = createBoard('base');
   board = placeUnit(board, makeUnit({ id: 'u1', column: 0, row: 0 }), { column: 0, row: 0 });
@@ -71,18 +82,32 @@ test('swap requires adjacent living idle units and spends one order', () => {
   assert.deepEqual(stepped.combat.board.units.u2.cell, { column: 0, row: 1 });
 });
 
-test('reposition can move one living unit into an adjacent empty cell', () => {
+test('swap rejects an adjacent empty cell without spending an order', () => {
   const combat = fixtureCombat();
   const result = applyOrder(combat, {
     type: 'swap',
     unitId: 'u1',
     targetCell: { column: 0, row: 0 },
   }, context);
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, 'SWAP_REQUIRES_TWO_UNITS');
+  assert.equal(result.state.ordersRemaining, 3);
+  assert.deepEqual(result.state.pendingOrders, []);
+});
+
+test('focus rejects a cross-lane target for a same-lane unit', () => {
+  const combat = oneUnitTwoLaneCombat();
+  const result = applyOrder(combat, { type: 'focus', enemyId: 'cross-lane' }, context);
+  assert.equal(result.ok, false);
+  assert.equal(result.error.code, 'ILLEGAL_FOCUS_TARGET');
+  assert.equal(result.state.ordersRemaining, 3);
+});
+
+test('focus accepts a target within the unit original lane and range', () => {
+  const combat = oneUnitTwoLaneCombat();
+  const result = applyOrder(combat, { type: 'focus', enemyId: 'same-lane' }, context);
   assert.equal(result.ok, true);
   assert.equal(result.state.ordersRemaining, 2);
-  assert.equal(result.state.pendingOrders[0].type, 'reposition');
-  const stepped = stepCombat(result.state, context);
-  assert.deepEqual(stepped.combat.board.units.u1.cell, { column: 0, row: 0 });
 });
 
 test('focus lasts three friendly action rounds, not three individual attackers', () => {
