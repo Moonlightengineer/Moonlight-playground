@@ -275,7 +275,11 @@ async function run() {
       isMobile: true,
       hasTouch: true,
     });
-    await context.addInitScript(() => localStorage.clear());
+    await context.addInitScript(() => {
+      if (sessionStorage.getItem('hanzi-v2-regression-initialized') === 'true') return;
+      localStorage.clear();
+      sessionStorage.setItem('hanzi-v2-regression-initialized', 'true');
+    });
     const page = await context.newPage();
     page.on('pageerror', (error) => runtimeErrors.push({ type: 'pageerror', message: error.message }));
     page.on('console', (message) => {
