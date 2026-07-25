@@ -309,7 +309,30 @@ h2 { margin: 0 0 6px; font-size: 0.85rem; }
 #orders button { flex: 0 0 auto; min-height: 44px; padding: 7px 9px; font-size: 0.72rem; }
 .primary-button { color: #fff8ec; background: var(--seal); border-color: var(--seal); font-weight: 800; }
 .danger-button { color: #fff8ec; background: #5d211d; border-color: #5d211d; font-weight: 800; }
-.reward-button { flex: 1 1 140px; }
+.reward-button {
+  display: grid;
+  flex: 1 1 180px;
+  gap: 4px;
+  align-content: start;
+  min-width: 0;
+  padding: 10px;
+  text-align: left;
+}
+.reward-name { font-size: 0.9rem; line-height: 1.2; }
+.reward-summary { font-size: 0.75rem; line-height: 1.35; }
+.reward-effect {
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 248, 236, 0.48);
+  border-radius: 7px;
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+.reward-use-case {
+  color: rgba(255, 248, 236, 0.84);
+  font-size: 0.66rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
 
 #hand {
   position: sticky;
@@ -367,6 +390,7 @@ h2 { margin: 0 0 6px; font-size: 0.85rem; }
   .card-secondary-action { font-size: 0.5rem; }
   .enemy-token { min-width: 47px; padding-inline: 3px; }
   .intent { max-width: 180px; }
+  .reward-button { flex-basis: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
