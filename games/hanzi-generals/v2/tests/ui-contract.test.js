@@ -186,3 +186,27 @@ test('full-screen Help exposes all player rule sections and restores play state'
   assert.match(css, /#help-panel[\s\S]*?inset:\s*0/);
   assert.match(css, /body\.help-open[\s\S]*?overflow:\s*hidden/);
 });
+
+test('restart controls separate expedition reset from complete v2 data clearing', async () => {
+  const html = await source('index.html');
+  const interactions = await source('src/ui/interactions.js');
+  const app = await source('src/app.js');
+  const storage = await source('src/storage/storage.js');
+
+  assert.match(html, /data-action="restart-expedition"/);
+  assert.match(html, />重新開始遠征</);
+  assert.match(html, /data-action="clear-all-v2-data"/);
+  assert.match(html, />完全清除資料並測試最新版</);
+  assert.match(interactions, /'restart-expedition'/);
+  assert.match(interactions, /'clear-all-v2-data'/);
+  assert.match(storage, /export const V2_STORAGE_KEYS/);
+  assert.match(storage, /export function resetExpedition/);
+  assert.match(storage, /export function clearAllV2Data/);
+  assert.match(storage, /export function buildLatestVersionUrl/);
+  assert.match(app, /清除目前遠征進度/);
+  assert.match(app, /遠征、教學、設定及所有舊 v2 資料/);
+  assert.match(app, /resetExpedition/);
+  assert.match(app, /clearAllV2Data/);
+  assert.match(app, /window\.location\.href\s*=\s*buildLatestVersionUrl/);
+  assert.doesNotMatch(app, /hanzi-generals-v2:/);
+});
