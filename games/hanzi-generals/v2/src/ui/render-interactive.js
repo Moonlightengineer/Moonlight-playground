@@ -1,3 +1,6 @@
+import { GENERAL_BY_ID } from '../../data/generals.js';
+import { areAdjacent } from '../board/board.js';
+import { canFocusEnemy } from '../combat/targeting.js';
 import { renderApp as renderBaseApp } from './render.js';
 
 function node(tag, className, text) {
@@ -49,6 +52,13 @@ function boardCellForUnit(game, unitId) {
   return game.combat?.board.units[unitId]?.cell ?? null;
 }
 
+function adjacentSwapPairExists(combat) {
+  const units = Object.values(combat?.board.units ?? {}).filter(({ hp }) => hp > 0);
+  return units.some((unit, index) => units.slice(index + 1).some((candidate) => (
+    areAdjacent(unit.cell, candidate.cell)
+  )));
+}
+
 function decorateCombatBoard(root, game) {
   if (game.status !== 'combat') return;
   for (const button of root.querySelectorAll('#battle-board .board-cell')) {
@@ -77,7 +87,9 @@ function decorateEnemyField(root, game) {
     lane.classList.toggle('is-fortified', Number(lane.dataset.lane) === game.combat.fortify?.lane);
   }
   for (const token of field.querySelectorAll('.enemy-token')) {
-    token.classList.toggle('is-focused', token.dataset.enemyId === game.combat.focus?.enemyId);
+    const enemyId = token.dataset.enemyId;
+    token.classList.toggle('is-focused', enemyId === game.combat.focus?.enemyId);
+    token.dataset.focusEligible = String(canFocusEnemy(game.combat, enemyId, GENERAL_BY_ID));
   }
 }
 
@@ -112,11 +124,12 @@ function renderInteractiveOrders(root, game) {
   }));
 
   const noOrders = game.combat.ordersRemaining < 1;
-  const reposition = actionButton('變陣', 'begin-order', { orderType: 'swap' });
-  reposition.disabled = noOrders;
+  const swap = actionButton('變陣', 'begin-order', { orderType: 'swap' });
+  swap.disabled = noOrders || !adjacentSwapPairExists(game.combat);
+  const hasFocusTarget = game.combat.enemies.some(({ id }) => canFocusEnemy(game.combat, id, GENERAL_BY_ID));
   const focus = actionButton('集火', 'begin-order', { orderType: 'focus' });
-  focus.disabled = noOrders || game.combat.enemies.length === 0;
-  actions.append(reposition, focus);
+  focus.disabled = noOrders || !hasFocusTarget;
+  actions.append(swap, focus);
 
   for (let lane = 0; lane < game.combat.board.size.columns; lane += 1) {
     const button = actionButton(`守${lane + 1}路`, 'issue-order', {

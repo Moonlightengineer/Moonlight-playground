@@ -9,10 +9,6 @@ import { ENEMIES } from '../data/enemies.js';
 const context = {
   unitsById: Object.fromEntries(GENERALS.map((item) => [item.id, item])),
   enemiesById: Object.fromEntries(ENEMIES.map((item) => [item.id, item])),
-  canAttack(unit, enemy) {
-    const definition = this.unitsById[unit.definitionId];
-    return enemy.hp > 0 && enemy.distance + unit.cell.row <= definition.range;
-  },
   spawnHeavyCavalryPair(lane) {
     return [
       { id: 'boss-cavalry-1', definitionId: 'heavy-cavalry', lane, distance: 3, hp: 16, maxHp: 16, cooldown: 0, chargeIn: 3, statuses: [] },
@@ -60,6 +56,23 @@ test('same-lane ranged unit selects the nearest reachable enemy', () => {
   assert.deepEqual(
     findTargets(source, enemies, { range: 5, pattern: 'same-lane' }).map(({ id }) => id),
     ['near'],
+  );
+});
+
+test('focus changes priority only within the original same-lane pattern', () => {
+  const source = { id: 'u1', definitionId: 'huang-zhong', cell: { column: 1, row: 0 } };
+  const enemies = [
+    { id: 'same-near', lane: 1, distance: 1, hp: 8 },
+    { id: 'same-far', lane: 1, distance: 3, hp: 8 },
+    { id: 'cross-near', lane: 0, distance: 0, hp: 8 },
+  ];
+  assert.deepEqual(
+    findTargets(source, enemies, { range: 5, pattern: 'same-lane' }, { focusId: 'same-far' }).map(({ id }) => id),
+    ['same-far'],
+  );
+  assert.deepEqual(
+    findTargets(source, enemies, { range: 5, pattern: 'same-lane' }, { focusId: 'cross-near' }).map(({ id }) => id),
+    ['same-near'],
   );
 });
 

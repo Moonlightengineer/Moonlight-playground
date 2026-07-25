@@ -28,6 +28,11 @@ function clearOrderDecorations(root) {
   root.querySelectorAll('.is-order-target, .is-order-source').forEach((element) => {
     element.classList.remove('is-order-target', 'is-order-source');
   });
+  root.querySelectorAll('#enemy-field [data-action="order-focus-target"]').forEach((token) => {
+    delete token.dataset.action;
+    token.removeAttribute('role');
+    token.removeAttribute('tabindex');
+  });
   root.querySelectorAll('.order-prompt').forEach((element) => element.remove());
 }
 
@@ -60,48 +65,58 @@ function distance(a, b) {
   return Math.abs(a.column - b.column) + Math.abs(a.row - b.row);
 }
 
+function unitButtons(root) {
+  return [...root.querySelectorAll('#battle-board .board-cell.has-unit')];
+}
+
+function adjacentUnitTargets(source, candidates) {
+  const sourceCell = cellFromElement(source);
+  return candidates.filter((candidate) => (
+    candidate !== source && distance(sourceCell, cellFromElement(candidate)) === 1
+  ));
+}
+
 function decorateOrderTargets(root, mode) {
   clearOrderDecorations(root);
   root.dataset.orderMode = mode.type;
 
   if (mode.type === 'swap' && !mode.unitId) {
-    for (const button of root.querySelectorAll('#battle-board .board-cell.has-unit')) {
+    const candidates = unitButtons(root);
+    for (const button of candidates) {
+      if (!adjacentUnitTargets(button, candidates).length) continue;
       button.disabled = false;
       button.dataset.action = 'order-select-unit';
       button.classList.add('is-order-target');
     }
-    addPrompt(root, '變陣：先揀一名武將。');
+    addPrompt(root, '變陣：先揀一名有相鄰友軍嘅武將。');
     return;
   }
 
   if (mode.type === 'swap' && mode.unitId) {
     const source = root.querySelector(`#battle-board [data-unit-id="${CSS.escape(mode.unitId)}"]`);
     if (!source) return;
-    const sourceCell = cellFromElement(source);
     source.classList.add('is-order-source');
     source.classList.remove('is-order-target');
 
-    for (const button of root.querySelectorAll('#battle-board .board-cell')) {
-      const targetCell = cellFromElement(button);
-      if (distance(sourceCell, targetCell) !== 1) continue;
+    for (const button of adjacentUnitTargets(source, unitButtons(root))) {
       button.disabled = false;
-      button.dataset.action = 'order-reposition-target';
+      button.dataset.action = 'order-swap-target';
       button.dataset.sourceUnitId = mode.unitId;
       button.classList.add('is-order-target');
     }
-    addPrompt(root, '變陣：再揀相鄰空格或武將。');
+    addPrompt(root, '變陣：再揀一名相鄰武將交換位置。');
     return;
   }
 
   if (mode.type === 'focus') {
-    for (const token of root.querySelectorAll('#enemy-field .enemy-token')) {
+    for (const token of root.querySelectorAll('#enemy-field .enemy-token[data-focus-eligible="true"]')) {
       token.dataset.action = 'order-focus-target';
       token.dataset.enemyId = token.dataset.enemyId ?? token.dataset.entityId;
       token.classList.add('is-order-target');
       token.setAttribute('role', 'button');
       token.tabIndex = 0;
     }
-    addPrompt(root, '集火：點選要優先攻擊嘅敵人。');
+    addPrompt(root, '集火：點選友軍原本可以攻擊嘅敵人。');
   }
 }
 
@@ -209,14 +224,13 @@ export function bindInteractions(root, dispatch) {
         orderMode = { ...orderMode, unitId: target.dataset.unitId };
         decorateOrderTargets(root, orderMode);
         break;
-      case 'order-reposition-target':
+      case 'order-swap-target':
         if (orderMode?.type !== 'swap' || !orderMode.unitId) break;
         finishOrder({
           type: 'ISSUE_ORDER',
           order: {
             type: 'swap',
-            unitId: orderMode.unitId,
-            targetCell: cellFromElement(target),
+            unitIds: [orderMode.unitId, target.dataset.unitId],
           },
         });
         break;
