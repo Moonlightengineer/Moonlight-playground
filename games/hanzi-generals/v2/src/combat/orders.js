@@ -1,4 +1,4 @@
-import { areAdjacent } from '../board/board.js';
+import { areAdjacent, getUnitAt, isValidCell, moveUnit } from '../board/board.js';
 import { gameEvent } from '../core/events.js';
 import { canFocusEnemy } from './targeting.js';
 
@@ -49,6 +49,39 @@ export function applyOrder(combat, order, context = {}) {
       ok: true,
       state: next,
       events: [gameEvent('ORDER_QUEUED', { type: 'swap', unitIds: [firstId, secondId] }, combat.turn)],
+    };
+  }
+
+  if (order.type === 'reinforce') {
+    const unit = combat.board.units[order.unitId];
+    const targetCell = order.targetCell;
+    if (!unitIsIdle(unit)) {
+      return fail(combat, 'INVALID_REINFORCE_UNIT', '援防只可以移動存活而且空閒嘅單位。');
+    }
+    if (!targetCell || !isValidCell(combat.board, targetCell)) {
+      return fail(combat, 'ILLEGAL_REINFORCE_CELL', '援防目標位置不存在。');
+    }
+    if (getUnitAt(combat.board, targetCell)) {
+      return fail(combat, 'REINFORCE_CELL_OCCUPIED', '援防目標位置已被佔用。');
+    }
+    if (!areAdjacent(unit.cell, targetCell)) {
+      return fail(combat, 'REINFORCE_NOT_ADJACENT', '援防只可以移動到相鄰位置。');
+    }
+    if (unit.cell.column === targetCell.column) {
+      return fail(combat, 'REINFORCE_REQUIRES_LANE_CHANGE', '援防必須調往相鄰路線，原路前後移動唔屬於援防。');
+    }
+    const next = spendOrder(combat);
+    if (!next) return fail(combat, 'NO_ORDERS', '軍令不足。');
+    const fromCell = { ...next.board.units[order.unitId].cell };
+    next.board = moveUnit(next.board, order.unitId, targetCell);
+    return {
+      ok: true,
+      state: next,
+      events: [gameEvent('UNIT_REINFORCED', {
+        unitId: order.unitId,
+        fromCell,
+        targetCell: { ...targetCell },
+      }, combat.turn)],
     };
   }
 
