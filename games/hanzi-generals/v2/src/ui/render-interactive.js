@@ -59,6 +59,17 @@ function adjacentSwapPairExists(combat) {
   )));
 }
 
+function reinforceMoveExists(combat) {
+  const units = Object.values(combat?.board.units ?? {}).filter(({ hp }) => hp > 0);
+  const occupied = new Set(units.map(({ cell }) => `${cell.column},${cell.row}`));
+  return units.some(({ cell }) => [-1, 1].some((offset) => {
+    const column = cell.column + offset;
+    return column >= 0
+      && column < combat.board.size.columns
+      && !occupied.has(`${column},${cell.row}`);
+  }));
+}
+
 function decorateCombatBoard(root, game) {
   if (game.status !== 'combat') return;
   for (const button of root.querySelectorAll('#battle-board .board-cell')) {
@@ -127,10 +138,13 @@ function renderInteractiveOrders(root, game) {
   const noOrders = game.combat.ordersRemaining < 1;
   const swap = actionButton('變陣', 'begin-order', { orderType: 'swap' });
   swap.disabled = noOrders || !adjacentSwapPairExists(game.combat);
+  const reinforce = actionButton('援防', 'begin-order', { orderType: 'reinforce' });
+  reinforce.disabled = noOrders || !reinforceMoveExists(game.combat);
+  reinforce.setAttribute('aria-label', '援防：消耗一個軍令，將一名友軍調往相鄰空路');
   const hasFocusTarget = game.combat.enemies.some(({ id }) => canFocusEnemy(game.combat, id, GENERAL_BY_ID));
   const focus = actionButton('集火', 'begin-order', { orderType: 'focus' });
   focus.disabled = noOrders || !hasFocusTarget;
-  actions.append(swap, focus);
+  actions.append(swap, reinforce, focus);
 
   for (let lane = 0; lane < game.combat.board.size.columns; lane += 1) {
     const button = actionButton(`守${lane + 1}路`, 'issue-order', {
