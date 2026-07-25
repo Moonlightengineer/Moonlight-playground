@@ -1,5 +1,6 @@
 import { GENERAL_BY_ID } from '../../data/generals.js';
 import { EVOLUTION_BY_ID, resolveEvolvedDefinition } from '../../data/evolutions.js';
+import { REWARDS } from '../../data/rewards.js';
 import { areAdjacent } from '../board/board.js';
 import { canFocusEnemy } from '../combat/targeting.js';
 import { renderApp as renderBaseApp } from './render.js';
@@ -198,10 +199,69 @@ function renderInteractiveOrders(root, game) {
   container.append(actions);
 }
 
+function appendStat(list, label, value) {
+  const item = node('li', 'result-stat');
+  item.append(node('strong', '', label), node('span', '', String(value)));
+  list.append(item);
+}
+
+function renderExpeditionResult(root, game) {
+  if (!['victory', 'defeat'].includes(game.status)) return;
+  const container = root.querySelector('#primary-actions');
+  if (!container) return;
+  container.replaceChildren();
+  const panel = node('section', `expedition-result result-${game.status}`);
+  panel.dataset.expeditionResultVisible = 'true';
+  panel.append(node('p', 'result-kicker', game.status === 'victory' ? '遠征完成' : '遠征中止'));
+  panel.append(node('h2', 'result-title', game.status === 'victory' ? '群雄遠征成功' : '城牆失守'));
+  const route = game.route === 'danger' ? '危險路線' : game.route === 'safe' ? '安全路線' : '共同前線';
+  panel.append(node(
+    'p',
+    'result-summary',
+    game.status === 'victory'
+      ? `你完成 ${game.completedBattleIds.length} 戰，走過${route}，並以 ${game.wallHp} 點城牆守住虎牢關。`
+      : `你完成 ${game.completedBattleIds.length} 戰後於${route}失守。已取得嘅解鎖與進化會列於下方，方便檢視本局策略。`,
+  ));
+
+  const stats = node('ul', 'result-stats');
+  appendStat(stats, '路線', route);
+  appendStat(stats, '完成戰數', `${game.completedBattleIds.length}/6`);
+  appendStat(stats, '剩餘城牆', `${game.wallHp}/${game.wallMaxHp}`);
+  appendStat(stats, '獎勵數量', (game.rewardHistory ?? []).length);
+  panel.append(stats);
+
+  const details = node('details', 'result-details');
+  details.append(node('summary', '', '查看詳情'));
+
+  const starting = new Set(['huang-zhong', 'zhao-yun', 'guan-yu', 'lu-bu', 'archer', 'shield-troop']);
+  const unlocked = game.unlockedRecipes.filter((id) => !starting.has(id));
+  details.append(node('h3', '', '已解鎖武將／配方'));
+  details.append(node('p', '', unlocked.length
+    ? unlocked.map((id) => GENERAL_BY_ID[id]?.name ?? id).join('、')
+    : '本局未新增配方。'));
+
+  details.append(node('h3', '', '已取得獎勵'));
+  const rewards = game.rewardHistory ?? [];
+  details.append(node('p', '', rewards.length
+    ? rewards.map(({ rewardId }) => REWARDS.find(({ id }) => id === rewardId)?.name ?? rewardId).join('、')
+    : '未有可記錄獎勵。'));
+
+  details.append(node('h3', '', '已進化武將'));
+  const evolved = Object.entries(game.evolutions ?? {});
+  details.append(node('p', '', evolved.length
+    ? evolved.map(([generalId, evolutionId]) => `${GENERAL_BY_ID[generalId]?.name ?? generalId}・${EVOLUTION_BY_ID[evolutionId]?.name ?? evolutionId}`).join('、')
+    : '本局未有武將進化。'));
+
+  panel.append(details);
+  panel.append(actionButton('再玩一次', 'start-new-run', {}, 'primary-button'));
+  container.append(panel);
+}
+
 export function renderApp(root, game) {
   renderBaseApp(root, game);
   renderCampSelection(root, game);
   decorateCombatBoard(root, game);
   decorateEnemyField(root, game);
   renderInteractiveOrders(root, game);
+  renderExpeditionResult(root, game);
 }
