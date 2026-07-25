@@ -110,3 +110,18 @@ test('render layer exposes legal order eligibility and visible order state', asy
   assert.match(source, /canFocusEnemy/);
   assert.match(source, /focusEligible/);
 });
+
+test('reward choices expose summary, exact effect, and tactical use case', async () => {
+  const source = await readFile(new URL('src/ui/render.js', root), 'utf8');
+  const css = await readFile(new URL('styles/game.css', root), 'utf8');
+  assert.match(source, /reward-name/);
+  assert.match(source, /reward-summary/);
+  assert.match(source, /reward-effect/);
+  assert.match(source, /reward-use-case/);
+  assert.match(source, /reward\.description\.summary/);
+  assert.match(source, /reward\.description\.effect/);
+  assert.match(source, /reward\.description\.useCase/);
+  assert.match(css, /\.reward-summary/);
+  assert.match(css, /\.reward-effect/);
+  assert.match(css, /\.reward-use-case/);
+});
