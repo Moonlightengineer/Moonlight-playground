@@ -216,7 +216,9 @@ export function stepCombat(combat, context) {
   for (const unit of units) {
     unit.cooldown = Math.max(0, unit.cooldown - 1);
     if (unit.cooldown > 0) continue;
-    const unitDefinition = definition(context, 'unitsById', unit.definitionId);
+    const unitDefinition = context.resolveUnitDefinition
+      ? context.resolveUnitDefinition(unit)
+      : definition(context, 'unitsById', unit.definitionId);
     const focusId = next.focus?.remainingFriendlyTurns > 0 ? next.focus.enemyId : null;
     const targets = findTargets(unit, next.enemies, unitDefinition, { focusId });
     if (!targets.length) continue;
@@ -229,6 +231,7 @@ export function stepCombat(combat, context) {
         attackerId: unit.id,
         targetId: target.id,
         damage,
+        ...(unit.evolution ? { evolutionId: unit.evolution } : {}),
       }));
       if (hpBefore > 0 && target.hp <= 0) {
         events.push(eventAt(next.turn, 'ENEMY_DEFEATED', {
