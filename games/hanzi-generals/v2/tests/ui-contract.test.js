@@ -125,3 +125,29 @@ test('reward choices expose summary, exact effect, and tactical use case', async
   assert.match(css, /\.reward-effect/);
   assert.match(css, /\.reward-use-case/);
 });
+
+test('combat feedback is non-blocking, identifiable, and reduced-motion safe', async () => {
+  const html = await readFile(new URL('index.html', root), 'utf8');
+  const baseRender = await readFile(new URL('src/ui/render.js', root), 'utf8');
+  const feedback = await readFile(new URL('src/ui/combat-feedback.js', root), 'utf8');
+  const app = await readFile(new URL('src/app.js', root), 'utf8');
+  const css = await readFile(new URL('styles/game.css', root), 'utf8');
+
+  assert.match(html, /id="combat-feedback-layer"/);
+  assert.match(html, /id="combat-feedback-layer"[^>]*aria-live="polite"/);
+  assert.match(baseRender, /data\.unitId/);
+  assert.match(baseRender, /button\.dataset\.unitId/);
+  assert.match(baseRender, /token\.dataset\.enemyId/);
+  assert.match(feedback, /export function createCombatFeedback/);
+  assert.match(feedback, /function present\(events\)/);
+  assert.match(feedback, /function clear\(\)/);
+  assert.match(app, /createCombatFeedback/);
+  assert.match(app, /feedback\.present/);
+  assert.match(app, /feedback\.clear/);
+  assert.match(css, /#combat-feedback-layer[\s\S]*?pointer-events:\s*none/);
+  assert.match(css, /\.is-attacking/);
+  assert.match(css, /\.is-hit/);
+  assert.match(css, /\.combat-damage/);
+  assert.match(css, /\.is-defeated/);
+  assert.match(css, /\[data-reduced-motion="true"\][\s\S]*?\.combat-projectile/);
+});
