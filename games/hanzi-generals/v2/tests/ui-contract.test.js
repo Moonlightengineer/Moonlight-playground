@@ -62,7 +62,7 @@ test('v2 shell keeps mobile accessibility and top-to-bottom battle baselines', a
   );
 });
 
-test('interaction layer contains tap alternatives for every core action', async () => {
+test('interaction layer exposes only two-unit swaps and eligible focus targets', async () => {
   const source = await readFile(new URL('src/ui/interactions.js', root), 'utf8');
   for (const action of [
     'select-card',
@@ -77,13 +77,16 @@ test('interaction layer contains tap alternatives for every core action', async 
     'choose-reward',
     'begin-order',
     'order-select-unit',
-    'order-reposition-target',
+    'order-swap-target',
     'order-focus-target',
     'cancel-order',
     'issue-order',
   ]) {
     assert.match(source, new RegExp(`'${action}'`));
   }
+  assert.doesNotMatch(source, /order-reposition-target/);
+  assert.match(source, /data-focus-eligible="true"/);
+  assert.match(source, /unitIds:\s*\[orderMode\.unitId,\s*target\.dataset\.unitId\]/);
 });
 
 test('render layer spatially renders enemies from top to bottom', async () => {
@@ -97,10 +100,13 @@ test('render layer spatially renders enemies from top to bottom', async () => {
   assert.match(interactive, /--enemy-columns/);
 });
 
-test('render layer exposes camp selection and visible order state', async () => {
+test('render layer exposes legal order eligibility and visible order state', async () => {
   const source = await readFile(new URL('src/ui/render-interactive.js', root), 'utf8');
   assert.match(source, /select-camp-card/);
   assert.match(source, /remainingFriendlyTurns/);
   assert.match(source, /remainingEnemyTurns/);
   assert.match(source, /begin-order/);
+  assert.match(source, /adjacentSwapPairExists/);
+  assert.match(source, /canFocusEnemy/);
+  assert.match(source, /focusEligible/);
 });
