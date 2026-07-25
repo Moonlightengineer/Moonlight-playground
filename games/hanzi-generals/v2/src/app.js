@@ -16,6 +16,7 @@ import {
   saveSettings,
 } from './storage/storage.js';
 import { createCombatFeedback } from './ui/combat-feedback.js';
+import { createHelpPanel } from './ui/help-panel.js';
 import { bindInteractions } from './ui/interactions.js';
 import { renderApp } from './ui/render-interactive.js';
 import {
@@ -57,9 +58,24 @@ function initialGame() {
 
 let game = initialGame();
 let timer = null;
+let resumeAfterHelp = false;
 const feedback = createCombatFeedback({
   root,
   reducedMotion: () => game.settings.reducedMotion,
+});
+const helpPanel = createHelpPanel({
+  panel: root.querySelector('#help-panel'),
+  contentRoot: root.querySelector('#help-content'),
+  onOpen() {
+    feedback.clear();
+    resumeAfterHelp = game.status === 'combat' && !game.combat.paused;
+    if (resumeAfterHelp) dispatch({ type: 'PAUSE' });
+  },
+  onClose() {
+    const shouldResume = resumeAfterHelp && game.status === 'combat' && game.combat.paused;
+    resumeAfterHelp = false;
+    if (shouldResume) dispatch({ type: 'RESUME' });
+  },
 });
 
 function showMessage(text = '') {
@@ -126,7 +142,7 @@ function vibrationFor(events) {
 function scheduleBattleTick() {
   window.clearTimeout(timer);
   timer = null;
-  if (game.status !== 'combat' || game.combat?.paused) return;
+  if (game.status !== 'combat' || game.combat?.paused || helpPanel.isOpen()) return;
   const delay = game.settings.speed === 2 ? 350 : 700;
   timer = window.setTimeout(() => dispatch({ type: 'STEP_COMBAT' }), delay);
 }
@@ -146,6 +162,14 @@ function handleUiAction(action) {
     const unit = (game.status === 'combat' ? game.combat.board : game.board).units[action.unitId];
     const definition = unit ? GENERALS.find(({ id }) => id === unit.definitionId) : null;
     showMessage(definition ? `${definition.name}：射程 ${definition.range}，攻擊方式 ${definition.pattern}。` : '未能讀取單位資料。');
+    return true;
+  }
+  if (action.type === 'UI_OPEN_HELP') {
+    helpPanel.open(action.trigger);
+    return true;
+  }
+  if (action.type === 'UI_CLOSE_HELP') {
+    helpPanel.close();
     return true;
   }
   if (action.type === 'UI_SKIP_TUTORIAL') {
@@ -226,6 +250,10 @@ if (!validation.ok) {
   document.addEventListener('keydown', (event) => {
     const interactive = ['BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'SUMMARY'].includes(document.activeElement?.tagName);
     if (event.key === 'Escape') {
+      if (helpPanel.isOpen()) {
+        helpPanel.close();
+        return;
+      }
       const details = root.querySelector('#details-panel');
       if (details?.open) details.open = false;
       if (game.ui?.rangeUnitId) {
@@ -234,7 +262,7 @@ if (!validation.ok) {
         render();
       }
     }
-    if (event.code === 'Space' && game.status === 'combat' && !interactive) {
+    if (event.code === 'Space' && game.status === 'combat' && !interactive && !helpPanel.isOpen()) {
       event.preventDefault();
       dispatch({ type: game.combat.paused ? 'RESUME' : 'PAUSE' });
     }
