@@ -18,7 +18,10 @@
         <h1 id="v2-title">字陣無雙 v2</h1>
         <p class="subtitle">群雄遠征｜隱藏測試版</p>
       </div>
-      <button type="button" data-action="skip-tutorial" class="quiet-button">略過教學</button>
+      <div class="header-actions">
+        <button type="button" data-action="open-help" class="quiet-button">玩法</button>
+        <button type="button" data-action="skip-tutorial" class="quiet-button">略過教學</button>
+      </div>
     </header>
 
     <section id="run-status" aria-label="遠征狀態"></section>
@@ -49,6 +52,19 @@
 
     <p id="action-message" role="alert" aria-live="assertive"></p>
     <p class="disclaimer">個人遊戲實驗；測試數值未經完整平衡。</p>
+
+    <section id="help-panel" role="dialog" aria-modal="true" aria-labelledby="help-title" hidden>
+      <div class="help-sheet">
+        <header class="help-header">
+          <div>
+            <p class="eyebrow">PLAYER GUIDE</p>
+            <h2 id="help-title">玩法說明</h2>
+          </div>
+          <button type="button" data-action="close-help" class="quiet-button">關閉</button>
+        </header>
+        <div id="help-content"></div>
+      </div>
+    </section>
   </main>
 </body>
 </html>
