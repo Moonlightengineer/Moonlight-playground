@@ -34,6 +34,100 @@ async function handWrapBySymbol(page, symbol) {
   throw new Error(`Hand does not contain ${symbol}`);
 }
 
+async function controlledFocusFixture(page) {
+  return page.evaluate(async () => {
+    const [{ renderApp }, { bindInteractions }, boardModule] = await Promise.all([
+      import('./src/ui/render-interactive.js'),
+      import('./src/ui/interactions.js'),
+      import('./src/board/board.js'),
+    ]);
+
+    const root = document.createElement('main');
+    root.id = 'controlled-v2-game-app';
+    root.innerHTML = `
+      <section id="run-status"></section>
+      <section class="battle-stage">
+        <section id="enemy-intents"></section>
+        <section id="enemy-field"></section>
+        <section id="battle-board"></section>
+      </section>
+      <section class="command-panel">
+        <section id="camp"></section>
+        <section id="primary-actions"></section>
+        <section id="orders"></section>
+      </section>
+      <section id="hand"></section>
+      <details id="details-panel"><summary>詳情</summary></details>
+      <p id="action-message"></p>
+    `;
+    document.body.append(root);
+
+    const definition = {
+      id: 'controlled-huang-zhong',
+      definitionId: 'huang-zhong',
+      kind: 'general',
+      hp: 18,
+      maxHp: 18,
+      cooldown: 0,
+      evolution: null,
+      statuses: [],
+    };
+    let board = boardModule.createBoard('base');
+    board = boardModule.placeUnit(board, definition, { column: 0, row: 0 });
+    const combat = {
+      turn: 0,
+      status: 'running',
+      board,
+      enemies: [
+        { id: 'legal-same-lane', definitionId: 'soldier', lane: 0, distance: 2, hp: 8, maxHp: 8, cooldown: 0, statuses: [] },
+        { id: 'illegal-cross-lane', definitionId: 'soldier', lane: 2, distance: 1, hp: 8, maxHp: 8, cooldown: 0, statuses: [] },
+      ],
+      wallHp: 100,
+      phaseIndex: 0,
+      ordersRemaining: 3,
+      focus: null,
+      fortify: null,
+      pendingOrders: [],
+      tactics: [],
+      paused: true,
+    };
+    const game = {
+      status: 'combat',
+      route: 'safe',
+      battleIndex: 0,
+      completedBattleIds: [],
+      currentBattle: { phaseIndex: 0, phaseCount: 3, ordersRemaining: 3 },
+      wallHp: 100,
+      wallMaxHp: 100,
+      board,
+      boardCards: {},
+      cardsById: {},
+      legalCells: [],
+      camp: { capacity: 2, cardIds: [] },
+      deck: { drawPile: [], discardPile: [], hand: [], retained: [], deployed: [] },
+      settings: { speed: 1, reducedMotion: false, vibration: false },
+      tutorial: { index: 4, complete: false, skipped: false },
+      combat,
+      ui: {},
+    };
+
+    renderApp(root, game);
+    bindInteractions(root, () => true);
+    root.querySelector('[data-action="begin-order"][data-order-type="focus"]')?.click();
+
+    const legal = root.querySelector('[data-enemy-id="legal-same-lane"]');
+    const illegal = root.querySelector('[data-enemy-id="illegal-cross-lane"]');
+    const result = {
+      legalEligible: legal?.dataset.focusEligible,
+      illegalEligible: illegal?.dataset.focusEligible,
+      legalTarget: legal?.classList.contains('is-order-target'),
+      illegalTarget: illegal?.classList.contains('is-order-target'),
+    };
+    root.remove();
+    return result;
+  });
+}
+
 async function run() {
   await mkdir(ARTIFACT_DIR, { recursive: true });
   const server = spawn('python', ['-m', 'http.server', '8001', '--directory', '_site'], {
@@ -93,6 +187,14 @@ async function run() {
         box,
         viewport,
       });
+    }
+
+    const focusFixture = await controlledFocusFixture(page);
+    if (focusFixture.legalEligible !== 'true' || !focusFixture.legalTarget) {
+      bug('legal-focus-target-hidden', 'A same-lane reachable enemy is not exposed as a focus target', focusFixture);
+    }
+    if (focusFixture.illegalEligible !== 'false' || focusFixture.illegalTarget) {
+      bug('cross-lane-focus-target-exposed', 'A cross-lane enemy is exposed to a same-lane unit', focusFixture);
     }
 
     await page.screenshot({ path: `${ARTIFACT_DIR}/08-ui-regressions.png`, fullPage: true });
