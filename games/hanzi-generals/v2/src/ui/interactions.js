@@ -33,6 +33,10 @@ function clearOrderDecorations(root) {
     token.removeAttribute('role');
     token.removeAttribute('tabindex');
   });
+  root.querySelectorAll('#battle-board [data-action="order-reinforce-target"]').forEach((cell) => {
+    delete cell.dataset.action;
+    cell.disabled = true;
+  });
   root.querySelectorAll('.order-prompt').forEach((element) => element.remove());
 }
 
@@ -76,6 +80,15 @@ function adjacentUnitTargets(source, candidates) {
   ));
 }
 
+function adjacentEmptyLaneTargets(root, source) {
+  const sourceCell = cellFromElement(source);
+  return [...root.querySelectorAll('#battle-board .board-cell:not(.has-unit):not(.has-character)')]
+    .filter((candidate) => {
+      const target = cellFromElement(candidate);
+      return distance(sourceCell, target) === 1 && sourceCell.column !== target.column;
+    });
+}
+
 function decorateOrderTargets(root, mode) {
   clearOrderDecorations(root);
   root.dataset.orderMode = mode.type;
@@ -105,6 +118,32 @@ function decorateOrderTargets(root, mode) {
       button.classList.add('is-order-target');
     }
     addPrompt(root, '變陣：再揀一名相鄰武將交換位置。');
+    return;
+  }
+
+  if (mode.type === 'reinforce' && !mode.unitId) {
+    for (const button of unitButtons(root)) {
+      if (!adjacentEmptyLaneTargets(root, button).length) continue;
+      button.disabled = false;
+      button.dataset.action = 'order-select-reinforce-unit';
+      button.classList.add('is-order-target');
+    }
+    addPrompt(root, '援防：先揀一名可調往相鄰空路嘅友軍。');
+    return;
+  }
+
+  if (mode.type === 'reinforce' && mode.unitId) {
+    const source = root.querySelector(`#battle-board [data-unit-id="${CSS.escape(mode.unitId)}"]`);
+    if (!source) return;
+    source.classList.add('is-order-source');
+    source.classList.remove('is-order-target');
+    for (const cell of adjacentEmptyLaneTargets(root, source)) {
+      cell.disabled = false;
+      cell.dataset.action = 'order-reinforce-target';
+      cell.dataset.sourceUnitId = mode.unitId;
+      cell.classList.add('is-order-target');
+    }
+    addPrompt(root, '援防：再揀相鄰空路位置。移動後原路會失去呢名友軍。');
     return;
   }
 
@@ -224,6 +263,11 @@ export function bindInteractions(root, dispatch) {
         orderMode = { ...orderMode, unitId: target.dataset.unitId };
         decorateOrderTargets(root, orderMode);
         break;
+      case 'order-select-reinforce-unit':
+        if (orderMode?.type !== 'reinforce') break;
+        orderMode = { ...orderMode, unitId: target.dataset.unitId };
+        decorateOrderTargets(root, orderMode);
+        break;
       case 'order-swap-target':
         if (orderMode?.type !== 'swap' || !orderMode.unitId) break;
         finishOrder({
@@ -231,6 +275,17 @@ export function bindInteractions(root, dispatch) {
           order: {
             type: 'swap',
             unitIds: [orderMode.unitId, target.dataset.unitId],
+          },
+        });
+        break;
+      case 'order-reinforce-target':
+        if (orderMode?.type !== 'reinforce' || !orderMode.unitId) break;
+        finishOrder({
+          type: 'ISSUE_ORDER',
+          order: {
+            type: 'reinforce',
+            unitId: orderMode.unitId,
+            targetCell: cellFromElement(target),
           },
         });
         break;
