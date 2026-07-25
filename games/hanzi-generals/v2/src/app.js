@@ -15,6 +15,7 @@ import {
   maybeSave,
   saveSettings,
 } from './storage/storage.js';
+import { createCombatFeedback } from './ui/combat-feedback.js';
 import { bindInteractions } from './ui/interactions.js';
 import { renderApp } from './ui/render-interactive.js';
 import {
@@ -56,6 +57,10 @@ function initialGame() {
 
 let game = initialGame();
 let timer = null;
+const feedback = createCombatFeedback({
+  root,
+  reducedMotion: () => game.settings.reducedMotion,
+});
 
 function showMessage(text = '') {
   message.textContent = text;
@@ -71,11 +76,13 @@ function relevantEntityId(event) {
   return event.payload.targetId
     ?? event.payload.enemyId
     ?? event.payload.unitId
-    ?? event.payload.sourceId
+    ?? event.payload.attackerId
     ?? '';
 }
 
 function playEvents(events) {
+  feedback.present(events);
+
   for (const event of events) {
     const id = relevantEntityId(event);
     if (!id) continue;
@@ -83,14 +90,7 @@ function playEvents(events) {
       ? CSS.escape(id)
       : id.replaceAll('"', '\\"');
     const target = root.querySelector(`[data-entity-id="${escaped}"]`);
-    if (!target) continue;
-    target.dataset.lastEvent = event.type;
-    if (!game.settings.reducedMotion && typeof target.animate === 'function') {
-      target.animate(
-        [{ transform: 'scale(1)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }],
-        { duration: 180 },
-      );
-    }
+    if (target) target.dataset.lastEvent = event.type;
   }
 
   const important = events.at(-1);
@@ -206,6 +206,7 @@ function dispatch(action) {
 
 function renderFatalDataError(errors) {
   window.clearTimeout(timer);
+  feedback.clear();
   root.dataset.status = 'error';
   root.replaceChildren();
   const title = document.createElement('h1');
