@@ -90,9 +90,9 @@ Effects must be queued or grouped safely when several units attack during the sa
 
 ## 5. Help and contextual guidance
 
-### 5.1 Dedicated help surface
+### 5.1 Full-screen in-app help panel
 
-Add a help entry reachable from the main game controls and settings area. It may be a full-screen in-app panel or dedicated local page, but it must preserve the current game state and provide a clear return action.
+Add a full-screen in-app help panel reachable from the main game controls and settings area. Opening it pauses active combat, preserves the complete game state, and provides one clear close/back action that returns to the exact previous game screen. Closing the panel resumes combat only when it was running before the panel opened.
 
 Required sections:
 
@@ -162,7 +162,7 @@ Owns temporary visual feedback, effect queueing, reduced-motion behavior, and cl
 
 ### Help content and renderer
 
-Owns player-facing rules content and navigation into and out of help. It reads game definitions where useful but does not duplicate combat rules.
+Owns player-facing rules content, full-screen panel rendering, pause/resume restoration, and navigation into and out of help. It reads game definitions where useful but does not duplicate combat rules.
 
 ### Storage/reset service
 
@@ -170,7 +170,7 @@ Owns key enumeration, expedition-only reset, complete v2 reset, and reload prepa
 
 ### Application controller
 
-Coordinates actions, rendering, event presentation, saving, and restart flow. Destructive confirmation text remains close to the corresponding action.
+Coordinates actions, rendering, event presentation, saving, help-panel lifecycle, and restart flow. Destructive confirmation text remains close to the corresponding action.
 
 ## 8. Error handling
 
@@ -180,6 +180,7 @@ Coordinates actions, rendering, event presentation, saving, and restart flow. De
 - Storage removal failures show an actionable error and do not claim success.
 - Reload occurs only after complete-reset storage operations finish successfully.
 - Help remains usable even when no save exists.
+- Help close restores the prior pause state even when rendering or effect cleanup fails.
 
 ## 9. Testing strategy
 
@@ -194,6 +195,7 @@ Coordinates actions, rendering, event presentation, saving, and restart flow. De
 ### UI contract tests
 
 - Help entry and required sections exist.
+- Opening help pauses combat and closing it restores the previous running/paused state.
 - Reward choices render exact effects without requiring expansion.
 - Combat feedback layer is non-interactive and cannot cause overflow.
 - Reduced-motion selectors preserve non-motion feedback.
@@ -203,7 +205,7 @@ Coordinates actions, rendering, event presentation, saving, and restart flow. De
 
 At 390×844 and one narrow-width profile:
 
-- Open help and return without losing the run.
+- Open help during active combat, verify pause, close it, and restore the previous state without losing the run.
 - Inspect a reward/upgrade and confirm its explanation is visible.
 - Observe at least one friendly attack and verify attacker, target, and damage feedback.
 - Verify effects disappear and controls remain usable.
