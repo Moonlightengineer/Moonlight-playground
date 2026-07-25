@@ -16,7 +16,14 @@ const bugs = [];
 const warnings = [];
 const observations = [];
 const runtimeErrors = [];
-const gates = { smokeReachedTerminal: false, onboardingReachedReward: false };
+const gates = {
+  smokeReachedTerminal: false,
+  onboardingReachedReward: false,
+  rewardExplanationVisible: false,
+  combatFeedbackObserved: false,
+  helpRoundTripPassed: false,
+  noHorizontalOverflow: true,
+};
 
 function addUnique(collection, id, summary, evidence = {}) {
   if (!collection.some((item) => item.id === id)) collection.push({ id, summary, evidence });
@@ -115,10 +122,110 @@ async function measurePage(page, phase) {
     innerWidth: window.innerWidth,
   }));
   observations.push({ phase, metrics });
-  if (metrics.scrollWidth > metrics.innerWidth + 1) bug('horizontal-overflow', `${phase} has horizontal overflow`, metrics);
+  if (metrics.scrollWidth > metrics.innerWidth + 1) {
+    gates.noHorizontalOverflow = false;
+    bug('horizontal-overflow', `${phase} has horizontal overflow`, metrics);
+  }
   if (phase === 'combat' && metrics.scrollHeight > metrics.innerHeight * 1.45) {
     bug('combat-page-too-tall', 'Combat screen requires excessive vertical scrolling', metrics);
   }
+}
+
+async function rewardExplanationFixture(page) {
+  return page.evaluate(async () => {
+    const [{ renderApp }, { createExpedition }, { REWARDS }] = await Promise.all([
+      import('./src/ui/render-interactive.js'),
+      import('./src/expedition/expedition.js'),
+      import('./data/rewards.js'),
+    ]);
+    const root = document.createElement('main');
+    root.id = 'reward-fixture-root';
+    root.innerHTML = `
+      <section id="run-status"></section>
+      <section class="battle-stage">
+        <section id="enemy-intents"></section>
+        <section id="enemy-field"></section>
+        <section id="battle-board"></section>
+      </section>
+      <section class="command-panel">
+        <section id="camp"></section>
+        <section id="primary-actions"></section>
+        <section id="orders"></section>
+      </section>
+      <section id="hand"></section>
+      <details id="details-panel"><summary>詳情</summary></details>
+    `;
+    root.style.width = 'min(100%, 390px)';
+    document.body.append(root);
+    const game = {
+      ...createExpedition('reward-copy-fixture'),
+      status: 'reward',
+      rewardChoices: REWARDS.slice(0, 3),
+      tutorial: { index: 4, complete: true, skipped: false },
+      ui: {},
+    };
+    renderApp(root, game);
+    const cards = [...root.querySelectorAll('.reward-button')].map((card) => ({
+      name: card.querySelector('.reward-name')?.textContent?.trim(),
+      summary: card.querySelector('.reward-summary')?.textContent?.trim(),
+      effect: card.querySelector('.reward-effect')?.textContent?.trim(),
+      useCase: card.querySelector('.reward-use-case')?.textContent?.trim(),
+    }));
+    const result = {
+      cards,
+      complete: cards.length === 3 && cards.every((card) => (
+        card.name && card.summary && card.effect && card.useCase
+      )),
+      overflow: root.scrollWidth > root.clientWidth + 1,
+    };
+    root.remove();
+    return result;
+  });
+}
+
+async function verifyHelpAtRest(page) {
+  const before = await page.locator('#v2-game-app').getAttribute('data-status');
+  await page.locator('.game-header [data-action="open-help"]').click();
+  const panel = page.locator('#help-panel');
+  const sectionCount = await panel.locator('[data-help-section]').count();
+  const visiblePanel = await visible(panel);
+  await measurePage(page, 'help');
+  await screenshot(page, '01b-help');
+  await panel.locator('[data-action="close-help"]').click();
+  const after = await page.locator('#v2-game-app').getAttribute('data-status');
+  return {
+    passed: visiblePanel && sectionCount === 9 && before === after && await panel.isHidden(),
+    before,
+    after,
+    sectionCount,
+  };
+}
+
+async function verifyCombatHelpRoundTrip(page) {
+  const runningBefore = await visible(page.locator('#orders [data-action="pause"]'));
+  await page.locator('#orders [data-action="open-help"]').click();
+  const panel = page.locator('#help-panel');
+  const panelVisible = await visible(panel);
+  const pausedBehindPanel = await visible(page.locator('#orders [data-action="resume"]'));
+  await panel.locator('[data-action="close-help"]').click();
+  const resumedAfter = await visible(page.locator('#orders [data-action="pause"]'));
+  return { passed: runningBefore && panelVisible && pausedBehindPanel && resumedAfter, runningBefore, panelVisible, pausedBehindPanel, resumedAfter };
+}
+
+async function observeCombatFeedback(page) {
+  const handle = await page.waitForFunction(() => {
+    const damage = document.querySelector('#combat-feedback-layer .combat-damage');
+    const attacker = document.querySelector('.is-attacking');
+    const target = document.querySelector('.is-hit');
+    if (!damage || !attacker || !target) return false;
+    return {
+      damage: damage.textContent?.trim(),
+      attacker: attacker.getAttribute('aria-label') ?? attacker.textContent?.trim(),
+      target: target.getAttribute('aria-label') ?? target.textContent?.trim(),
+      projectile: Boolean(document.querySelector('#combat-feedback-layer .combat-projectile')),
+    };
+  }, null, { timeout: 2500 }).catch(() => null);
+  return handle ? handle.jsonValue() : null;
 }
 
 async function play() {
@@ -146,6 +253,18 @@ async function play() {
     await page.goto(BASE_URL, { waitUntil: 'networkidle' });
     await screenshot(page, '01-start');
     await measurePage(page, 'start');
+
+    const rewardFixture = await rewardExplanationFixture(page);
+    gates.rewardExplanationVisible = rewardFixture.complete && !rewardFixture.overflow;
+    observations.push({ phase: 'reward-explanation-fixture', ...rewardFixture });
+    if (!gates.rewardExplanationVisible) {
+      bug('reward-explanation-gate-failed', 'Reward choices do not expose complete mobile-readable explanations', rewardFixture);
+    }
+
+    const helpAtRest = await verifyHelpAtRest(page);
+    observations.push({ phase: 'help-at-rest', ...helpAtRest });
+    if (!helpAtRest.passed) bug('help-at-rest-failed', 'Help does not open, render all sections, and return to the same run state', helpAtRest);
+
     await page.getByRole('button', { name: '開始下一戰', exact: true }).click();
     await page.getByRole('button', { name: '抽牌', exact: true }).click();
 
@@ -183,6 +302,12 @@ async function play() {
 
     await page.getByRole('button', { name: '開始呢一段', exact: true }).click();
     await page.waitForTimeout(60);
+
+    const combatHelp = await verifyCombatHelpRoundTrip(page);
+    gates.helpRoundTripPassed = helpAtRest.passed && combatHelp.passed;
+    observations.push({ phase: 'help-combat-round-trip', ...combatHelp });
+    if (!gates.helpRoundTripPassed) bug('help-round-trip-gate-failed', 'Help does not preserve and resume active combat correctly', combatHelp);
+
     const pause = page.locator('#orders [data-action="pause"]');
     if (await visible(pause)) await pause.click();
     else bug('pause-not-immediately-available', 'Pause is unavailable immediately after combat starts');
@@ -246,7 +371,13 @@ async function play() {
     const beforeEnemy = { distance: await enemy.getAttribute('data-distance'), box: await enemy.boundingBox() };
     const resume = page.locator('#orders [data-action="resume"]');
     if (await visible(resume)) await resume.click();
-    await page.waitForTimeout(760);
+    const feedbackEvidence = await observeCombatFeedback(page);
+    gates.combatFeedbackObserved = Boolean(feedbackEvidence?.damage && feedbackEvidence?.attacker && feedbackEvidence?.target);
+    observations.push({ phase: 'combat-feedback', evidence: feedbackEvidence });
+    if (!gates.combatFeedbackObserved) {
+      bug('combat-feedback-gate-failed', 'A real combat step did not expose attacker, target, and damage feedback', { feedbackEvidence });
+    }
+
     const activePause = page.locator('#orders [data-action="pause"]');
     if (await visible(activePause)) await activePause.click();
 
@@ -306,6 +437,7 @@ async function play() {
     }
     await screenshot(page, '04-result');
 
+    if (!gates.noHorizontalOverflow) bug('no-horizontal-overflow-gate-failed', 'One or more mobile phases overflow horizontally');
     if (runtimeErrors.length) bug('runtime-errors', 'Browser emitted runtime errors', { runtimeErrors });
   } finally {
     await browser?.close();

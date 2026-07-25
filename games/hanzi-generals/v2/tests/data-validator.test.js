@@ -15,6 +15,28 @@ test('approved vertical slice data is internally consistent', () => {
   assert.deepEqual(result, { ok: true, errors: [] });
 });
 
+test('every selectable reward has a complete player-facing explanation', () => {
+  for (const reward of REWARDS) {
+    assert.equal(typeof reward.description?.summary, 'string', `${reward.id} summary must be a string`);
+    assert.ok(reward.description.summary.trim(), `${reward.id} summary must not be blank`);
+    assert.equal(typeof reward.description?.effect, 'string', `${reward.id} effect must be a string`);
+    assert.ok(reward.description.effect.trim(), `${reward.id} effect must not be blank`);
+    assert.equal(typeof reward.description?.useCase, 'string', `${reward.id} useCase must be a string`);
+    assert.ok(reward.description.useCase.trim(), `${reward.id} useCase must not be blank`);
+  }
+});
+
+test('validator rejects a reward with an incomplete explanation', () => {
+  const badRewards = REWARDS.map((reward) => (
+    reward.id === 'repair-wall'
+      ? { ...reward, description: { summary: '修補城牆。', effect: '', useCase: '城牆受損時使用。' } }
+      : reward
+  ));
+  const result = validateGameData({ ...approvedData, REWARDS: badRewards });
+  assert.equal(result.ok, false);
+  assert.match(result.errors.join('\n'), /reward repair-wall missing description\.effect/);
+});
+
 test('validator rejects a recipe pointing to a missing unit', () => {
   const bad = RECIPES.map((item) => (
     item.id === 'huang-zhong' ? { ...item, outputId: 'missing' } : item

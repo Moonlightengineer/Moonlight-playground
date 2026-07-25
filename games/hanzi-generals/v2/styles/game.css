@@ -30,6 +30,7 @@ body {
     var(--paper);
   background-size: 28px 28px;
 }
+body.help-open { overflow: hidden; }
 
 button,
 a,
@@ -51,7 +52,8 @@ button {
 
 button:hover:not(:disabled) { border-color: rgba(157, 45, 36, 0.55); }
 button:focus-visible,
-summary:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
+summary:focus-visible,
+a:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
 button:disabled { cursor: not-allowed; opacity: 0.5; }
 
 #v2-game-app {
@@ -67,6 +69,7 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
   gap: 10px;
   margin-bottom: 8px;
 }
+.header-actions { display: flex; flex: 0 0 auto; gap: 5px; }
 
 #v2-game-app[data-status="combat"] .game-header,
 #v2-game-app[data-status="combat"] .disclaimer { display: none; }
@@ -278,6 +281,82 @@ h2 { margin: 0 0 6px; font-size: 0.85rem; }
 .board-cell[data-last-event="FRIENDLY_DAMAGED"] { box-shadow: inset 0 0 0 3px var(--seal); }
 .unit-hp { display: block; margin-top: 2px; color: #eadfc9; font-size: 0.56rem; font-weight: 500; }
 
+#combat-feedback-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.is-attacking {
+  outline: 3px solid var(--gold);
+  outline-offset: 2px;
+  filter: brightness(1.18);
+}
+
+.is-hit {
+  outline: 3px solid var(--danger);
+  outline-offset: 2px;
+  animation: combat-hit 240ms ease-out 1;
+}
+
+.is-defeated {
+  opacity: 0.38;
+  filter: grayscale(0.8);
+}
+
+.combat-projectile {
+  position: fixed;
+  z-index: 61;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--gold);
+  box-shadow: 0 0 0 1px rgba(43, 33, 24, 0.42);
+  transform-origin: left center;
+  animation: combat-projectile 420ms ease-out 1;
+}
+
+.combat-event-text,
+.combat-damage,
+.combat-defeat {
+  position: fixed;
+  z-index: 62;
+  max-width: min(220px, calc(100vw - 24px));
+  padding: 3px 6px;
+  color: #fff8ec;
+  border: 1px solid rgba(43, 33, 24, 0.5);
+  border-radius: 7px;
+  background: rgba(43, 33, 24, 0.9);
+  font-size: 0.75rem;
+  font-weight: 850;
+  line-height: 1.2;
+  text-align: center;
+  transform: translate(-50%, -50%);
+  animation: combat-label 600ms ease-out 1;
+}
+
+.combat-damage { background: rgba(157, 45, 36, 0.94); }
+.combat-wall-damage { white-space: nowrap; }
+.combat-defeat { background: rgba(43, 33, 24, 0.94); }
+
+@keyframes combat-hit {
+  0%, 100% { filter: brightness(1); }
+  50% { filter: brightness(1.75); }
+}
+
+@keyframes combat-projectile {
+  0% { opacity: 0; clip-path: inset(0 100% 0 0); }
+  20% { opacity: 1; }
+  100% { opacity: 0; clip-path: inset(0 0 0 0); }
+}
+
+@keyframes combat-label {
+  0% { opacity: 0; transform: translate(-50%, -20%); }
+  25% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -90%); }
+}
+
 .command-panel {
   display: grid;
   gap: 6px;
@@ -309,7 +388,30 @@ h2 { margin: 0 0 6px; font-size: 0.85rem; }
 #orders button { flex: 0 0 auto; min-height: 44px; padding: 7px 9px; font-size: 0.72rem; }
 .primary-button { color: #fff8ec; background: var(--seal); border-color: var(--seal); font-weight: 800; }
 .danger-button { color: #fff8ec; background: #5d211d; border-color: #5d211d; font-weight: 800; }
-.reward-button { flex: 1 1 140px; }
+.reward-button {
+  display: grid;
+  flex: 1 1 180px;
+  gap: 4px;
+  align-content: start;
+  min-width: 0;
+  padding: 10px;
+  text-align: left;
+}
+.reward-name { font-size: 0.9rem; line-height: 1.2; }
+.reward-summary { font-size: 0.75rem; line-height: 1.35; }
+.reward-effect {
+  padding: 4px 6px;
+  border: 1px solid rgba(255, 248, 236, 0.48);
+  border-radius: 7px;
+  font-size: 0.7rem;
+  line-height: 1.3;
+}
+.reward-use-case {
+  color: rgba(255, 248, 236, 0.84);
+  font-size: 0.66rem;
+  font-weight: 500;
+  line-height: 1.35;
+}
 
 #hand {
   position: sticky;
@@ -338,6 +440,69 @@ h2 { margin: 0 0 6px; font-size: 0.85rem; }
 .settings-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 .range-detail { font-size: 0.78rem; }
 
+#help-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  padding: max(8px, env(safe-area-inset-top)) 8px max(12px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgba(43, 33, 24, 0.72);
+}
+.help-sheet {
+  width: min(100%, 720px);
+  min-height: calc(100% - 4px);
+  margin: 0 auto;
+  padding: 0 12px 24px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper-soft);
+}
+.help-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 -12px 10px;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  border-radius: 16px 16px 0 0;
+  background: rgba(255, 249, 236, 0.98);
+}
+.help-header h2 { margin: 0; font-size: 1.2rem; }
+.help-intro { margin: 0 0 10px; color: var(--muted); font-size: 0.8rem; line-height: 1.45; }
+.help-navigation {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 0 0 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.help-navigation::-webkit-scrollbar { display: none; }
+.help-navigation-link {
+  flex: 0 0 auto;
+  min-height: 36px;
+  padding: 8px 10px;
+  color: var(--seal);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--seal-soft);
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+.help-section {
+  scroll-margin-top: 72px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.help-section h2 { margin: 0 0 5px; color: var(--seal); font-size: 0.95rem; }
+.help-section p { margin: 0; font-size: 0.82rem; line-height: 1.55; }
+
 #action-message { min-height: 20px; margin: 7px 2px 0; color: var(--seal); font-size: 0.76rem; font-weight: 700; line-height: 1.35; }
 .disclaimer { margin: 10px 0 0; color: var(--muted); font-size: 0.65rem; text-align: center; }
 .empty-copy { margin: 0; color: var(--muted); font-size: 0.76rem; }
@@ -347,6 +512,15 @@ h2 { margin: 0 0 6px; font-size: 0.85rem; }
 [data-reduced-motion="true"] .hand-card.is-selected { transform: none; }
 [data-reduced-motion="true"] .intent-danger { outline: 2px solid var(--danger); }
 [data-reduced-motion="true"] .enemy-token { transition: none; }
+[data-reduced-motion="true"] .combat-projectile { display: none; }
+[data-reduced-motion="true"] .is-attacking,
+[data-reduced-motion="true"] .is-hit {
+  animation: none;
+  filter: none;
+}
+[data-reduced-motion="true"] .combat-event-text,
+[data-reduced-motion="true"] .combat-damage,
+[data-reduced-motion="true"] .combat-defeat { animation: none; }
 
 @media (min-width: 680px) {
   #v2-game-app { padding-top: 18px; }
@@ -367,6 +541,10 @@ h2 { margin: 0 0 6px; font-size: 0.85rem; }
   .card-secondary-action { font-size: 0.5rem; }
   .enemy-token { min-width: 47px; padding-inline: 3px; }
   .intent { max-width: 180px; }
+  .reward-button { flex-basis: 100%; }
+  .header-actions { gap: 3px; }
+  .quiet-button { padding-inline: 6px; }
+  .help-sheet { padding-inline: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -375,4 +553,5 @@ h2 { margin: 0 0 6px; font-size: 0.85rem; }
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  .combat-projectile { display: none; }
 }

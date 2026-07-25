@@ -18,7 +18,10 @@
         <h1 id="v2-title">字陣無雙 v2</h1>
         <p class="subtitle">群雄遠征｜隱藏測試版</p>
       </div>
-      <button type="button" data-action="skip-tutorial" class="quiet-button">略過教學</button>
+      <div class="header-actions">
+        <button type="button" data-action="open-help" class="quiet-button">玩法</button>
+        <button type="button" data-action="skip-tutorial" class="quiet-button">略過教學</button>
+      </div>
     </header>
 
     <section id="run-status" aria-label="遠征狀態"></section>
@@ -28,6 +31,8 @@
       <section id="enemy-field" aria-label="敵軍由上至下推進戰場"></section>
       <section id="battle-board" aria-label="戰陣棋盤"></section>
     </section>
+
+    <div id="combat-feedback-layer" aria-live="polite" aria-atomic="false"></div>
 
     <section class="command-panel" aria-label="整軍及戰鬥操作">
       <section id="camp" aria-label="兩格軍營"></section>
@@ -47,6 +52,36 @@
 
     <p id="action-message" role="alert" aria-live="assertive"></p>
     <p class="disclaimer">個人遊戲實驗；測試數值未經完整平衡。</p>
+
+    <section id="help-panel" role="dialog" aria-modal="true" aria-labelledby="help-title" hidden>
+      <div class="help-sheet">
+        <header class="help-header">
+          <div>
+            <p class="eyebrow">PLAYER GUIDE</p>
+            <h2 id="help-title">玩法說明</h2>
+          </div>
+          <button type="button" data-action="close-help" class="quiet-button">關閉</button>
+        </header>
+        <div id="help-content"></div>
+        <section class="reset-controls" aria-labelledby="reset-controls-title">
+          <h2 id="reset-controls-title">重新開始</h2>
+          <article class="reset-option">
+            <div>
+              <strong>重新開始遠征</strong>
+              <p>清除目前遠征，保留教學完成紀錄、低動態、震動及速度設定。</p>
+            </div>
+            <button type="button" data-action="restart-expedition">重新開始遠征</button>
+          </article>
+          <article class="reset-option reset-option-danger">
+            <div>
+              <strong>完全清除資料並測試最新版</strong>
+              <p>清除本遊戲的遠征、教學、設定及舊版本資料，再重新載入目前部署版本。</p>
+            </div>
+            <button type="button" data-action="clear-all-v2-data" class="danger-button">完全清除資料並測試最新版</button>
+          </article>
+        </section>
+      </div>
+    </section>
   </main>
 </body>
 </html>

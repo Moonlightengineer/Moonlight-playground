@@ -169,6 +169,7 @@ function renderBoard(container, game) {
       descriptionId: !unit && !card && !allowed ? 'cell-disabled-help' : undefined,
     });
     button.dataset.entityId = unit?.id ?? cardId ?? `cell-${cell.column}-${cell.row}`;
+    if (unit) button.dataset.unitId = unit.id;
     button.setAttribute('aria-label', unit
       ? `${GENERAL_BY_ID[unit.definitionId]?.name ?? unit.definitionId}，生命 ${unit.hp}/${unit.maxHp}`
       : card
@@ -234,27 +235,38 @@ function rewardButtons(game) {
   const loose = allLooseCards(game);
   return game.rewardChoices.map((reward) => {
     const data = { rewardId: reward.id };
-    let label = reward.name;
+    let displayName = reward.name;
     if (reward.id === 'copy-card' && loose[0]) {
       data.cardId = loose[0].id;
-      label = `${reward.name}「${loose[0].symbol}」`;
+      displayName = `${reward.name}「${loose[0].symbol}」`;
     }
     if (reward.id === 'remove-card' && loose.at(-1)) {
       data.cardId = loose.at(-1).id;
-      label = `${reward.name}「${loose.at(-1).symbol}」`;
+      displayName = `${reward.name}「${loose.at(-1).symbol}」`;
     }
     if (reward.id === 'evolve-general') {
       const generalId = game.unlockedRecipes.find((id) => GENERAL_BY_ID[id]?.kind === 'general' && !game.evolutions[id]);
       const evolutionId = GENERAL_BY_ID[generalId]?.evolutions?.[0];
       data.generalId = generalId;
       data.evolutionId = evolutionId;
-      if (generalId && evolutionId) label = `${GENERAL_BY_ID[generalId].name}・${evolutionId}`;
+      if (generalId && evolutionId) displayName = `${GENERAL_BY_ID[generalId].name}・${evolutionId}`;
     }
-    return actionButton(label, 'choose-reward', {
+    const button = actionButton('', 'choose-reward', {
       className: 'primary-button reward-button',
       disabled: reward.id === 'evolve-general' && !data.generalId,
       data,
     });
+    button.append(
+      node('strong', 'reward-name', displayName),
+      node('span', 'reward-summary', reward.description.summary),
+      node('span', 'reward-effect', reward.description.effect),
+      node('span', 'reward-use-case', reward.description.useCase),
+    );
+    button.setAttribute(
+      'aria-label',
+      `${displayName}。${reward.description.summary} ${reward.description.effect} ${reward.description.useCase}`,
+    );
+    return button;
   });
 }
 

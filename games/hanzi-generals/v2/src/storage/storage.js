@@ -1,6 +1,15 @@
-const SAVE_KEY = 'hanzi-generals-v2:save:v1';
-const SETTINGS_KEY = 'hanzi-generals-v2:settings:v1';
+const STORAGE_NAMESPACE = 'hanzi-generals-v2:';
+const SAVE_KEY = `${STORAGE_NAMESPACE}save:v1`;
+const SETTINGS_KEY = `${STORAGE_NAMESPACE}settings:v1`;
+const TUTORIAL_KEY = `${STORAGE_NAMESPACE}tutorial:v1`;
 const SAVE_VERSION = 1;
+const TUTORIAL_VERSION = 1;
+
+export const V2_STORAGE_KEYS = Object.freeze([
+  SAVE_KEY,
+  SETTINGS_KEY,
+  TUTORIAL_KEY,
+]);
 
 function resolveStorage(storage) {
   if (storage) return storage;
@@ -68,6 +77,68 @@ export function loadSettings(storage) {
   }
 }
 
+export function saveTutorial(tutorial, storage) {
+  resolveStorage(storage).setItem(
+    TUTORIAL_KEY,
+    JSON.stringify({ schemaVersion: TUTORIAL_VERSION, tutorial }),
+  );
+}
+
+export function loadTutorial(storage) {
+  let target;
+  try {
+    target = resolveStorage(storage);
+  } catch {
+    return null;
+  }
+  const raw = target.getItem(TUTORIAL_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed.schemaVersion !== TUTORIAL_VERSION) return null;
+    return parsed.tutorial && typeof parsed.tutorial === 'object' ? parsed.tutorial : null;
+  } catch {
+    return null;
+  }
+}
+
+export function resetExpedition(storage) {
+  try {
+    resolveStorage(storage).removeItem(SAVE_KEY);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
+
+function discoverOwnedKeys(target) {
+  const keys = new Set(V2_STORAGE_KEYS);
+  if (!Number.isInteger(target.length) || typeof target.key !== 'function') return [...keys];
+  for (let index = 0; index < target.length; index += 1) {
+    const key = target.key(index);
+    if (typeof key === 'string' && key.startsWith(STORAGE_NAMESPACE)) keys.add(key);
+  }
+  return [...keys];
+}
+
+export function clearAllV2Data(storage) {
+  try {
+    const target = resolveStorage(storage);
+    for (const key of discoverOwnedKeys(target)) target.removeItem(key);
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
+
+export function buildLatestVersionUrl(location, timestamp = Date.now()) {
+  const href = typeof location === 'string' ? location : location?.href;
+  if (!href) throw new Error('Location URL is unavailable');
+  const url = new URL(href);
+  url.searchParams.set('v2reload', String(timestamp));
+  return url.toString();
+}
+
 export function isApprovedSaveBoundary(game) {
   if (!game || typeof game !== 'object') return false;
   if (['expedition-map', 'reward', 'victory', 'defeat'].includes(game.status)) return true;
@@ -84,4 +155,8 @@ export function maybeSave(game, storage) {
   }
 }
 
-export const STORAGE_KEYS = Object.freeze({ save: SAVE_KEY, settings: SETTINGS_KEY });
+export const STORAGE_KEYS = Object.freeze({
+  save: SAVE_KEY,
+  settings: SETTINGS_KEY,
+  tutorial: TUTORIAL_KEY,
+});

@@ -122,6 +122,7 @@ function renderInteractiveOrders(root, game) {
   actions.append(actionButton(game.settings.speed === 2 ? '速度 1×' : '速度 2×', 'set-speed', {
     speed: game.settings.speed === 2 ? 1 : 2,
   }));
+  actions.append(actionButton('玩法', 'open-help'));
 
   const noOrders = game.combat.ordersRemaining < 1;
   const swap = actionButton('變陣', 'begin-order', { orderType: 'swap' });

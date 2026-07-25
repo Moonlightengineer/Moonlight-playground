@@ -10,11 +10,18 @@ import { validateGameData } from './core/data-validator.js';
 import { reduceGame } from './core/state-machine.js';
 import { createExpedition } from './expedition/expedition.js';
 import {
+  buildLatestVersionUrl,
+  clearAllV2Data,
   loadSettings,
   loadSnapshot,
+  loadTutorial,
   maybeSave,
+  resetExpedition,
   saveSettings,
+  saveTutorial,
 } from './storage/storage.js';
+import { createCombatFeedback } from './ui/combat-feedback.js';
+import { createHelpPanel } from './ui/help-panel.js';
 import { bindInteractions } from './ui/interactions.js';
 import { renderApp } from './ui/render-interactive.js';
 import {
@@ -41,11 +48,12 @@ function seedFromUrl() {
 function initialGame() {
   const settings = loadSettings();
   const loaded = loadSnapshot();
+  const storedTutorial = loadTutorial();
   const base = loaded.ok ? loaded.game : createExpedition(seedFromUrl());
   return {
     ...base,
     settings: { ...settings, ...(base.settings ?? {}) },
-    tutorial: base.tutorial ?? createTutorial(),
+    tutorial: storedTutorial ?? base.tutorial ?? createTutorial(),
     ui: {
       rangeUnitId: null,
       lastMessage: loaded.ok ? '已由最近遠征節點恢復。' : '新遠征已建立。',
@@ -56,6 +64,26 @@ function initialGame() {
 
 let game = initialGame();
 let timer = null;
+let resumeAfterHelp = false;
+let pendingReload = false;
+const feedback = createCombatFeedback({
+  root,
+  reducedMotion: () => game.settings.reducedMotion,
+});
+const helpPanel = createHelpPanel({
+  panel: root.querySelector('#help-panel'),
+  contentRoot: root.querySelector('#help-content'),
+  onOpen() {
+    feedback.clear();
+    resumeAfterHelp = game.status === 'combat' && !game.combat.paused;
+    if (resumeAfterHelp) dispatch({ type: 'PAUSE' });
+  },
+  onClose() {
+    const shouldResume = resumeAfterHelp && game.status === 'combat' && game.combat.paused;
+    resumeAfterHelp = false;
+    if (shouldResume) dispatch({ type: 'RESUME' });
+  },
+});
 
 function showMessage(text = '') {
   message.textContent = text;
@@ -67,15 +95,26 @@ function render() {
   message.textContent = game.ui?.lastMessage ?? '';
 }
 
+function persistTutorial() {
+  try {
+    saveTutorial(game.tutorial);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function relevantEntityId(event) {
   return event.payload.targetId
     ?? event.payload.enemyId
     ?? event.payload.unitId
-    ?? event.payload.sourceId
+    ?? event.payload.attackerId
     ?? '';
 }
 
 function playEvents(events) {
+  feedback.present(events);
+
   for (const event of events) {
     const id = relevantEntityId(event);
     if (!id) continue;
@@ -83,14 +122,7 @@ function playEvents(events) {
       ? CSS.escape(id)
       : id.replaceAll('"', '\\"');
     const target = root.querySelector(`[data-entity-id="${escaped}"]`);
-    if (!target) continue;
-    target.dataset.lastEvent = event.type;
-    if (!game.settings.reducedMotion && typeof target.animate === 'function') {
-      target.animate(
-        [{ transform: 'scale(1)' }, { transform: 'scale(1.04)' }, { transform: 'scale(1)' }],
-        { duration: 180 },
-      );
-    }
+    if (target) target.dataset.lastEvent = event.type;
   }
 
   const important = events.at(-1);
@@ -126,9 +158,55 @@ function vibrationFor(events) {
 function scheduleBattleTick() {
   window.clearTimeout(timer);
   timer = null;
-  if (game.status !== 'combat' || game.combat?.paused) return;
+  if (game.status !== 'combat' || game.combat?.paused || helpPanel.isOpen()) return;
   const delay = game.settings.speed === 2 ? 350 : 700;
   timer = window.setTimeout(() => dispatch({ type: 'STEP_COMBAT' }), delay);
+}
+
+function restartCurrentExpedition() {
+  if (!window.confirm('清除目前遠征進度並重新開始？教學完成紀錄及玩家設定會保留。')) return;
+
+  window.clearTimeout(timer);
+  feedback.clear();
+  const result = resetExpedition();
+  if (!result.ok) {
+    showMessage(`未能重新開始：${result.error?.message ?? '本機存檔無法清除。'}`);
+    return;
+  }
+
+  const tutorial = game.tutorial;
+  const settings = game.settings;
+  game = {
+    ...createExpedition(`moonlight-${Date.now()}`),
+    tutorial,
+    settings,
+    ui: {
+      rangeUnitId: null,
+      lastMessage: '已重新開始遠征；教學紀錄及設定已保留。',
+    },
+  };
+  resumeAfterHelp = false;
+  helpPanel.close();
+  persistTutorial();
+  maybeSave(game);
+}
+
+function clearDataAndReload() {
+  const confirmed = window.confirm(
+    '確認完全清除？將刪除遠征、教學、設定及所有舊 v2 資料；其他 Playground 項目及經典版資料不受影響。',
+  );
+  if (!confirmed) return;
+
+  window.clearTimeout(timer);
+  feedback.clear();
+  const result = clearAllV2Data();
+  if (!result.ok) {
+    showMessage(`未能完全清除：${result.error?.message ?? '本機資料無法清除。'}`);
+    return;
+  }
+
+  pendingReload = true;
+  window.location.href = buildLatestVersionUrl(window.location);
 }
 
 function handleUiAction(action) {
@@ -146,6 +224,22 @@ function handleUiAction(action) {
     const unit = (game.status === 'combat' ? game.combat.board : game.board).units[action.unitId];
     const definition = unit ? GENERALS.find(({ id }) => id === unit.definitionId) : null;
     showMessage(definition ? `${definition.name}：射程 ${definition.range}，攻擊方式 ${definition.pattern}。` : '未能讀取單位資料。');
+    return true;
+  }
+  if (action.type === 'UI_OPEN_HELP') {
+    helpPanel.open(action.trigger);
+    return true;
+  }
+  if (action.type === 'UI_CLOSE_HELP') {
+    helpPanel.close();
+    return true;
+  }
+  if (action.type === 'UI_RESTART_EXPEDITION') {
+    restartCurrentExpedition();
+    return true;
+  }
+  if (action.type === 'UI_CLEAR_ALL_V2_DATA') {
+    clearDataAndReload();
     return true;
   }
   if (action.type === 'UI_SKIP_TUTORIAL') {
@@ -178,6 +272,8 @@ function handleUiAction(action) {
 
 function dispatch(action) {
   if (handleUiAction(action)) {
+    if (pendingReload) return true;
+    persistTutorial();
     render();
     scheduleBattleTick();
     return true;
@@ -196,6 +292,7 @@ function dispatch(action) {
   };
 
   if (action.type === 'SET_SPEED') saveSettings(game.settings);
+  persistTutorial();
   maybeSave(game);
   render();
   playEvents(result.events);
@@ -206,6 +303,7 @@ function dispatch(action) {
 
 function renderFatalDataError(errors) {
   window.clearTimeout(timer);
+  feedback.clear();
   root.dataset.status = 'error';
   root.replaceChildren();
   const title = document.createElement('h1');
@@ -219,12 +317,17 @@ if (!validation.ok) {
   renderFatalDataError(validation.errors);
 } else {
   bindInteractions(root, dispatch);
+  persistTutorial();
   render();
   scheduleBattleTick();
 
   document.addEventListener('keydown', (event) => {
     const interactive = ['BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'SUMMARY'].includes(document.activeElement?.tagName);
     if (event.key === 'Escape') {
+      if (helpPanel.isOpen()) {
+        helpPanel.close();
+        return;
+      }
       const details = root.querySelector('#details-panel');
       if (details?.open) details.open = false;
       if (game.ui?.rangeUnitId) {
@@ -233,7 +336,7 @@ if (!validation.ok) {
         render();
       }
     }
-    if (event.code === 'Space' && game.status === 'combat' && !interactive) {
+    if (event.code === 'Space' && game.status === 'combat' && !interactive && !helpPanel.isOpen()) {
       event.preventDefault();
       dispatch({ type: game.combat.paused ? 'RESUME' : 'PAUSE' });
     }

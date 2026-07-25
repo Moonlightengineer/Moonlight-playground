@@ -3,18 +3,30 @@ import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
 
 const ARTIFACT_DIR = 'artifacts/hanzi-v2-playtest';
-const URL = 'http://127.0.0.1:8001/games/hanzi-generals/v2/?seed=playtest-0';
+const BASE_URL = 'http://127.0.0.1:8001/games/hanzi-generals/v2/?seed=playtest-0';
 const bugs = [];
+const observations = [];
+const runtimeErrors = [];
+const gates = {
+  expeditionResetPassed: false,
+  completeResetPassed: false,
+  storageIsolationPassed: false,
+  noHorizontalOverflow: true,
+};
+
+function addUnique(collection, id, summary, evidence = {}) {
+  if (!collection.some((item) => item.id === id)) collection.push({ id, summary, evidence });
+}
 
 function bug(id, summary, evidence = {}) {
-  bugs.push({ id, summary, evidence });
+  addUnique(bugs, id, summary, evidence);
 }
 
 async function waitForServer() {
   const deadline = Date.now() + 15000;
   while (Date.now() < deadline) {
     try {
-      if ((await fetch(URL)).ok) return;
+      if ((await fetch(BASE_URL)).ok) return;
     } catch {
       // Keep polling.
     }
@@ -32,6 +44,18 @@ async function handWrapBySymbol(page, symbol) {
     if (text === symbol) return wrap;
   }
   throw new Error(`Hand does not contain ${symbol}`);
+}
+
+async function measureOverflow(page, phase) {
+  const metrics = await page.evaluate(() => ({
+    scrollWidth: document.documentElement.scrollWidth,
+    innerWidth: window.innerWidth,
+  }));
+  observations.push({ phase, metrics });
+  if (metrics.scrollWidth > metrics.innerWidth + 1) {
+    gates.noHorizontalOverflow = false;
+    bug('horizontal-overflow', `${phase} overflows the mobile viewport`, metrics);
+  }
 }
 
 async function controlledFocusFixture(page) {
@@ -128,6 +152,115 @@ async function controlledFocusFixture(page) {
   });
 }
 
+async function storageSnapshot(page) {
+  return page.evaluate(() => ({
+    save: localStorage.getItem('hanzi-generals-v2:save:v1'),
+    settings: localStorage.getItem('hanzi-generals-v2:settings:v1'),
+    tutorial: localStorage.getItem('hanzi-generals-v2:tutorial:v1'),
+    legacy: localStorage.getItem('hanzi-generals-v2:legacy:v0'),
+    temporary: localStorage.getItem('hanzi-generals-v2:temporary-test'),
+    playground: localStorage.getItem('moonlight-playground:theme'),
+    classic: localStorage.getItem('hanzi-generals:classic:save'),
+  }));
+}
+
+async function acceptNextDialog(page) {
+  page.once('dialog', async (dialog) => dialog.accept());
+}
+
+async function verifyResetFlows(page) {
+  await page.evaluate(() => {
+    localStorage.setItem('hanzi-generals-v2:legacy:v0', 'legacy');
+    localStorage.setItem('hanzi-generals-v2:temporary-test', 'temporary');
+    localStorage.setItem('moonlight-playground:theme', 'dark');
+    localStorage.setItem('hanzi-generals:classic:save', 'classic');
+  });
+
+  const before = await storageSnapshot(page);
+  await page.locator('#orders [data-action="open-help"]').click();
+  await acceptNextDialog(page);
+  await page.locator('#help-panel [data-action="restart-expedition"]').click();
+  await page.waitForFunction(() => document.querySelector('#v2-game-app')?.dataset.status === 'expedition-map');
+
+  const afterExpeditionReset = await storageSnapshot(page);
+  const tutorialPreserved = before.tutorial === afterExpeditionReset.tutorial;
+  const settingsPreserved = before.settings === afterExpeditionReset.settings;
+  const expeditionRestarted = Boolean(afterExpeditionReset.save);
+  const unrelatedPreserved = afterExpeditionReset.playground === 'dark'
+    && afterExpeditionReset.classic === 'classic';
+  const legacyPreserved = afterExpeditionReset.legacy === 'legacy'
+    && afterExpeditionReset.temporary === 'temporary';
+
+  gates.expeditionResetPassed = tutorialPreserved
+    && settingsPreserved
+    && expeditionRestarted
+    && unrelatedPreserved
+    && legacyPreserved;
+  observations.push({
+    phase: 'expedition-reset',
+    tutorialPreserved,
+    settingsPreserved,
+    expeditionRestarted,
+    unrelatedPreserved,
+    legacyPreserved,
+  });
+  if (!gates.expeditionResetPassed) {
+    bug('expedition-reset-gate-failed', 'Expedition reset did not preserve tutorial/settings or isolate unrelated storage', {
+      before,
+      afterExpeditionReset,
+    });
+  }
+
+  await page.locator('.game-header [data-action="open-help"]').click();
+  await acceptNextDialog(page);
+  await Promise.all([
+    page.waitForURL((url) => url.searchParams.has('v2reload'), { waitUntil: 'networkidle' }),
+    page.locator('#help-panel [data-action="clear-all-v2-data"]').click(),
+  ]);
+
+  const afterCompleteReset = await storageSnapshot(page);
+  const tutorialState = afterCompleteReset.tutorial ? JSON.parse(afterCompleteReset.tutorial) : null;
+  const v2Cleared = afterCompleteReset.save === null
+    && afterCompleteReset.settings === null
+    && afterCompleteReset.legacy === null
+    && afterCompleteReset.temporary === null;
+  const freshTutorial = Boolean(tutorialState?.tutorial)
+    && tutorialState.tutorial.complete !== true
+    && tutorialState.tutorial.skipped !== true;
+  const onboardingVisible = /第一步/.test((await page.locator('#tutorial-message').textContent()) ?? '');
+  const unrelatedStillPreserved = afterCompleteReset.playground === 'dark'
+    && afterCompleteReset.classic === 'classic';
+  const cacheBusted = new globalThis.URL(page.url()).searchParams.has('v2reload');
+
+  gates.completeResetPassed = v2Cleared && freshTutorial && onboardingVisible && cacheBusted;
+  gates.storageIsolationPassed = unrelatedPreserved && unrelatedStillPreserved;
+  observations.push({
+    phase: 'complete-reset',
+    v2Cleared,
+    freshTutorial,
+    onboardingVisible,
+    unrelatedStillPreserved,
+    cacheBusted,
+    url: page.url(),
+  });
+
+  if (!gates.completeResetPassed) {
+    bug('complete-reset-gate-failed', 'Complete reset did not clear all v2 data and reload fresh onboarding', {
+      afterCompleteReset,
+      tutorialState,
+      onboardingVisible,
+      cacheBusted,
+      url: page.url(),
+    });
+  }
+  if (!gates.storageIsolationPassed) {
+    bug('storage-isolation-gate-failed', 'Reset flow modified Playground or Classic storage', {
+      afterExpeditionReset,
+      afterCompleteReset,
+    });
+  }
+}
+
 async function run() {
   await mkdir(ARTIFACT_DIR, { recursive: true });
   const server = spawn('python', ['-m', 'http.server', '8001', '--directory', '_site'], {
@@ -142,9 +275,18 @@ async function run() {
       isMobile: true,
       hasTouch: true,
     });
-    await context.addInitScript(() => localStorage.clear());
+    await context.addInitScript(() => {
+      if (sessionStorage.getItem('hanzi-v2-regression-initialized') === 'true') return;
+      localStorage.clear();
+      sessionStorage.setItem('hanzi-v2-regression-initialized', 'true');
+    });
     const page = await context.newPage();
-    await page.goto(URL, { waitUntil: 'networkidle' });
+    page.on('pageerror', (error) => runtimeErrors.push({ type: 'pageerror', message: error.message }));
+    page.on('console', (message) => {
+      if (message.type() === 'error') runtimeErrors.push({ type: 'console', message: message.text() });
+    });
+    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
+    await measureOverflow(page, 'start');
 
     await page.getByRole('button', { name: '開始下一戰', exact: true }).click();
     await page.getByRole('button', { name: '抽牌', exact: true }).click();
@@ -188,6 +330,7 @@ async function run() {
         viewport,
       });
     }
+    await measureOverflow(page, 'combat-orders');
 
     const focusFixture = await controlledFocusFixture(page);
     if (focusFixture.legalEligible !== 'true' || !focusFixture.legalTarget) {
@@ -197,7 +340,14 @@ async function run() {
       bug('cross-lane-focus-target-exposed', 'A cross-lane enemy is exposed to a same-lane unit', focusFixture);
     }
 
+    await verifyResetFlows(page);
+    await measureOverflow(page, 'post-reset');
     await page.screenshot({ path: `${ARTIFACT_DIR}/08-ui-regressions.png`, fullPage: true });
+
+    if (runtimeErrors.length) bug('runtime-errors', 'Browser emitted runtime errors', { runtimeErrors });
+    for (const [gate, passed] of Object.entries(gates)) {
+      if (!passed) bug(`${gate}-failed`, `Required UI regression gate ${gate} did not pass`);
+    }
   } finally {
     await browser?.close();
     server.kill('SIGTERM');
@@ -210,7 +360,15 @@ try {
   bug('ui-regression-playtest-crashed', error.message, { stack: error.stack });
 }
 
-const report = { generatedAt: new Date().toISOString(), bugs };
+const report = {
+  generatedAt: new Date().toISOString(),
+  viewport: { width: 390, height: 844 },
+  url: BASE_URL,
+  bugs,
+  gates,
+  observations,
+  runtimeErrors,
+};
 await writeFile(`${ARTIFACT_DIR}/ui-regression-report.json`, `${JSON.stringify(report, null, 2)}\n`);
 console.log('HANZI_V2_UI_REGRESSION_REPORT');
 console.log(JSON.stringify(report, null, 2));
