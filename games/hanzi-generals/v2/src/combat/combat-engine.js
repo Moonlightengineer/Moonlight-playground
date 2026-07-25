@@ -20,12 +20,19 @@ function applyBurn(enemy, turn, events) {
   const statuses = enemy.statuses ?? [];
   const burn = statuses.find(({ type }) => type === 'burn');
   if (!burn) return;
+  const hpBefore = enemy.hp;
   enemy.hp -= burn.damage;
   burn.remaining -= 1;
   events.push(eventAt(turn, 'BURN_DAMAGED', {
     enemyId: enemy.id,
     damage: burn.damage,
   }));
+  if (hpBefore > 0 && enemy.hp <= 0) {
+    events.push(eventAt(turn, 'ENEMY_DEFEATED', {
+      enemyId: enemy.id,
+      defeatedById: burn.sourceId ?? 'burn',
+    }));
+  }
   enemy.statuses = statuses.filter((status) => status.type !== 'burn' || status.remaining > 0);
 }
 
@@ -125,20 +132,27 @@ function damageLaneTarget(next, enemy, enemyDefinition, events, options = {}) {
   if (target) {
     const reduction = friendlyDirectReduction(next.board, target, enemy.lane, next.fortify);
     const damage = Math.max(1, Math.floor(boostedDamage * reduction));
+    const hpBefore = target.hp;
     target.hp -= damage;
     events.push(eventAt(next.turn, 'FRIENDLY_DAMAGED', {
-      enemyId: enemy.id,
-      unitId: target.id,
+      attackerId: enemy.id,
+      targetId: target.id,
       damage,
       impact: options.impact ?? 'attack',
     }));
+    if (hpBefore > 0 && target.hp <= 0) {
+      events.push(eventAt(next.turn, 'UNIT_DEFEATED', {
+        unitId: target.id,
+        defeatedById: enemy.id,
+      }));
+    }
   } else {
     const damage = Math.max(1, Math.floor(
       boostedDamage * wallDirectReduction(enemy.lane, next.fortify),
     ));
     next.wallHp = Math.max(0, next.wallHp - damage);
     events.push(eventAt(next.turn, 'WALL_DAMAGED', {
-      enemyId: enemy.id,
+      attackerId: enemy.id,
       damage,
       lane: enemy.lane,
       impact: options.impact ?? 'attack',
@@ -186,7 +200,7 @@ export function stepCombat(combat, context) {
 
   for (const enemy of next.enemies) {
     applyBurn(enemy, next.turn, events);
-    maybeTriggerBossPhase(next, enemy, context, events);
+    if (enemy.hp > 0) maybeTriggerBossPhase(next, enemy, context, events);
   }
   next.enemies = next.enemies.filter((enemy) => enemy.hp > 0);
 
@@ -209,12 +223,19 @@ export function stepCombat(combat, context) {
 
     for (const target of targets) {
       const damage = friendlyDamageAgainst(target, unitDefinition.damage, next.enemies);
+      const hpBefore = target.hp;
       target.hp -= damage;
       events.push(eventAt(next.turn, 'UNIT_HIT', {
-        sourceId: unit.id,
+        attackerId: unit.id,
         targetId: target.id,
         damage,
       }));
+      if (hpBefore > 0 && target.hp <= 0) {
+        events.push(eventAt(next.turn, 'ENEMY_DEFEATED', {
+          enemyId: target.id,
+          defeatedById: unit.id,
+        }));
+      }
     }
     anyFriendlyAction = true;
     unit.cooldown = unitDefinition.attackEvery;
@@ -299,10 +320,7 @@ export function stepCombat(combat, context) {
   }
 
   for (const [unitId, unit] of Object.entries(next.board.units)) {
-    if (unit.hp <= 0) {
-      delete next.board.units[unitId];
-      events.push(eventAt(next.turn, 'UNIT_DEFEATED', { unitId }));
-    }
+    if (unit.hp <= 0) delete next.board.units[unitId];
   }
 
   next.enemies = next.enemies.filter((enemy) => enemy.hp > 0);
