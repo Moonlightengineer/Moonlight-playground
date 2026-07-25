@@ -1,4 +1,5 @@
 import { GENERAL_BY_ID } from '../../data/generals.js';
+import { EVOLUTION_BY_ID, resolveEvolvedDefinition } from '../../data/evolutions.js';
 import { areAdjacent } from '../board/board.js';
 import { canFocusEnemy } from '../combat/targeting.js';
 import { renderApp as renderBaseApp } from './render.js';
@@ -70,16 +71,34 @@ function reinforceMoveExists(combat) {
   }));
 }
 
+function decorateEvolution(button, unit) {
+  const base = GENERAL_BY_ID[unit.definitionId];
+  const evolution = EVOLUTION_BY_ID[unit.evolution];
+  if (!base || !evolution) return;
+  const effective = resolveEvolvedDefinition(base, unit.evolution);
+  button.classList.add('is-evolved');
+  button.dataset.evolutionId = evolution.id;
+  const badge = node('small', 'evolution-badge', `進化・${evolution.name}`);
+  button.append(badge);
+  button.setAttribute(
+    'aria-label',
+    `${base.name}，已進化為${evolution.name}。生命 ${unit.hp}/${unit.maxHp}，傷害 ${base.damage}→${effective.damage}，射程 ${base.range}→${effective.range}，攻擊間隔 ${base.attackEvery}→${effective.attackEvery}。${evolution.effect}`,
+  );
+  button.title = `${evolution.name}｜${evolution.effect}`;
+}
+
 function decorateCombatBoard(root, game) {
   if (game.status !== 'combat') return;
   for (const button of root.querySelectorAll('#battle-board .board-cell')) {
     const unitId = button.dataset.unitId;
     if (unitId) {
+      const unit = game.combat.board.units[unitId];
       const cell = boardCellForUnit(game, unitId);
       if (cell) {
         button.dataset.column = String(cell.column);
         button.dataset.row = String(cell.row);
       }
+      if (unit) decorateEvolution(button, unit);
     } else {
       button.disabled = true;
     }
