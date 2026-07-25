@@ -62,7 +62,7 @@ async function controlledFocusFixture(page) {
     `;
     document.body.append(root);
 
-    const definition = {
+    const unit = {
       id: 'controlled-huang-zhong',
       definitionId: 'huang-zhong',
       kind: 'general',
@@ -73,7 +73,7 @@ async function controlledFocusFixture(page) {
       statuses: [],
     };
     let board = boardModule.createBoard('base');
-    board = boardModule.placeUnit(board, definition, { column: 0, row: 0 });
+    board = boardModule.placeUnit(board, unit, { column: 0, row: 0 });
     const combat = {
       turn: 0,
       status: 'running',
@@ -157,7 +157,7 @@ async function run() {
     const campCards = page.locator('#camp [data-action="select-camp-card"]');
     await campCards.nth(0).click();
     await campCards.nth(1).click();
-    await page.locator('#battle-board [data-action="choose-cell"][data-column="0"][data-row="0"]').click();
+    await page.locator('#battle-board [data-action="choose-cell"][data-column="1"][data-row="0"]').click();
 
     const tutorial = (await page.locator('#tutorial-message').textContent())?.trim() ?? '';
     if (!/第三步/.test(tutorial)) {
@@ -170,7 +170,7 @@ async function run() {
 
     await page.getByRole('button', { name: '集火', exact: true }).click();
     await page.locator('#enemy-field .enemy-token.is-order-target').first().click();
-    await page.getByRole('button', { name: '守1路', exact: true }).click();
+    await page.getByRole('button', { name: '守2路', exact: true }).click();
 
     const status = page.locator('#orders .order-status');
     const statusText = (await status.textContent())?.trim() ?? '';
