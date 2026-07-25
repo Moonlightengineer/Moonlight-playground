@@ -45,27 +45,9 @@ function applySwap(next, order, events) {
   events.push(eventAt(next.turn, 'UNITS_SWAPPED', { unitIds: [firstId, secondId] }));
 }
 
-function applyReposition(next, order, events) {
-  const unit = next.board.units[order.unitId];
-  if (!unit || unit.hp <= 0) return;
-  try {
-    next.board = moveUnit(next.board, unit.id, order.targetCell);
-    events.push(eventAt(next.turn, 'UNIT_REPOSITIONED', {
-      unitId: unit.id,
-      targetCell: order.targetCell,
-    }));
-  } catch {
-    events.push(eventAt(next.turn, 'ORDER_CANCELLED', {
-      type: 'reposition',
-      unitId: unit.id,
-    }));
-  }
-}
-
 function applyPendingOrders(next, events) {
   for (const order of next.pendingOrders ?? []) {
     if (order.type === 'swap') applySwap(next, order, events);
-    if (order.type === 'reposition') applyReposition(next, order, events);
   }
   next.pendingOrders = [];
 }
