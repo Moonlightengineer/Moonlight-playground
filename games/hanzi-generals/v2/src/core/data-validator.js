@@ -33,6 +33,14 @@ function duplicateIds(items) {
   return [...duplicates];
 }
 
+function validateDescription(ownerType, ownerId, description, errors) {
+  for (const field of ['summary', 'effect', 'useCase']) {
+    if (typeof description?.[field] !== 'string' || !description[field].trim()) {
+      errors.push(`${ownerType} ${ownerId} missing description.${field}`);
+    }
+  }
+}
+
 export function validateGameData({ GENERALS, ENEMIES, RECIPES, STAGES, REWARDS, TUNING }) {
   const errors = [];
   const collections = { GENERALS, ENEMIES, RECIPES, STAGES, REWARDS };
@@ -97,6 +105,10 @@ export function validateGameData({ GENERALS, ENEMIES, RECIPES, STAGES, REWARDS, 
         }
       }
     }
+  }
+
+  for (const reward of REWARDS || []) {
+    validateDescription('reward', reward.id, reward.description, errors);
   }
 
   for (const required of REQUIRED_STAGE_IDS) {
