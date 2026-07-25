@@ -84,7 +84,7 @@ export function rerollHand(deck, lockedCardIds, rng) {
     hand: keep,
     discardPile: [...deck.discardPile.map(cloneCard), ...discard],
     retained: [],
-    freeRerollsRemaining: 0,
+    freeRerollsRemaining: deck.freeRerollsRemaining - 1,
   }, 5, rng);
 }
 
