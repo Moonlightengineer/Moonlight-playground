@@ -46,6 +46,10 @@ function enemyAtWall(overrides = {}) {
   };
 }
 
+function eventOf(result, type) {
+  return result.events.find((event) => event.type === type);
+}
+
 test('same-lane ranged unit selects the nearest reachable enemy', () => {
   const source = { id: 'u1', definitionId: 'huang-zhong', cell: { column: 1, row: 2 } };
   const enemies = [
@@ -74,6 +78,99 @@ test('focus changes priority only within the original same-lane pattern', () => 
     findTargets(source, enemies, { range: 5, pattern: 'same-lane' }, { focusId: 'cross-near' }).map(({ id }) => id),
     ['same-near'],
   );
+});
+
+test('friendly hit event identifies attacker, target, and damage', () => {
+  let board = createBoard('base');
+  board = placeUnit(board, unit('huang-zhong', { id: 'archer-1' }), { column: 1, row: 0 });
+  const combat = createCombatState({
+    board,
+    enemies: [enemyAtWall({ id: 'target-1', distance: 2 })],
+    wallHp: 100,
+    phaseIndex: 0,
+    ordersRemaining: 3,
+  });
+  const result = stepCombat(combat, context);
+  assert.deepEqual(eventOf(result, 'UNIT_HIT')?.payload, {
+    attackerId: 'archer-1',
+    targetId: 'target-1',
+    damage: 7,
+  });
+});
+
+test('enemy damage event identifies attacker, friendly target, and damage', () => {
+  let board = createBoard('base');
+  board = placeUnit(board, unit('shield-troop', { id: 'front' }), { column: 1, row: 0 });
+  const combat = createCombatState({
+    board,
+    enemies: [enemyAtWall({ id: 'attacker-1' })],
+    wallHp: 100,
+    phaseIndex: 0,
+    ordersRemaining: 3,
+  });
+  const result = stepCombat(combat, context);
+  assert.deepEqual(eventOf(result, 'FRIENDLY_DAMAGED')?.payload, {
+    attackerId: 'attacker-1',
+    targetId: 'front',
+    damage: 2,
+    impact: 'attack',
+  });
+});
+
+test('wall damage event identifies attacker, lane, and damage', () => {
+  const combat = createCombatState({
+    board: createBoard('base'),
+    enemies: [enemyAtWall({ id: 'wall-attacker' })],
+    wallHp: 100,
+    phaseIndex: 0,
+    ordersRemaining: 3,
+  });
+  const result = stepCombat(combat, context);
+  assert.deepEqual(eventOf(result, 'WALL_DAMAGED')?.payload, {
+    attackerId: 'wall-attacker',
+    damage: 2,
+    lane: 1,
+    impact: 'attack',
+  });
+});
+
+test('enemy defeat event identifies defeated enemy and final attacker', () => {
+  let board = createBoard('base');
+  board = placeUnit(board, unit('huang-zhong', { id: 'finisher' }), { column: 1, row: 0 });
+  const combat = createCombatState({
+    board,
+    enemies: [enemyAtWall({ id: 'fragile-enemy', distance: 2, hp: 7, maxHp: 7 })],
+    wallHp: 100,
+    phaseIndex: 0,
+    ordersRemaining: 3,
+  });
+  const result = stepCombat(combat, context);
+  assert.deepEqual(eventOf(result, 'ENEMY_DEFEATED')?.payload, {
+    enemyId: 'fragile-enemy',
+    defeatedById: 'finisher',
+  });
+});
+
+test('friendly defeat event identifies defeated unit and final attacker', () => {
+  let board = createBoard('base');
+  board = placeUnit(board, unit('shield-troop', {
+    id: 'fragile-unit',
+    hp: 2,
+    maxHp: 22,
+    cooldown: 2,
+  }), { column: 1, row: 0 });
+  const combat = createCombatState({
+    board,
+    enemies: [enemyAtWall({ id: 'unit-finisher' })],
+    wallHp: 100,
+    phaseIndex: 0,
+    ordersRemaining: 3,
+  });
+  const result = stepCombat(combat, context);
+  assert.deepEqual(eventOf(result, 'UNIT_DEFEATED')?.payload, {
+    unitId: 'fragile-unit',
+    defeatedById: 'unit-finisher',
+  });
 });
 
 test('enemy at distance zero damages wall when the lane is empty', () => {
