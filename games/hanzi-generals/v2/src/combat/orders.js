@@ -1,10 +1,6 @@
-import {
-  areAdjacent,
-  getUnitAt,
-  isValidCell,
-} from '../board/board.js';
+import { areAdjacent } from '../board/board.js';
 import { gameEvent } from '../core/events.js';
-import { findTargets } from './targeting.js';
+import { canFocusEnemy } from './targeting.js';
 
 function fail(combat, code, message) {
   return { ok: false, state: combat, events: [], error: { code, message } };
@@ -19,17 +15,6 @@ function unitIsIdle(unit) {
   return Boolean(unit?.hp > 0 && !(unit.statuses ?? []).some(({ type }) => type === 'busy'));
 }
 
-function canFocusEnemy(combat, enemyId, context) {
-  const enemy = combat.enemies.find((item) => item.id === enemyId && item.hp > 0);
-  if (!enemy) return false;
-  return Object.values(combat.board.units).some((unit) => {
-    if (unit.hp <= 0) return false;
-    if (typeof context.canAttack === 'function') return context.canAttack(unit, enemy, combat);
-    const definition = context.unitsById?.[unit.definitionId];
-    return definition && findTargets(unit, combat.enemies, definition).some(({ id }) => id === enemyId);
-  });
-}
-
 function consumeTactic(combat, tacticId) {
   const index = combat.tactics.indexOf(tacticId);
   if (index < 0) return null;
@@ -38,49 +23,13 @@ function consumeTactic(combat, tacticId) {
   return { ...structuredClone(combat), tactics };
 }
 
-function applyTargetedReposition(combat, order) {
-  const unit = combat.board.units[order.unitId];
-  if (!unitIsIdle(unit)) {
-    return fail(combat, 'INVALID_SWAP_UNITS', '只可以移動存活而且空閒嘅單位。');
-  }
-  if (!isValidCell(combat.board, order.targetCell)) {
-    return fail(combat, 'ILLEGAL_REPOSITION_CELL', '變陣目標位置不存在。');
-  }
-  if (!areAdjacent(unit.cell, order.targetCell)) {
-    return fail(combat, 'UNITS_NOT_ADJACENT', '變陣只可以移去相鄰位置。');
-  }
-
-  const occupant = getUnitAt(combat.board, order.targetCell);
-  if (occupant && !unitIsIdle(occupant)) {
-    return fail(combat, 'INVALID_SWAP_UNITS', '目標單位暫時不可移動。');
-  }
-
-  const next = spendOrder(combat);
-  if (!next) return fail(combat, 'NO_ORDERS', '軍令不足。');
-  if (occupant) {
-    next.pendingOrders.push({ type: 'swap', unitIds: [unit.id, occupant.id] });
-  } else {
-    next.pendingOrders.push({ type: 'reposition', unitId: unit.id, targetCell: { ...order.targetCell } });
-  }
-  return {
-    ok: true,
-    state: next,
-    events: [gameEvent('ORDER_QUEUED', {
-      type: occupant ? 'swap' : 'reposition',
-      unitId: unit.id,
-      targetCell: order.targetCell,
-      targetUnitId: occupant?.id,
-    }, combat.turn)],
-  };
-}
-
 export function applyOrder(combat, order, context = {}) {
   if (combat.status !== 'running') {
     return fail(combat, 'COMBAT_NOT_RUNNING', '戰鬥未進行，暫時不可使用軍令。');
   }
 
-  if (order.type === 'swap' && order.unitId && order.targetCell) {
-    return applyTargetedReposition(combat, order);
+  if (order.type === 'swap' && (order.unitId || order.targetCell)) {
+    return fail(combat, 'SWAP_REQUIRES_TWO_UNITS', '變陣只可以交換兩名相鄰武將。');
   }
 
   if (order.type === 'swap') {
@@ -104,8 +53,8 @@ export function applyOrder(combat, order, context = {}) {
   }
 
   if (order.type === 'focus') {
-    if (!canFocusEnemy(combat, order.enemyId, context)) {
-      return fail(combat, 'ILLEGAL_FOCUS_TARGET', '目標唔喺任何友軍合法攻擊範圍。');
+    if (!canFocusEnemy(combat, order.enemyId, context.unitsById)) {
+      return fail(combat, 'ILLEGAL_FOCUS_TARGET', '目標唔喺任何友軍原本合法攻擊範圍。');
     }
     const next = spendOrder(combat);
     if (!next) return fail(combat, 'NO_ORDERS', '軍令不足。');
