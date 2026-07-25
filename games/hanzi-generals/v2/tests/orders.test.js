@@ -95,6 +95,46 @@ test('swap rejects an adjacent empty cell without spending an order', () => {
   assert.deepEqual(result.state.pendingOrders, []);
 });
 
+test('reinforce moves one living unit into an adjacent empty lane and spends one order', () => {
+  const combat = fixtureCombat();
+  const result = applyOrder(combat, {
+    type: 'reinforce',
+    unitId: 'u2',
+    targetCell: { column: 2, row: 1 },
+  }, context);
+  assert.equal(result.ok, true);
+  assert.equal(result.state.ordersRemaining, 2);
+  assert.deepEqual(result.state.board.units.u2.cell, { column: 2, row: 1 });
+  assert.equal(result.events[0].type, 'UNIT_REINFORCED');
+});
+
+test('reinforce rejects occupied, non-adjacent, and same-lane destinations without spending orders', () => {
+  const combat = fixtureCombat();
+  const occupied = applyOrder(combat, {
+    type: 'reinforce',
+    unitId: 'u1',
+    targetCell: { column: 1, row: 1 },
+  }, context);
+  assert.equal(occupied.ok, false);
+  assert.equal(occupied.state.ordersRemaining, 3);
+
+  const far = applyOrder(combat, {
+    type: 'reinforce',
+    unitId: 'u1',
+    targetCell: { column: 2, row: 1 },
+  }, context);
+  assert.equal(far.ok, false);
+  assert.equal(far.state.ordersRemaining, 3);
+
+  const sameLane = applyOrder(combat, {
+    type: 'reinforce',
+    unitId: 'u1',
+    targetCell: { column: 0, row: 0 },
+  }, context);
+  assert.equal(sameLane.ok, false);
+  assert.equal(sameLane.state.ordersRemaining, 3);
+});
+
 test('focus rejects a cross-lane target for a same-lane unit', () => {
   const combat = oneUnitTwoLaneCombat();
   const result = applyOrder(combat, { type: 'focus', enemyId: 'cross-lane' }, context);
