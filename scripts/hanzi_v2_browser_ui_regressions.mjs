@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
 
 const ARTIFACT_DIR = 'artifacts/hanzi-v2-playtest';
-const URL = 'http://127.0.0.1:8001/games/hanzi-generals/v2/?seed=playtest-0';
+const BASE_URL = 'http://127.0.0.1:8001/games/hanzi-generals/v2/?seed=playtest-0';
 const bugs = [];
 const observations = [];
 const runtimeErrors = [];
@@ -26,7 +26,7 @@ async function waitForServer() {
   const deadline = Date.now() + 15000;
   while (Date.now() < deadline) {
     try {
-      if ((await fetch(URL)).ok) return;
+      if ((await fetch(BASE_URL)).ok) return;
     } catch {
       // Keep polling.
     }
@@ -230,7 +230,7 @@ async function verifyResetFlows(page) {
   const onboardingVisible = /第一步/.test((await page.locator('#tutorial-message').textContent()) ?? '');
   const unrelatedStillPreserved = afterCompleteReset.playground === 'dark'
     && afterCompleteReset.classic === 'classic';
-  const cacheBusted = new URL(page.url()).searchParams.has('v2reload');
+  const cacheBusted = new globalThis.URL(page.url()).searchParams.has('v2reload');
 
   gates.completeResetPassed = v2Cleared && freshTutorial && onboardingVisible && cacheBusted;
   gates.storageIsolationPassed = unrelatedPreserved && unrelatedStillPreserved;
@@ -281,7 +281,7 @@ async function run() {
     page.on('console', (message) => {
       if (message.type() === 'error') runtimeErrors.push({ type: 'console', message: message.text() });
     });
-    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.goto(BASE_URL, { waitUntil: 'networkidle' });
     await measureOverflow(page, 'start');
 
     await page.getByRole('button', { name: '開始下一戰', exact: true }).click();
@@ -359,7 +359,7 @@ try {
 const report = {
   generatedAt: new Date().toISOString(),
   viewport: { width: 390, height: 844 },
-  url: URL,
+  url: BASE_URL,
   bugs,
   gates,
   observations,
