@@ -52,9 +52,10 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
   const activeNodes = new Set();
   const activeAnchors = new Set();
   const timers = new Set();
+  const pendingWaits = new Map();
   const queue = [];
   const recentLog = [];
-  let running = false;
+  let runningToken = null;
   let generation = 0;
 
   const log = document.createElement('ol');
@@ -218,41 +219,51 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
     return new Promise((resolve) => {
       const timer = window.setTimeout(() => {
         timers.delete(timer);
+        pendingWaits.delete(timer);
         resolve(token === generation);
       }, delay);
       timers.add(timer);
+      pendingWaits.set(timer, resolve);
     });
   }
 
   async function drain() {
-    if (running) return;
-    running = true;
     const token = generation;
-    while (queue.length && token === generation) {
-      const event = queue.shift();
-      presentEvent(event);
-      const current = root.querySelector('[data-last-combat-sequence]');
-      current?.removeAttribute('data-last-combat-sequence');
-      const relevant = event.payload?.attackerId ?? event.payload?.targetId ?? event.payload?.enemyId ?? event.payload?.unitId;
-      const anchor = anchorFor(root, event.type === 'UNIT_HIT' ? 'unit' : 'enemy', relevant);
-      anchor?.setAttribute('data-last-combat-sequence', String(event.turn ?? ''));
-      const active = await wait(pacing(), token);
-      if (!active) break;
+    if (runningToken === token) return;
+    runningToken = token;
+    try {
+      while (queue.length && token === generation) {
+        const event = queue.shift();
+        presentEvent(event);
+        const current = root.querySelector('[data-last-combat-sequence]');
+        current?.removeAttribute('data-last-combat-sequence');
+        const relevant = event.payload?.attackerId ?? event.payload?.targetId ?? event.payload?.enemyId ?? event.payload?.unitId;
+        const anchor = anchorFor(root, event.type === 'UNIT_HIT' ? 'unit' : 'enemy', relevant);
+        anchor?.setAttribute('data-last-combat-sequence', String(event.turn ?? ''));
+        const active = await wait(pacing(), token);
+        if (!active) break;
+      }
+    } finally {
+      if (runningToken === token) runningToken = null;
     }
-    running = false;
   }
 
   function present(events) {
     const meaningful = (events ?? []).filter((event) => eventText(event));
     queue.push(...meaningful);
-    root.dataset.combatSequenceReadable = String(queue.length > 0 || running || meaningful.length > 0);
+    root.dataset.combatSequenceReadable = String(queue.length > 0 || runningToken !== null || meaningful.length > 0);
     drain();
   }
 
   function clear() {
     generation += 1;
     queue.length = 0;
-    running = false;
+    for (const [timer, resolve] of pendingWaits) {
+      window.clearTimeout(timer);
+      timers.delete(timer);
+      resolve(false);
+    }
+    pendingWaits.clear();
     for (const timer of timers) window.clearTimeout(timer);
     timers.clear();
     for (const node of activeNodes) node.remove();
