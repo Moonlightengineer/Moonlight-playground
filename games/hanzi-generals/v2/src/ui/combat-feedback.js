@@ -235,13 +235,14 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
     root.dataset.combatSequenceReadable = 'true';
     idlePromise = (async () => {
       while (queue.length && token === generation) {
-        const event = queue.shift();
-        presentEvent(event);
+        const batch = queue.shift();
         const current = root.querySelector('[data-last-combat-sequence]');
         current?.removeAttribute('data-last-combat-sequence');
-        const relevant = event.payload?.attackerId ?? event.payload?.targetId ?? event.payload?.enemyId ?? event.payload?.unitId;
-        const anchor = anchorFor(root, event.type === 'UNIT_HIT' ? 'unit' : 'enemy', relevant);
-        anchor?.setAttribute('data-last-combat-sequence', String(event.turn ?? ''));
+        for (const event of batch) presentEvent(event);
+        const last = batch.at(-1);
+        const relevant = last?.payload?.attackerId ?? last?.payload?.targetId ?? last?.payload?.enemyId ?? last?.payload?.unitId;
+        const anchor = anchorFor(root, last?.type === 'UNIT_HIT' ? 'unit' : 'enemy', relevant);
+        anchor?.setAttribute('data-last-combat-sequence', String(last?.turn ?? ''));
         const active = await wait(pacing(), token);
         if (!active) break;
       }
@@ -254,7 +255,7 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
 
   function present(events) {
     const meaningful = (events ?? []).filter((event) => eventText(event));
-    queue.push(...meaningful);
+    if (meaningful.length) queue.push(meaningful);
     if (!meaningful.length && runningToken === null) return idlePromise;
     return drain();
   }
