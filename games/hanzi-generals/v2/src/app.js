@@ -64,6 +64,8 @@ function initialGame() {
 
 let game = initialGame();
 let timer = null;
+let pacingRequest = 0;
+let feedbackSequence = Promise.resolve();
 let resumeAfterHelp = false;
 let pendingReload = false;
 const feedback = createCombatFeedback({
@@ -113,7 +115,7 @@ function relevantEntityId(event) {
 }
 
 function playEvents(events) {
-  feedback.present(events);
+  feedbackSequence = feedback.present(events);
 
   for (const event of events) {
     const id = relevantEntityId(event);
@@ -143,6 +145,7 @@ function playEvents(events) {
     };
     if (labels[important.type]) showMessage(labels[important.type]);
   }
+  return feedbackSequence;
 }
 
 function vibrationFor(events) {
@@ -156,16 +159,23 @@ function vibrationFor(events) {
 }
 
 function scheduleBattleTick() {
+  const request = ++pacingRequest;
   window.clearTimeout(timer);
   timer = null;
   if (game.status !== 'combat' || game.combat?.paused || helpPanel.isOpen()) return;
-  const delay = game.settings.speed === 2 ? 350 : 700;
-  timer = window.setTimeout(() => dispatch({ type: 'STEP_COMBAT' }), delay);
+
+  feedback.whenIdle().finally(() => {
+    if (request !== pacingRequest) return;
+    if (game.status !== 'combat' || game.combat?.paused || helpPanel.isOpen()) return;
+    const delay = game.settings.speed === 2 ? 350 : 700;
+    timer = window.setTimeout(() => dispatch({ type: 'STEP_COMBAT' }), delay);
+  });
 }
 
 function restartCurrentExpedition() {
   if (!window.confirm('清除目前遠征進度並重新開始？教學完成紀錄及玩家設定會保留。')) return;
 
+  pacingRequest += 1;
   window.clearTimeout(timer);
   feedback.clear();
   const result = resetExpedition();
@@ -197,6 +207,7 @@ function clearDataAndReload() {
   );
   if (!confirmed) return;
 
+  pacingRequest += 1;
   window.clearTimeout(timer);
   feedback.clear();
   const result = clearAllV2Data();
@@ -302,6 +313,7 @@ function dispatch(action) {
 }
 
 function renderFatalDataError(errors) {
+  pacingRequest += 1;
   window.clearTimeout(timer);
   feedback.clear();
   root.dataset.status = 'error';
