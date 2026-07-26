@@ -52,8 +52,50 @@ jobs:
       - name: Test v2 UI contracts
         run: node --test games/hanzi-generals/v2/tests/ui-contract.test.js
 
+      - name: Test v2 canonical state flow
+        run: node --test games/hanzi-generals/v2/tests/canonical-state-machine.test.js
+
+      - name: Test v2 route reward fix
+        run: >-
+          node --test
+          --test-name-pattern="safe third battle"
+          games/hanzi-generals/v2/tests/review-fixes.test.js
+
+      - name: Test v2 evolution branch fix
+        run: >-
+          node --test
+          --test-name-pattern="both Huang Zhong"
+          games/hanzi-generals/v2/tests/review-fixes.test.js
+
+      - name: Test v2 evolution rejection fix
+        run: >-
+          node --test
+          --test-name-pattern="evolution rejects"
+          games/hanzi-generals/v2/tests/review-fixes.test.js
+
+      - name: Test v2 review follow-ups
+        run: node --test games/hanzi-generals/v2/tests/review-followup.test.js
+
+      - name: Test v2 storage migration
+        run: node --test games/hanzi-generals/v2/tests/storage-migration-review.test.js
+
       - name: Run complete JavaScript suite
-        run: npm test
+        shell: bash
+        run: |
+          mkdir -p artifacts/full-js-test
+          set +e
+          npm test 2>&1 | tee artifacts/full-js-test/output.log
+          status=${PIPESTATUS[0]}
+          printf '%s\n' "$status" > artifacts/full-js-test/exit-code.txt
+          exit "$status"
+
+      - name: Upload complete JavaScript diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-js-test-log
+          path: artifacts/full-js-test
+          if-no-files-found: error
 
       - name: Run build regression tests
         run: python -m unittest tests/test_build_site.py -v

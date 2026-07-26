@@ -1,8 +1,11 @@
+import { normalizeGameState } from '../core/state-machine.js';
+
 const STORAGE_NAMESPACE = 'hanzi-generals-v2:';
 const SAVE_KEY = `${STORAGE_NAMESPACE}save:v1`;
 const SETTINGS_KEY = `${STORAGE_NAMESPACE}settings:v1`;
 const TUTORIAL_KEY = `${STORAGE_NAMESPACE}tutorial:v1`;
-const SAVE_VERSION = 1;
+const SAVE_VERSION = 2;
+const SUPPORTED_SAVE_VERSIONS = new Set([1, 2]);
 const TUTORIAL_VERSION = 1;
 
 export const V2_STORAGE_KEYS = Object.freeze([
@@ -19,7 +22,7 @@ function resolveStorage(storage) {
 
 export function saveSnapshot(game, storage) {
   const target = resolveStorage(storage);
-  target.setItem(SAVE_KEY, JSON.stringify({ schemaVersion: SAVE_VERSION, game }));
+  target.setItem(SAVE_KEY, JSON.stringify({ schemaVersion: SAVE_VERSION, game: normalizeGameState(game) }));
 }
 
 export function loadSnapshot(storage) {
@@ -36,13 +39,18 @@ export function loadSnapshot(storage) {
   }
   try {
     const parsed = JSON.parse(raw);
-    if (parsed.schemaVersion !== SAVE_VERSION) {
+    if (!SUPPORTED_SAVE_VERSIONS.has(parsed.schemaVersion)) {
       return { ok: false, error: { code: 'UNSUPPORTED_SAVE', message: '存檔版本不支援。' } };
     }
     if (!parsed.game || typeof parsed.game !== 'object') {
       return { ok: false, error: { code: 'CORRUPT_SAVE', message: '存檔內容不完整，可重設 v2 測試存檔。' } };
     }
-    return { ok: true, game: parsed.game };
+    return {
+      ok: true,
+      game: normalizeGameState(parsed.game),
+      migrated: parsed.schemaVersion !== SAVE_VERSION,
+      schemaVersion: SAVE_VERSION,
+    };
   } catch {
     return { ok: false, error: { code: 'CORRUPT_SAVE', message: '存檔已損壞，可重設 v2 測試存檔。' } };
   }

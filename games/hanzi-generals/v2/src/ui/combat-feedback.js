@@ -28,6 +28,23 @@ function reducedMotionEnabled(value) {
   return typeof value === 'function' ? Boolean(value()) : Boolean(value);
 }
 
+function eventText(event) {
+  const payload = event.payload ?? {};
+  const labels = {
+    UNIT_HIT: `${payload.attackerId ?? '友軍'} → ${payload.targetId ?? '敵軍'}：${payload.damage ?? '?'} 傷害${payload.evolutionId ? `（${payload.evolutionId}）` : ''}`,
+    FRIENDLY_DAMAGED: `${payload.attackerId ?? '敵軍'} → ${payload.targetId ?? '友軍'}：${payload.damage ?? '?'} 傷害`,
+    WALL_DAMAGED: `${payload.attackerId ?? '敵軍'}攻擊第 ${(payload.lane ?? 0) + 1} 路城牆：${payload.damage ?? '?'} 傷害`,
+    ENEMY_DEFEATED: `${payload.enemyId ?? '敵軍'}被擊破`,
+    UNIT_DEFEATED: `${payload.unitId ?? '友軍'}倒下`,
+    FIRE_ARROWS_HIT: `火矢命中 ${payload.enemyId ?? '敵軍'}：${payload.damage ?? '?'} 傷害`,
+    UNIT_HEALED: `${payload.unitId ?? '友軍'}回復 ${payload.amount ?? '?'} 生命`,
+    UNIT_REINFORCED: `${payload.unitId ?? '友軍'}援防至第 ${(payload.targetCell?.column ?? 0) + 1} 路`,
+    FORTIFY_ORDERED: `第 ${(payload.lane ?? 0) + 1} 路開始堅守`,
+    FOCUS_ORDERED: `集火目標：${payload.enemyId ?? '敵軍'}`,
+  };
+  return labels[event.type] ?? null;
+}
+
 export function createCombatFeedback({ root, reducedMotion = false }) {
   const layer = root.querySelector('#combat-feedback-layer');
   if (!layer) throw new Error('Combat feedback layer is missing');
@@ -35,6 +52,28 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
   const activeNodes = new Set();
   const activeAnchors = new Set();
   const timers = new Set();
+  const pendingWaits = new Map();
+  const queue = [];
+  const recentLog = [];
+  let runningToken = null;
+  let generation = 0;
+
+  const log = document.createElement('ol');
+  log.id = 'combat-log';
+  log.className = 'combat-log';
+  log.dataset.combatLogVisible = 'true';
+  log.setAttribute('aria-live', 'polite');
+  log.setAttribute('aria-label', '最近戰報');
+  layer.after(log);
+
+  function speed() {
+    return Number(root.dataset.combatSpeed) === 2 ? 2 : 1;
+  }
+
+  function pacing() {
+    if (reducedMotionEnabled(reducedMotion)) return speed() === 2 ? 170 : 280;
+    return speed() === 2 ? 300 : 600;
+  }
 
   function rememberNode(node) {
     activeNodes.add(node);
@@ -67,7 +106,7 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
     scheduleCleanup(() => {
       label.remove();
       activeNodes.delete(label);
-    });
+    }, Math.max(300, pacing()));
     return label;
   }
 
@@ -85,7 +124,7 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
     scheduleCleanup(() => {
       cue.remove();
       activeNodes.delete(cue);
-    }, 440);
+    }, Math.max(220, pacing() * 0.7));
     return cue;
   }
 
@@ -102,16 +141,16 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
     const targetPoint = centerOf(target);
 
     rememberAnchor(source, 'is-attacking');
-    rememberAnchor(target, 'is-hit');
     projectile(sourcePoint, targetPoint);
-    eventLabel(`-${payload.damage ?? '?'}`, targetPoint, 'combat-damage');
+    scheduleCleanup(() => rememberAnchor(target, 'is-hit'), Math.round(pacing() * 0.28));
+    scheduleCleanup(() => eventLabel(`-${payload.damage ?? '?'}`, targetPoint, 'combat-damage'), Math.round(pacing() * 0.42));
 
     scheduleCleanup(() => {
       source?.classList.remove('is-attacking');
       target?.classList.remove('is-hit');
       if (source) activeAnchors.delete(source);
       if (target) activeAnchors.delete(target);
-    });
+    }, pacing());
   }
 
   function presentWallHit(event) {
@@ -121,15 +160,15 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
     const sourcePoint = centerOf(source);
     const targetPoint = centerOf(target);
     rememberAnchor(source, 'is-attacking');
-    rememberAnchor(target, 'is-hit');
     projectile(sourcePoint, targetPoint);
-    eventLabel(`城牆 -${payload.damage ?? '?'}`, targetPoint, 'combat-damage combat-wall-damage');
+    scheduleCleanup(() => rememberAnchor(target, 'is-hit'), Math.round(pacing() * 0.28));
+    scheduleCleanup(() => eventLabel(`城牆 -${payload.damage ?? '?'}`, targetPoint, 'combat-damage combat-wall-damage'), Math.round(pacing() * 0.42));
     scheduleCleanup(() => {
       source?.classList.remove('is-attacking');
       target?.classList.remove('is-hit');
       if (source) activeAnchors.delete(source);
       if (target) activeAnchors.delete(target);
-    });
+    }, pacing());
   }
 
   function presentDefeat(event) {
@@ -143,10 +182,23 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
     scheduleCleanup(() => {
       target?.classList.remove('is-defeated');
       if (target) activeAnchors.delete(target);
-    }, 760);
+    }, Math.max(420, pacing()));
+  }
+
+  function appendLog(event) {
+    const text = eventText(event);
+    if (!text) return;
+    recentLog.unshift(text);
+    recentLog.splice(6);
+    log.replaceChildren(...recentLog.map((entry) => {
+      const item = document.createElement('li');
+      item.textContent = entry;
+      return item;
+    }));
   }
 
   function presentEvent(event) {
+    appendLog(event);
     if (event.type === 'UNIT_HIT' || event.type === 'FRIENDLY_DAMAGED') {
       presentHit(event);
       return;
@@ -157,14 +209,61 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
     }
     if (event.type === 'ENEMY_DEFEATED' || event.type === 'UNIT_DEFEATED') {
       presentDefeat(event);
+      return;
+    }
+    const text = eventText(event);
+    if (text) eventLabel(text, null, 'combat-event-text');
+  }
+
+  function wait(delay, token) {
+    return new Promise((resolve) => {
+      const timer = window.setTimeout(() => {
+        timers.delete(timer);
+        pendingWaits.delete(timer);
+        resolve(token === generation);
+      }, delay);
+      timers.add(timer);
+      pendingWaits.set(timer, resolve);
+    });
+  }
+
+  async function drain() {
+    const token = generation;
+    if (runningToken === token) return;
+    runningToken = token;
+    try {
+      while (queue.length && token === generation) {
+        const event = queue.shift();
+        presentEvent(event);
+        const current = root.querySelector('[data-last-combat-sequence]');
+        current?.removeAttribute('data-last-combat-sequence');
+        const relevant = event.payload?.attackerId ?? event.payload?.targetId ?? event.payload?.enemyId ?? event.payload?.unitId;
+        const anchor = anchorFor(root, event.type === 'UNIT_HIT' ? 'unit' : 'enemy', relevant);
+        anchor?.setAttribute('data-last-combat-sequence', String(event.turn ?? ''));
+        const active = await wait(pacing(), token);
+        if (!active) break;
+      }
+    } finally {
+      if (runningToken === token) runningToken = null;
     }
   }
 
   function present(events) {
-    for (const event of events ?? []) presentEvent(event);
+    const meaningful = (events ?? []).filter((event) => eventText(event));
+    queue.push(...meaningful);
+    root.dataset.combatSequenceReadable = String(queue.length > 0 || runningToken !== null || meaningful.length > 0);
+    drain();
   }
 
   function clear() {
+    generation += 1;
+    queue.length = 0;
+    for (const [timer, resolve] of pendingWaits) {
+      window.clearTimeout(timer);
+      timers.delete(timer);
+      resolve(false);
+    }
+    pendingWaits.clear();
     for (const timer of timers) window.clearTimeout(timer);
     timers.clear();
     for (const node of activeNodes) node.remove();

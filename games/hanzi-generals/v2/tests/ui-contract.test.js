@@ -8,6 +8,14 @@ async function source(path) {
   return readFile(new URL(path, root), 'utf8').catch(() => '');
 }
 
+async function interactiveRenderSource() {
+  const [entry, implementation] = await Promise.all([
+    source('src/ui/render-interactive.js'),
+    source('src/ui/render-interactive-base.js'),
+  ]);
+  return `${entry}\n${implementation}`;
+}
+
 test('v2 shell exposes the hidden game root and module entry', async () => {
   const html = await source('index.html');
   assert.match(html, /id="v2-game-app"/);
@@ -95,7 +103,7 @@ test('interaction layer exposes only two-unit swaps and eligible focus targets',
 
 test('render layer spatially renders enemies from top to bottom', async () => {
   const base = await source('src/ui/render.js');
-  const interactive = await source('src/ui/render-interactive.js');
+  const interactive = await interactiveRenderSource();
   const renderSource = `${base}\n${interactive}`;
   assert.match(renderSource, /renderEnemyField/);
   assert.match(renderSource, /dataEnemyId/);
@@ -105,7 +113,7 @@ test('render layer spatially renders enemies from top to bottom', async () => {
 });
 
 test('render layer exposes legal order eligibility and visible order state', async () => {
-  const renderSource = await source('src/ui/render-interactive.js');
+  const renderSource = await interactiveRenderSource();
   assert.match(renderSource, /select-camp-card/);
   assert.match(renderSource, /remainingFriendlyTurns/);
   assert.match(renderSource, /remainingEnemyTurns/);

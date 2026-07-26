@@ -48,48 +48,74 @@ function rebuildCardsById(game, deck) {
   return Object.fromEntries(cards.map((card) => [card.id, card]));
 }
 
+function recordReward(before, after, rewardId, payload) {
+  if (after === before) return before;
+  return {
+    ...after,
+    rewardHistory: [
+      ...(before.rewardHistory ?? []),
+      {
+        rewardId,
+        battleIndex: before.completedBattleIds.length + 1,
+        generalId: payload.generalId ?? null,
+        evolutionId: payload.evolutionId ?? null,
+      },
+    ],
+  };
+}
+
 export function applyReward(game, rewardId, payload = {}) {
+  let next = game;
   switch (rewardId) {
     case 'repair-wall':
-      return { ...game, wallHp: Math.min(game.wallMaxHp, game.wallHp + 30) };
+      next = { ...game, wallHp: Math.min(game.wallMaxHp, game.wallHp + 30) };
+      break;
     case 'expand-wing': {
       const board = expandBoard(game.board, 'wing');
-      return { ...game, boardSizeId: 'wing', board };
+      next = { ...game, boardSizeId: 'wing', board };
+      break;
     }
     case 'expand-depth': {
       const board = expandBoard(game.board, 'depth');
-      return { ...game, boardSizeId: 'depth', board };
+      next = { ...game, boardSizeId: 'depth', board };
+      break;
     }
     case 'fire-arrows':
     case 'first-aid':
-      return { ...game, tactics: [...game.tactics, rewardId] };
+      next = { ...game, tactics: [...game.tactics, rewardId] };
+      break;
     case 'evolve-general':
       if (!payload.generalId || !payload.evolutionId) return game;
-      return {
+      next = {
         ...game,
         evolutions: { ...game.evolutions, [payload.generalId]: payload.evolutionId },
       };
+      break;
     case 'extra-reroll':
-      return { ...game, temporary: { ...game.temporary, extraRerolls: game.temporary.extraRerolls + 1 } };
+      next = { ...game, temporary: { ...game.temporary, extraRerolls: game.temporary.extraRerolls + 1 } };
+      break;
     case 'extra-camp':
-      return { ...game, temporary: { ...game.temporary, extraCamp: game.temporary.extraCamp + 1 } };
+      next = { ...game, temporary: { ...game.temporary, extraCamp: game.temporary.extraCamp + 1 } };
+      break;
     case 'unlock-zhang-fei':
     case 'unlock-zhuge-liang': {
       const recipeId = rewardId === 'unlock-zhang-fei' ? 'zhang-fei' : 'zhuge-liang';
       const symbols = recipeId === 'zhang-fei' ? ['張', '飛'] : ['諸', '葛', '亮'];
       const deck = addSymbols(game.deck, symbols);
-      return {
+      next = {
         ...game,
         deck,
         cardsById: rebuildCardsById(game, deck),
         unlockedRecipes: [...new Set([...game.unlockedRecipes, recipeId])],
       };
+      break;
     }
     case 'copy-card': {
       const card = game.cardsById[payload.cardId];
       if (!card) return game;
       const deck = addSymbols(game.deck, [card.symbol]);
-      return { ...game, deck, cardsById: rebuildCardsById(game, deck) };
+      next = { ...game, deck, cardsById: rebuildCardsById(game, deck) };
+      break;
     }
     case 'remove-card': {
       const removeId = payload.cardId;
@@ -103,9 +129,11 @@ export function applyReward(game, rewardId, payload = {}) {
       };
       const cardsById = { ...game.cardsById };
       delete cardsById[removeId];
-      return { ...game, deck, cardsById };
+      next = { ...game, deck, cardsById };
+      break;
     }
     default:
       return game;
   }
+  return recordReward(game, next, rewardId, payload);
 }

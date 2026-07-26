@@ -1,3 +1,5 @@
+import { resolveEvolvedDefinition } from '../../data/evolutions.js';
+
 function reachableEnemies(unit, enemies, definition) {
   return enemies
     .filter((enemy) => enemy.hp > 0)
@@ -36,7 +38,8 @@ export function canFocusEnemy(combat, enemyId, unitsById = {}) {
   if (!enemy) return false;
   return Object.values(combat.board.units).some((unit) => {
     if (unit.hp <= 0) return false;
-    const definition = unitsById[unit.definitionId];
+    const base = unitsById[unit.definitionId];
+    const definition = resolveEvolvedDefinition(base, unit.evolution);
     if (!definition) return false;
     return focusableTargets(unit, combat.enemies, definition).some(({ id }) => id === enemyId);
   });
