@@ -38,14 +38,25 @@ function normalizeEvolutionRewards(state) {
   return { ...state, rewardChoices: choices.slice(0, 3) };
 }
 
+export function normalizeGameState(state) {
+  if (!state || typeof state !== 'object') return state;
+  const migrated = {
+    ...state,
+    recruitedGeneralIds: [...new Set(state.recruitedGeneralIds ?? [])],
+    rewardHistory: [...(state.rewardHistory ?? [])],
+    evolutions: { ...(state.evolutions ?? {}) },
+  };
+  return normalizeEvolutionRewards(migrated);
+}
+
 export function finalizeGameResult(result) {
   if (!result.ok) return result;
   const recruited = recordAssembledGenerals(result.state, result.events);
-  return { ...result, state: normalizeEvolutionRewards(recruited) };
+  return { ...result, state: normalizeGameState(recruited) };
 }
 
 export function reduceGame(game, action) {
-  return finalizeGameResult(reduceBaseGame(game, action));
+  return finalizeGameResult(reduceBaseGame(normalizeGameState(game), action));
 }
 
 export { ALLOWED };
