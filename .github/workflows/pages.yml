@@ -52,6 +52,18 @@ jobs:
       - name: Test v2 UI contracts
         run: node --test games/hanzi-generals/v2/tests/ui-contract.test.js
 
+      - name: Test v2 canonical state flow
+        run: node --test games/hanzi-generals/v2/tests/canonical-state-machine.test.js
+
+      - name: Test v2 review fixes
+        run: node --test games/hanzi-generals/v2/tests/review-fixes.test.js
+
+      - name: Test v2 review follow-ups
+        run: node --test games/hanzi-generals/v2/tests/review-followup.test.js
+
+      - name: Test v2 storage migration
+        run: node --test games/hanzi-generals/v2/tests/storage-migration-review.test.js
+
       - name: Run complete JavaScript suite
         run: npm test
 
