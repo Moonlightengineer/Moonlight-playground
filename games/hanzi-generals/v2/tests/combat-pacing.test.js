@@ -8,8 +8,11 @@ async function source(path) {
   return readFile(new URL(path, root), 'utf8');
 }
 
-test('combat feedback exposes an awaitable presentation sequence', async () => {
+test('combat feedback exposes an awaitable per-turn presentation sequence', async () => {
   const feedback = await source('src/ui/combat-feedback.js');
+  assert.match(feedback, /queue\.push\(meaningful\)/);
+  assert.match(feedback, /const batch = queue\.shift\(\)/);
+  assert.match(feedback, /for \(const event of batch\) presentEvent\(event\)/);
   assert.match(feedback, /return\s+drain\(\)/);
   assert.match(feedback, /return\s*\{\s*present,\s*clear,\s*whenIdle\s*\}/);
 });
