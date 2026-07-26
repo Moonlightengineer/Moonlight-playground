@@ -96,7 +96,10 @@ test('evolution rejects missing choice, un-recruited generals, mismatch, and rep
   });
   assert.equal(mismatch.error.code, 'EVOLUTION_MISMATCH');
 
-  const repeated = reduceGame(evolutionRewardGame({ evolutions: { 'huang-zhong': 'divine-shot' } }), {
+  const repeated = reduceGame(evolutionRewardGame({
+    recruitedGeneralIds: ['huang-zhong', 'zhao-yun'],
+    evolutions: { 'huang-zhong': 'divine-shot' },
+  }), {
     type: 'CHOOSE_REWARD', rewardId: 'evolve-general',
     payload: { generalId: 'huang-zhong', evolutionId: 'repeating-crossbow' },
   });
