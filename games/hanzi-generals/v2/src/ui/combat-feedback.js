@@ -57,6 +57,7 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
   const recentLog = [];
   let runningToken = null;
   let generation = 0;
+  let idlePromise = Promise.resolve();
 
   const log = document.createElement('ol');
   log.id = 'combat-log';
@@ -227,11 +228,12 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
     });
   }
 
-  async function drain() {
+  function drain() {
     const token = generation;
-    if (runningToken === token) return;
+    if (runningToken === token) return idlePromise;
     runningToken = token;
-    try {
+    root.dataset.combatSequenceReadable = 'true';
+    idlePromise = (async () => {
       while (queue.length && token === generation) {
         const event = queue.shift();
         presentEvent(event);
@@ -243,21 +245,28 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
         const active = await wait(pacing(), token);
         if (!active) break;
       }
-    } finally {
+    })().finally(() => {
       if (runningToken === token) runningToken = null;
-    }
+      if (token === generation && queue.length === 0) root.dataset.combatSequenceReadable = 'false';
+    });
+    return idlePromise;
   }
 
   function present(events) {
     const meaningful = (events ?? []).filter((event) => eventText(event));
     queue.push(...meaningful);
-    root.dataset.combatSequenceReadable = String(queue.length > 0 || runningToken !== null || meaningful.length > 0);
-    drain();
+    if (!meaningful.length && runningToken === null) return idlePromise;
+    return drain();
+  }
+
+  function whenIdle() {
+    return idlePromise;
   }
 
   function clear() {
     generation += 1;
     queue.length = 0;
+    root.dataset.combatSequenceReadable = 'false';
     for (const [timer, resolve] of pendingWaits) {
       window.clearTimeout(timer);
       timers.delete(timer);
@@ -274,5 +283,5 @@ export function createCombatFeedback({ root, reducedMotion = false }) {
     activeAnchors.clear();
   }
 
-  return { present, clear };
+  return { present, clear, whenIdle };
 }
