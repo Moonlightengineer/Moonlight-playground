@@ -14,7 +14,7 @@ import { advanceExpedition, createExpedition, ROUTES } from '../expedition/exped
 import { applyReward, generateRewardChoices } from '../expedition/rewards.js';
 import { ENEMY_BY_ID } from '../../data/enemies.js';
 import { GENERAL_BY_ID } from '../../data/generals.js';
-import { resolveEvolvedDefinition } from '../../data/evolutions.js';
+import { EVOLUTION_BY_ID, resolveEvolvedDefinition } from '../../data/evolutions.js';
 import { REWARDS } from '../../data/rewards.js';
 import { STAGE_BY_ID } from '../../data/stages.js';
 import { TUNING } from '../../data/tuning.js';
@@ -42,7 +42,7 @@ function failure(game, code, message) {
   return { ok: false, state: game, events: [], error: { code, message } };
 }
 
-function combatContext(game) {
+function combatContext() {
   return {
     unitsById: GENERAL_BY_ID,
     enemiesById: ENEMY_BY_ID,
@@ -117,6 +117,7 @@ function startBattle(game) {
 
   const state = {
     ...game,
+    recruitedGeneralIds: [...(game.recruitedGeneralIds ?? [])],
     status: 'configuration',
     board,
     boardCards: {},
@@ -164,6 +165,20 @@ function toggleCardSelection(game, cardId) {
   return success({ ...game, selection: { cardIds: [...selected] } });
 }
 
+function recordRecruitment(game, result) {
+  if (!result.ok) return result;
+  const assembled = result.events.find(({ type }) => type === 'UNIT_ASSEMBLED');
+  const definitionId = assembled?.payload?.definitionId;
+  if (GENERAL_BY_ID[definitionId]?.kind !== 'general') return result;
+  return {
+    ...result,
+    state: {
+      ...result.state,
+      recruitedGeneralIds: [...new Set([...(game.recruitedGeneralIds ?? []), definitionId])],
+    },
+  };
+}
+
 function assemble(game, action) {
   const selected = action.source?.cardIds ?? game.selection?.cardIds ?? [];
   if (selected.length === 1 && game.deck.hand.some(({ id }) => id === selected[0])) {
@@ -176,7 +191,7 @@ function assemble(game, action) {
     type: selected.every((id) => game.camp.cardIds.includes(id)) ? 'camp' : 'hand',
     cardIds: selected,
   };
-  const result = confirmAssembly(game, source, action.target);
+  const result = recordRecruitment(game, confirmAssembly(game, source, action.target));
   return result.ok
     ? success({ ...result.state, selection: { cardIds: [] } }, result.events)
     : result;
@@ -268,7 +283,7 @@ function settleAfterBattle(game) {
 function rewardChoicesFor(game) {
   const completedAfterCurrent = game.completedBattleIds.length + 1;
   if (completedAfterCurrent === 3) {
-    const id = game.route === 'danger' ? 'unlock-zhang-fei' : 'unlock-zhuge-liang';
+    const id = game.route === 'safe' ? 'unlock-zhang-fei' : 'unlock-zhuge-liang';
     return { choices: REWARDS.filter((reward) => [id, 'repair-wall', 'remove-card'].includes(reward.id)), rng: game.rng };
   }
   if (completedAfterCurrent === 4 && game.boardSizeId === 'base') {
@@ -285,7 +300,7 @@ function rewardChoicesFor(game) {
 }
 
 function stepCombatAction(game) {
-  const result = stepCombat(game.combat, combatContext(game));
+  const result = stepCombat(game.combat, combatContext());
   let next = syncDefeatedUnitCards(game, result.combat);
   next = {
     ...next,
@@ -335,11 +350,6 @@ function stepCombatAction(game) {
 }
 
 function defaultRewardPayload(game, rewardId) {
-  if (rewardId === 'evolve-general') {
-    const generalId = game.unlockedRecipes.find((id) => GENERAL_BY_ID[id]?.kind === 'general' && !game.evolutions[id]);
-    const evolutionId = GENERAL_BY_ID[generalId]?.evolutions?.[0];
-    return generalId && evolutionId ? { generalId, evolutionId } : {};
-  }
   const available = [
     ...game.deck.drawPile,
     ...game.deck.discardPile,
@@ -350,15 +360,38 @@ function defaultRewardPayload(game, rewardId) {
   return {};
 }
 
+function validateEvolutionChoice(game, payload) {
+  const { generalId, evolutionId } = payload ?? {};
+  if (!generalId || !evolutionId) {
+    return { code: 'EVOLUTION_SELECTION_REQUIRED', message: '請先選擇已招募武將及進化方向。' };
+  }
+  if (!(game.recruitedGeneralIds ?? []).includes(generalId)) {
+    return { code: 'GENERAL_NOT_RECRUITED', message: '只可以進化今次遠征曾經招募嘅武將。' };
+  }
+  if (game.evolutions?.[generalId]) {
+    return { code: 'GENERAL_ALREADY_EVOLVED', message: '呢名武將已經完成進化。' };
+  }
+  const general = GENERAL_BY_ID[generalId];
+  const evolution = EVOLUTION_BY_ID[evolutionId];
+  if (!general?.evolutions?.includes(evolutionId) || evolution?.generalId !== generalId) {
+    return { code: 'EVOLUTION_MISMATCH', message: '進化方向同目標武將唔相符。' };
+  }
+  return null;
+}
+
 function chooseReward(game, action) {
   if (!game.rewardChoices.some(({ id }) => id === action.rewardId)) {
     return failure(game, 'REWARD_NOT_OFFERED', '呢個獎勵唔喺目前選項。');
   }
   const payload = action.payload ?? defaultRewardPayload(game, action.rewardId);
+  if (action.rewardId === 'evolve-general') {
+    const invalid = validateEvolutionChoice(game, payload);
+    if (invalid) return failure(game, invalid.code, invalid.message);
+  }
   const rewarded = applyReward(game, action.rewardId, payload);
   return success(
     advanceExpedition(rewarded, action.route),
-    [gameEvent('REWARD_CHOSEN', { rewardId: action.rewardId })],
+    [gameEvent('REWARD_CHOSEN', { rewardId: action.rewardId, ...payload })],
   );
 }
 
@@ -414,7 +447,7 @@ export function reduceGame(game, action) {
     case 'START_PHASE':
       return startPhase(game);
     case 'ISSUE_ORDER': {
-      const result = applyOrder(game.combat, action.order, combatContext(game));
+      const result = applyOrder(game.combat, action.order, combatContext());
       return result.ok ? success({ ...game, combat: result.state }, result.events) : { ...result, state: game };
     }
     case 'STEP_COMBAT':
