@@ -1,4 +1,4 @@
-import { normalizeGameState } from '../core/state-machine-reviewed.js';
+import { normalizeGameState } from '../core/state-machine.js';
 
 const STORAGE_NAMESPACE = 'hanzi-generals-v2:';
 const SAVE_KEY = `${STORAGE_NAMESPACE}save:v1`;

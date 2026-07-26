@@ -4,7 +4,7 @@ import { GENERAL_BY_ID } from '../data/generals.js';
 import { REWARDS } from '../data/rewards.js';
 import { canFocusEnemy } from '../src/combat/targeting.js';
 import { eligibleEvolutionGenerals } from '../src/expedition/evolution-eligibility.js';
-import { finalizeGameResult } from '../src/core/state-machine-reviewed.js';
+import { finalizeGameResult } from '../src/core/state-machine.js';
 
 function reward(id) {
   return REWARDS.find((item) => item.id === id);
