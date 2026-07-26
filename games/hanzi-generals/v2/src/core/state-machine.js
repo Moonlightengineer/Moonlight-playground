@@ -56,7 +56,9 @@ export function finalizeGameResult(result) {
 }
 
 export function reduceGame(game, action) {
-  return finalizeGameResult(reduceBaseGame(normalizeGameState(game), action));
+  const result = reduceBaseGame(normalizeGameState(game), action);
+  if (!result.ok) return { ...result, state: game };
+  return finalizeGameResult(result);
 }
 
 export { ALLOWED };
