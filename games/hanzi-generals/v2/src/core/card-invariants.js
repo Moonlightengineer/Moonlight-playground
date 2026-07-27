@@ -46,6 +46,19 @@
  * matches its key and whose `cell` is an in-bounds integer coordinate, and
  * no two units may share a cell — a `deck.deployed` record is only a real
  * owner while the unit it names is actually usable on the board.
+ *
+ * `boardCards` cell keys must be canonical (`${column},${row}` with no
+ * leading zeros or other aliasing) — a non-canonical key is rejected
+ * outright rather than risked as a duplicate-but-distinct object key for
+ * the same physical cell. A card cell and a unit cell may also never
+ * coincide: `placeBoardCard()` rejects that via `getUnitAt()`, so a state
+ * where both occupy the same cell is corrupt, not a legitimate transition.
+ * Finally, `board.units` and `deck.deployed` are a true 1:1 relationship in
+ * both directions: every deployed record's `unitId` must exist on the
+ * board (checked above), and every board unit must in turn have exactly
+ * one deployed record — `confirmAssembly`/`releaseUnitCards` always create
+ * or remove both together — with at least one card (an empty `cardIds` is
+ * as invalid as a missing record).
  */
 
 const OWNER_ZONES = Object.freeze(['drawPile', 'discardPile', 'hand', 'camp', 'board', 'deployed']);
@@ -61,7 +74,10 @@ function isNonEmptyString(value) {
 function parseBoardCellKey(key) {
   const match = /^(\d+),(\d+)$/.exec(key);
   if (!match) return null;
-  return { column: Number(match[1]), row: Number(match[2]) };
+  const column = Number(match[1]);
+  const row = Number(match[2]);
+  if (`${column},${row}` !== key) return null;
+  return { column, row };
 }
 
 function isCellWithinBoard(board, cell) {
@@ -95,7 +111,6 @@ function isValidIntegerCell(board, cell) {
 
 function validateBoardUnits(board, errors) {
   if (!isPlainObject(board) || !isPlainObject(board.units)) return;
-  const cellOwners = new Map();
   for (const [unitId, unit] of Object.entries(board.units)) {
     if (!isPlainObject(unit)) {
       errors.push({
@@ -118,18 +133,59 @@ function validateBoardUnits(board, errors) {
         unitId,
         message: `board.units["${unitId}"] has a missing or out-of-bounds cell.`,
       });
-      continue;
     }
-    const cellKey = `${unit.cell.column},${unit.cell.row}`;
-    if (cellOwners.has(cellKey)) {
+  }
+}
+
+/**
+ * A card placed on the board (`boardCards`) and an assembled unit
+ * (`board.units`) share the same physical grid, so their cells cannot
+ * collide: `placeBoardCard()` rejects placing a card on an occupied cell via
+ * `getUnitAt()`. This walks both containers into one occupancy map (using
+ * only already-canonical, in-bounds cells — malformed ones are reported
+ * elsewhere) so unit-vs-unit and card-vs-unit collisions are both caught.
+ */
+function validateCellOccupancy(boardCards, board, errors) {
+  const occupants = new Map();
+
+  if (isPlainObject(boardCards)) {
+    for (const [key, cardId] of Object.entries(boardCards)) {
+      if (!isNonEmptyString(cardId)) continue;
+      const parsed = parseBoardCellKey(key);
+      if (!parsed || !isCellWithinBoard(board, parsed)) continue;
+      const cellKey = `${parsed.column},${parsed.row}`;
+      if (!occupants.has(cellKey)) occupants.set(cellKey, []);
+      occupants.get(cellKey).push({ kind: 'card', id: cardId });
+    }
+  }
+
+  if (isPlainObject(board) && isPlainObject(board.units)) {
+    for (const [unitId, unit] of Object.entries(board.units)) {
+      if (!isPlainObject(unit) || !isValidIntegerCell(board, unit.cell)) continue;
+      const cellKey = `${unit.cell.column},${unit.cell.row}`;
+      if (!occupants.has(cellKey)) occupants.set(cellKey, []);
+      occupants.get(cellKey).push({ kind: 'unit', id: unitId });
+    }
+  }
+
+  for (const [cellKey, occupantList] of occupants) {
+    if (occupantList.length <= 1) continue;
+    if (occupantList.every((occupant) => occupant.kind === 'unit')) {
       errors.push({
         code: 'DUPLICATE_BOARD_UNIT_CELL',
         cell: cellKey,
-        unitIds: [cellOwners.get(cellKey), unitId],
+        unitIds: occupantList.map((occupant) => occupant.id),
         message: `Board cell "${cellKey}" is occupied by more than one unit.`,
       });
     } else {
-      cellOwners.set(cellKey, unitId);
+      errors.push({
+        code: 'CELL_OCCUPANCY_CONFLICT',
+        cell: cellKey,
+        occupants: occupantList.map((occupant) => ({ kind: occupant.kind, id: occupant.id })),
+        message: `Board cell "${cellKey}" is occupied by more than one entity (${occupantList
+          .map((occupant) => `${occupant.kind}:${occupant.id}`)
+          .join(', ')}).`,
+      });
     }
   }
 }
@@ -268,6 +324,14 @@ function collectDeployedZone(deployed, board, errors) {
           message: `Deployed unit ${record.unitId} does not exist on the board.`,
         });
       }
+      if (record.cardIds.length === 0) {
+        errors.push({
+          code: 'EMPTY_DEPLOYED_RECORD',
+          unitId: record.unitId,
+          zone,
+          message: `Zone "deployed" record ${index} for unit ${record.unitId} has no cards.`,
+        });
+      }
     }
     record.cardIds.forEach((cardId) => {
       if (!isNonEmptyString(cardId)) {
@@ -281,6 +345,20 @@ function collectDeployedZone(deployed, board, errors) {
       entries.push({ zone, cardId });
     });
   });
+
+  if (boardUnitsOk) {
+    for (const unitId of Object.keys(board.units)) {
+      if (!seenUnitIds.has(unitId)) {
+        errors.push({
+          code: 'UNBACKED_BOARD_UNIT',
+          unitId,
+          zone,
+          message: `Board unit ${unitId} has no deployed card record.`,
+        });
+      }
+    }
+  }
+
   return entries;
 }
 
@@ -290,6 +368,7 @@ function collectZoneEntries(game, registry) {
 
   validateBoardShape(game.board, errors);
   validateBoardUnits(game.board, errors);
+  validateCellOccupancy(game.boardCards, game.board, errors);
 
   if (!isPlainObject(game.deck)) {
     errors.push({ code: 'MALFORMED_ZONE', zone: 'deck', message: 'game.deck must be an object.' });
@@ -515,6 +594,9 @@ function formatOwnershipError(error) {
   if (error.zone) parts.push(`zone=${error.zone}`);
   if (error.zones) parts.push(`zones=[${error.zones.join(', ')}]`);
   if (error.cell) parts.push(`cell=${error.cell}`);
+  if (error.occupants) {
+    parts.push(`occupants=[${error.occupants.map((occupant) => `${occupant.kind}:${occupant.id}`).join(', ')}]`);
+  }
   if (error.expectedSymbol) parts.push(`expected=${error.expectedSymbol}`);
   if (error.actualSymbol) parts.push(`actual=${error.actualSymbol}`);
   if (error.count) parts.push(`count=${error.count}`);

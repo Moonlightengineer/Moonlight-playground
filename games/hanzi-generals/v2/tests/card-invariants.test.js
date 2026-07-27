@@ -9,7 +9,9 @@ import {
 import { createBoard } from '../src/board/board.js';
 import { createExpedition } from '../src/expedition/expedition.js';
 import { reduceGame } from '../src/core/state-machine.js';
-import { moveCardToCamp, confirmAssembly, placeBoardCard } from '../src/deck/assembly.js';
+import {
+  moveCardToCamp, confirmAssembly, placeBoardCard, releaseUnitCards,
+} from '../src/deck/assembly.js';
 
 function makeCard(id, symbol) {
   return { id, symbol, locked: false };
@@ -532,6 +534,105 @@ test('a well-formed board unit referenced by a deployed record produces no board
   const result = validateCardOwnership(game);
   assert.equal(result.errors.some((error) => error.code === 'MALFORMED_BOARD_UNIT'), false);
   assert.equal(result.errors.some((error) => error.code === 'DUPLICATE_BOARD_UNIT_CELL'), false);
+});
+
+test('rejects a non-canonical board cell key that aliases an existing cell', () => {
+  const game = baseFixture({ boardCards: { '00,1': 'card-3' } });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'INVALID_BOARD_CELL' && item.cell === '00,1');
+  assert.ok(error);
+});
+
+test('detects a card and a unit occupying the same board cell', () => {
+  const cell = { column: 1, row: 1 };
+  const game = baseFixture({
+    board: boardWithUnits([makeDeployedUnit('unit-1', cell)]),
+    boardCards: { '1,1': 'card-3' },
+    deck: {
+      ...baseFixture().deck,
+      deployed: [{ unitId: 'unit-1', cardIds: ['card-4'] }],
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'CELL_OCCUPANCY_CONFLICT' && item.cell === '1,1');
+  assert.ok(error);
+  const kinds = new Set(error.occupants.map((occupant) => occupant.kind));
+  assert.deepEqual(kinds, new Set(['card', 'unit']));
+});
+
+test('a card and a unit on different cells produce no occupancy conflict', () => {
+  const game = baseFixture({
+    board: boardWithUnits([makeDeployedUnit('unit-1', { column: 2, row: 2 })]),
+    boardCards: { '0,0': 'card-3' },
+    deck: {
+      ...baseFixture().deck,
+      deployed: [{ unitId: 'unit-1', cardIds: ['card-4'] }],
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.errors.some((error) => error.code === 'CELL_OCCUPANCY_CONFLICT'), false);
+});
+
+test('detects a board unit with no matching deployed record', () => {
+  const game = baseFixture({ board: boardWithUnits([makeDeployedUnit('unit-1')]) });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'UNBACKED_BOARD_UNIT' && item.unitId === 'unit-1');
+  assert.ok(error);
+});
+
+test('detects a deployed record with no cards', () => {
+  const game = baseFixture({
+    board: boardWithUnits([makeDeployedUnit('unit-1')]),
+    deck: {
+      ...baseFixture().deck,
+      deployed: [{ unitId: 'unit-1', cardIds: [] }],
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'EMPTY_DEPLOYED_RECORD' && item.unitId === 'unit-1');
+  assert.ok(error);
+});
+
+test('a real one-to-one assembly and release cycle never trips board-unit/deployed-record checks', () => {
+  const cardsById = {
+    'card-1': makeCard('card-1', '黃'),
+    'card-2': makeCard('card-2', '忠'),
+  };
+  const game = {
+    version: 1,
+    status: 'configuration',
+    board: createBoard('base'),
+    boardCards: {},
+    camp: { capacity: 2, cardIds: [] },
+    cardsById,
+    deck: {
+      drawPile: [],
+      discardPile: [],
+      hand: [cardsById['card-1'], cardsById['card-2']],
+      retained: [],
+      deployed: [],
+      freeRerollsRemaining: 1,
+    },
+    selection: { cardIds: [] },
+    unlockedRecipes: ['huang-zhong'],
+  };
+  assert.deepEqual(validateCardOwnership(game), { valid: true, errors: [] });
+
+  const assembled = confirmAssembly(game, { type: 'hand', cardIds: ['card-1', 'card-2'] }, { column: 1, row: 1 });
+  assert.equal(assembled.ok, true);
+  assertCardOwnership(assembled.state);
+  assert.equal(assembled.state.deck.deployed.length, 1);
+  assert.equal(Object.keys(assembled.state.board.units).length, 1);
+
+  const unitId = Object.keys(assembled.state.board.units)[0];
+  const released = releaseUnitCards(assembled.state, unitId);
+  assertCardOwnership(released);
+  assert.equal(released.deck.deployed.length, 0);
+  assert.equal(Object.keys(released.board.units).length, 0);
 });
 
 test('a minimal but structurally empty game state is rejected, not silently valid', () => {
