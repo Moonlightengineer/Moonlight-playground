@@ -422,6 +422,118 @@ test('detects duplicate ids within the selection reference zone', () => {
   assert.equal(error.cardId, 'card-1');
 });
 
+test('detects a missing deck.retained field, since cloneDeck spreads it unconditionally', () => {
+  const game = baseFixture();
+  delete game.deck.retained;
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  assert.equal(result.errors.some((error) => error.code === 'MALFORMED_ZONE' && error.zone === 'retained'), true);
+});
+
+test('a real reducer flow never has a state that passes validation but throws on drawToHand', () => {
+  const validGame = reduceGame(createExpedition('retained-typeerror-sanity'), { type: 'START_BATTLE' }).state;
+  const brokenGame = { ...validGame, deck: { ...validGame.deck } };
+  delete brokenGame.deck.retained;
+
+  assert.equal(validateCardOwnership(validGame).valid, true);
+  assert.equal(validateCardOwnership(brokenGame).valid, false);
+  assert.throws(() => reduceGame(brokenGame, { type: 'DRAW_CARDS' }), TypeError);
+});
+
+test('selection may be legitimately absent or null, matching the engine defensive access pattern', () => {
+  const minimalGame = {
+    cardsById: { 'card-1': makeCard('card-1', '黃') },
+    deck: {
+      drawPile: [], discardPile: [], hand: [makeCard('card-1', '黃')], retained: [], deployed: [],
+    },
+    camp: { capacity: 2, cardIds: [] },
+    boardCards: {},
+    board: createBoard('base'),
+  };
+
+  const gameWithoutSelection = { ...minimalGame };
+  assert.deepEqual(validateCardOwnership(gameWithoutSelection), { valid: true, errors: [] });
+
+  const gameWithNullSelection = { ...minimalGame, selection: null };
+  assert.deepEqual(validateCardOwnership(gameWithNullSelection), { valid: true, errors: [] });
+});
+
+test('a non-object, non-null selection is still rejected as malformed', () => {
+  const game = baseFixture({ selection: 'not-an-object' });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  assert.equal(result.errors.some((error) => error.code === 'MALFORMED_ZONE' && error.zone === 'selection'), true);
+});
+
+test('detects a deployed unit whose board entry is null', () => {
+  const game = baseFixture({
+    board: { ...createBoard('base'), units: { 'unit-1': null } },
+    deck: {
+      ...baseFixture().deck,
+      hand: [],
+      deployed: [{ unitId: 'unit-1', cardIds: ['card-1', 'card-2'] }],
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'MALFORMED_BOARD_UNIT' && item.unitId === 'unit-1');
+  assert.ok(error);
+});
+
+test('detects a board unit whose id does not match its own key', () => {
+  const board = { ...createBoard('base'), units: { 'unit-2': makeDeployedUnit('unit-1') } };
+  const game = baseFixture({ board });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'MALFORMED_BOARD_UNIT' && item.unitId === 'unit-2');
+  assert.ok(error);
+});
+
+test('detects a board unit with a missing or out-of-range cell', () => {
+  const unit = makeDeployedUnit('unit-1');
+  delete unit.cell;
+  const game = baseFixture({ board: boardWithUnits([unit]) });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'MALFORMED_BOARD_UNIT' && item.unitId === 'unit-1');
+  assert.ok(error);
+});
+
+test('detects a board unit placed outside the board bounds', () => {
+  const unit = makeDeployedUnit('unit-1', { column: 99, row: 99 });
+  const game = baseFixture({ board: boardWithUnits([unit]) });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'MALFORMED_BOARD_UNIT' && item.unitId === 'unit-1');
+  assert.ok(error);
+});
+
+test('detects two board units occupying the same cell', () => {
+  const cell = { column: 1, row: 1 };
+  const unitA = makeDeployedUnit('unit-1', cell);
+  const unitB = makeDeployedUnit('unit-2', cell);
+  const game = baseFixture({ board: boardWithUnits([unitA, unitB]) });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'DUPLICATE_BOARD_UNIT_CELL');
+  assert.ok(error);
+  assert.deepEqual(new Set(error.unitIds), new Set(['unit-1', 'unit-2']));
+});
+
+test('a well-formed board unit referenced by a deployed record produces no board-unit error', () => {
+  const game = baseFixture({
+    board: boardWithUnits([makeDeployedUnit('unit-9')]),
+    deck: {
+      ...baseFixture().deck,
+      hand: [makeCard('card-1', '黃')],
+      deployed: [{ unitId: 'unit-9', cardIds: ['card-2'] }],
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.errors.some((error) => error.code === 'MALFORMED_BOARD_UNIT'), false);
+  assert.equal(result.errors.some((error) => error.code === 'DUPLICATE_BOARD_UNIT_CELL'), false);
+});
+
 test('a minimal but structurally empty game state is rejected, not silently valid', () => {
   const result = validateCardOwnership({ cardsById: {}, deck: {}, camp: {} });
   assert.equal(result.valid, false);

@@ -25,6 +25,14 @@
  *   point at ids that must already live in an owner zone (hand, or hand/camp
  *   for selection) rather than owning cards themselves. Duplicate ids
  *   within either reference zone are invalid, same as for an owner zone.
+ *   `deck.retained` is a required array — `deck.js`'s `cloneDeck()` spreads
+ *   it unconditionally (`[...deck.retained]`) on every draw/reroll/discard,
+ *   so a missing or mistyped `retained` would otherwise pass validation and
+ *   then throw a `TypeError` on the very next deck operation. `selection`,
+ *   by contrast, is genuinely optional: every real read of it in
+ *   `state-machine-base.js`/`ui/render*.js` goes through
+ *   `game.selection?.cardIds ?? []`, so `undefined`/`null` are legitimate
+ *   and only a present-but-wrong-shaped `selection` is malformed.
  *
  * All owner-zone containers (`deck.drawPile`, `deck.discardPile`,
  * `deck.hand`, `deck.deployed`, `camp.cardIds`, `boardCards`) and
@@ -33,7 +41,11 @@
  * `MALFORMED_ZONE`/`MALFORMED_BOARD` error, never a silently-valid empty
  * default. Card objects held in `drawPile`/`discardPile`/`hand` are also
  * cross-checked against the registry's `symbol` for the same id, so a card
- * cannot silently change identity while it sits in a zone.
+ * cannot silently change identity while it sits in a zone. Every entry in
+ * `game.board.units` is validated too: it must be an object whose own `id`
+ * matches its key and whose `cell` is an in-bounds integer coordinate, and
+ * no two units may share a cell — a `deck.deployed` record is only a real
+ * owner while the unit it names is actually usable on the board.
  */
 
 const OWNER_ZONES = Object.freeze(['drawPile', 'discardPile', 'hand', 'camp', 'board', 'deployed']);
@@ -73,6 +85,52 @@ function validateBoardShape(board, errors) {
   }
   if (!isPlainObject(board.units)) {
     errors.push({ code: 'MALFORMED_BOARD', message: 'game.board.units must be an object.' });
+  }
+}
+
+function isValidIntegerCell(board, cell) {
+  if (!isPlainObject(cell) || !Number.isInteger(cell.column) || !Number.isInteger(cell.row)) return false;
+  return isCellWithinBoard(board, cell);
+}
+
+function validateBoardUnits(board, errors) {
+  if (!isPlainObject(board) || !isPlainObject(board.units)) return;
+  const cellOwners = new Map();
+  for (const [unitId, unit] of Object.entries(board.units)) {
+    if (!isPlainObject(unit)) {
+      errors.push({
+        code: 'MALFORMED_BOARD_UNIT',
+        unitId,
+        message: `board.units["${unitId}"] must be an object.`,
+      });
+      continue;
+    }
+    if (unit.id !== unitId) {
+      errors.push({
+        code: 'MALFORMED_BOARD_UNIT',
+        unitId,
+        message: `board.units["${unitId}"] has a mismatched id "${unit.id}".`,
+      });
+    }
+    if (!isValidIntegerCell(board, unit.cell)) {
+      errors.push({
+        code: 'MALFORMED_BOARD_UNIT',
+        unitId,
+        message: `board.units["${unitId}"] has a missing or out-of-bounds cell.`,
+      });
+      continue;
+    }
+    const cellKey = `${unit.cell.column},${unit.cell.row}`;
+    if (cellOwners.has(cellKey)) {
+      errors.push({
+        code: 'DUPLICATE_BOARD_UNIT_CELL',
+        cell: cellKey,
+        unitIds: [cellOwners.get(cellKey), unitId],
+        message: `Board cell "${cellKey}" is occupied by more than one unit.`,
+      });
+    } else {
+      cellOwners.set(cellKey, unitId);
+    }
   }
 }
 
@@ -231,6 +289,7 @@ function collectZoneEntries(game, registry) {
   let entries = [];
 
   validateBoardShape(game.board, errors);
+  validateBoardUnits(game.board, errors);
 
   if (!isPlainObject(game.deck)) {
     errors.push({ code: 'MALFORMED_ZONE', zone: 'deck', message: 'game.deck must be an object.' });
@@ -271,31 +330,29 @@ function checkReferenceZoneDuplicates(ids, zone, errors) {
 
 function collectReferenceIssues(game, handIds, campIds, errors) {
   const retained = game.deck?.retained;
-  if (retained !== undefined) {
-    if (!Array.isArray(retained)) {
-      errors.push({ code: 'MALFORMED_ZONE', zone: 'retained', message: 'game.deck.retained must be an array.' });
-    } else {
-      retained.forEach((cardId) => {
-        if (!isNonEmptyString(cardId)) {
-          errors.push({
-            code: 'MALFORMED_CARD_ENTRY',
-            zone: 'retained',
-            message: 'game.deck.retained has a malformed card id.',
-          });
-          return;
-        }
-        if (!handIds.has(cardId)) {
-          errors.push({
-            code: 'ORPHANED_REFERENCE',
-            cardId,
-            zone: 'retained',
-            ownerZones: ['hand'],
-            message: `Retained card ${cardId} is not present in hand.`,
-          });
-        }
-      });
-      checkReferenceZoneDuplicates(retained, 'retained', errors);
-    }
+  if (!Array.isArray(retained)) {
+    errors.push({ code: 'MALFORMED_ZONE', zone: 'retained', message: 'game.deck.retained must be an array.' });
+  } else {
+    retained.forEach((cardId) => {
+      if (!isNonEmptyString(cardId)) {
+        errors.push({
+          code: 'MALFORMED_CARD_ENTRY',
+          zone: 'retained',
+          message: 'game.deck.retained has a malformed card id.',
+        });
+        return;
+      }
+      if (!handIds.has(cardId)) {
+        errors.push({
+          code: 'ORPHANED_REFERENCE',
+          cardId,
+          zone: 'retained',
+          ownerZones: ['hand'],
+          message: `Retained card ${cardId} is not present in hand.`,
+        });
+      }
+    });
+    checkReferenceZoneDuplicates(retained, 'retained', errors);
   }
 
   const { selection } = game;
@@ -454,6 +511,7 @@ function formatOwnershipError(error) {
   const parts = [error.code];
   if (error.cardId) parts.push(`card=${error.cardId}`);
   if (error.unitId) parts.push(`unit=${error.unitId}`);
+  if (error.unitIds) parts.push(`units=[${error.unitIds.join(', ')}]`);
   if (error.zone) parts.push(`zone=${error.zone}`);
   if (error.zones) parts.push(`zones=[${error.zones.join(', ')}]`);
   if (error.cell) parts.push(`cell=${error.cell}`);
