@@ -422,6 +422,139 @@ test('detects duplicate ids within the selection reference zone', () => {
   assert.equal(error.cardId, 'card-1');
 });
 
+test('a minimal but structurally empty game state is rejected, not silently valid', () => {
+  const result = validateCardOwnership({ cardsById: {}, deck: {}, camp: {} });
+  assert.equal(result.valid, false);
+  const codes = new Set(result.errors.map((error) => error.code));
+  assert.ok(codes.has('MALFORMED_ZONE'));
+  assert.ok(codes.has('MALFORMED_BOARD'));
+});
+
+test('detects a missing deck field as a malformed zone rather than an empty default', () => {
+  const game = baseFixture({
+    deck: {
+      discardPile: [],
+      hand: [],
+      retained: [],
+      deployed: [],
+      freeRerollsRemaining: 1,
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  assert.equal(result.errors.some((error) => error.code === 'MALFORMED_ZONE' && error.zone === 'drawPile'), true);
+});
+
+test('detects a missing camp.cardIds field', () => {
+  const game = baseFixture({ camp: { capacity: 2 } });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  assert.equal(result.errors.some((error) => error.code === 'MALFORMED_ZONE' && error.zone === 'camp'), true);
+});
+
+test('detects a missing boardCards field', () => {
+  const game = baseFixture();
+  delete game.boardCards;
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  assert.equal(result.errors.some((error) => error.code === 'MALFORMED_ZONE' && error.zone === 'board'), true);
+});
+
+test('detects a missing deployed field', () => {
+  const game = baseFixture({
+    deck: {
+      drawPile: [],
+      discardPile: [],
+      hand: [],
+      retained: [],
+      freeRerollsRemaining: 1,
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  assert.equal(result.errors.some((error) => error.code === 'MALFORMED_ZONE' && error.zone === 'deployed'), true);
+});
+
+test('detects a null board without treating cells or deployed units as valid by default', () => {
+  const game = baseFixture({
+    board: null,
+    boardCards: { '0,0': 'card-3' },
+    deck: {
+      ...baseFixture().deck,
+      hand: [],
+      deployed: [{ unitId: 'unit-1', cardIds: ['card-4'] }],
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  assert.equal(result.errors.some((error) => error.code === 'MALFORMED_BOARD'), true);
+});
+
+test('detects an invalid board.size', () => {
+  const game = baseFixture({ board: { ...createBoard('base'), size: { columns: 0, rows: 3 } } });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  assert.equal(result.errors.some((error) => error.code === 'MALFORMED_BOARD'), true);
+});
+
+test('detects an invalid board.units', () => {
+  const game = baseFixture({ board: { ...createBoard('base'), units: [] } });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  assert.equal(result.errors.some((error) => error.code === 'MALFORMED_BOARD'), true);
+});
+
+test('detects a hand card whose symbol does not match the canonical registry entry', () => {
+  const game = baseFixture({
+    deck: {
+      ...baseFixture().deck,
+      hand: [makeCard('card-1', '忠'), makeCard('card-2', '忠')],
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'CARD_IDENTITY_MISMATCH' && item.cardId === 'card-1');
+  assert.ok(error);
+  assert.equal(error.expectedSymbol, '黃');
+  assert.equal(error.actualSymbol, '忠');
+});
+
+test('detects a draw pile card whose symbol does not match the canonical registry entry', () => {
+  const game = baseFixture({
+    deck: {
+      ...baseFixture().deck,
+      drawPile: [makeCard('card-5', '兵')],
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'CARD_IDENTITY_MISMATCH' && item.cardId === 'card-5');
+  assert.ok(error);
+  assert.equal(error.expectedSymbol, '弓');
+  assert.equal(error.actualSymbol, '兵');
+});
+
+test('detects a zone-held card object missing a valid symbol', () => {
+  const game = baseFixture({
+    deck: {
+      ...baseFixture().deck,
+      hand: [makeCard('card-1', '黃'), { id: 'card-2', locked: false }],
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  assert.equal(
+    result.errors.some((error) => error.code === 'MALFORMED_CARD_ENTRY' && error.zone === 'hand'),
+    true,
+  );
+});
+
+test('a matching symbol between a zone card and the registry produces no identity error', () => {
+  const game = baseFixture();
+  const result = validateCardOwnership(game);
+  assert.equal(result.errors.some((error) => error.code === 'CARD_IDENTITY_MISMATCH'), false);
+});
+
 test('validateCardOwnership does not mutate the input state', () => {
   const game = Object.freeze({
     ...baseFixture({ boardCards: { '0,0': 'card-3' }, camp: { capacity: 2, cardIds: ['card-4'] } }),

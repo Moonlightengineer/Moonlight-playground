@@ -25,6 +25,15 @@
  *   point at ids that must already live in an owner zone (hand, or hand/camp
  *   for selection) rather than owning cards themselves. Duplicate ids
  *   within either reference zone are invalid, same as for an owner zone.
+ *
+ * All owner-zone containers (`deck.drawPile`, `deck.discardPile`,
+ * `deck.hand`, `deck.deployed`, `camp.cardIds`, `boardCards`) and
+ * `game.board` (with a positive-integer `size` and an object `units`) are
+ * required fields of a well-formed state — a missing or mistyped field is a
+ * `MALFORMED_ZONE`/`MALFORMED_BOARD` error, never a silently-valid empty
+ * default. Card objects held in `drawPile`/`discardPile`/`hand` are also
+ * cross-checked against the registry's `symbol` for the same id, so a card
+ * cannot silently change identity while it sits in a zone.
  */
 
 const OWNER_ZONES = Object.freeze(['drawPile', 'discardPile', 'hand', 'camp', 'board', 'deployed']);
@@ -50,15 +59,31 @@ function isCellWithinBoard(board, cell) {
   return cell.column >= 0 && cell.row >= 0 && cell.column < columns && cell.row < rows;
 }
 
-function collectArrayOfCardsZone(container, zone, errors) {
+function validateBoardShape(board, errors) {
+  if (!isPlainObject(board)) {
+    errors.push({ code: 'MALFORMED_BOARD', message: 'game.board must be an object.' });
+    return;
+  }
+  const { size } = board;
+  const sizeOk = isPlainObject(size)
+    && Number.isInteger(size.columns) && size.columns > 0
+    && Number.isInteger(size.rows) && size.rows > 0;
+  if (!sizeOk) {
+    errors.push({ code: 'MALFORMED_BOARD', message: 'game.board.size must have positive integer columns and rows.' });
+  }
+  if (!isPlainObject(board.units)) {
+    errors.push({ code: 'MALFORMED_BOARD', message: 'game.board.units must be an object.' });
+  }
+}
+
+function collectArrayOfCardsZone(container, zone, registry, errors) {
   const entries = [];
-  if (container === undefined) return entries;
   if (!Array.isArray(container)) {
     errors.push({ code: 'MALFORMED_ZONE', zone, message: `Zone "${zone}" must be an array.` });
     return entries;
   }
   container.forEach((card, index) => {
-    if (!isPlainObject(card) || !isNonEmptyString(card.id)) {
+    if (!isPlainObject(card) || !isNonEmptyString(card.id) || !isNonEmptyString(card.symbol)) {
       errors.push({
         code: 'MALFORMED_CARD_ENTRY',
         zone,
@@ -67,13 +92,25 @@ function collectArrayOfCardsZone(container, zone, errors) {
       return;
     }
     entries.push({ zone, cardId: card.id });
+    if (registry && Object.prototype.hasOwnProperty.call(registry, card.id)) {
+      const canonical = registry[card.id];
+      if (isPlainObject(canonical) && isNonEmptyString(canonical.symbol) && canonical.symbol !== card.symbol) {
+        errors.push({
+          code: 'CARD_IDENTITY_MISMATCH',
+          cardId: card.id,
+          zone,
+          expectedSymbol: canonical.symbol,
+          actualSymbol: card.symbol,
+          message: `Zone "${zone}" card ${card.id} has symbol "${card.symbol}" but the registry has "${canonical.symbol}".`,
+        });
+      }
+    }
   });
   return entries;
 }
 
 function collectArrayOfIdsZone(container, zone, errors) {
   const entries = [];
-  if (container === undefined) return entries;
   if (!Array.isArray(container)) {
     errors.push({ code: 'MALFORMED_ZONE', zone, message: `Zone "${zone}" must be an array.` });
     return entries;
@@ -95,7 +132,6 @@ function collectArrayOfIdsZone(container, zone, errors) {
 function collectBoardZone(boardCards, board, errors) {
   const zone = 'board';
   const entries = [];
-  if (boardCards === undefined) return entries;
   if (!isPlainObject(boardCards)) {
     errors.push({ code: 'MALFORMED_ZONE', zone, message: 'Zone "board" must be an object keyed by cell.' });
     return entries;
@@ -135,7 +171,6 @@ function collectBoardZone(boardCards, board, errors) {
 function collectDeployedZone(deployed, board, errors) {
   const zone = 'deployed';
   const entries = [];
-  if (deployed === undefined) return entries;
   if (!Array.isArray(deployed)) {
     errors.push({ code: 'MALFORMED_ZONE', zone, message: 'Zone "deployed" must be an array.' });
     return entries;
@@ -191,35 +226,34 @@ function collectDeployedZone(deployed, board, errors) {
   return entries;
 }
 
-function collectZoneEntries(game) {
+function collectZoneEntries(game, registry) {
   const errors = [];
   let entries = [];
 
-  if (game.deck === undefined) {
-    errors.push({ code: 'MALFORMED_ZONE', zone: 'deck', message: 'game.deck is required.' });
-  } else if (!isPlainObject(game.deck)) {
+  validateBoardShape(game.board, errors);
+
+  if (!isPlainObject(game.deck)) {
     errors.push({ code: 'MALFORMED_ZONE', zone: 'deck', message: 'game.deck must be an object.' });
+    errors.push({ code: 'MALFORMED_ZONE', zone: 'drawPile', message: 'Zone "drawPile" must be an array.' });
+    errors.push({ code: 'MALFORMED_ZONE', zone: 'discardPile', message: 'Zone "discardPile" must be an array.' });
+    errors.push({ code: 'MALFORMED_ZONE', zone: 'hand', message: 'Zone "hand" must be an array.' });
+    errors.push({ code: 'MALFORMED_ZONE', zone: 'deployed', message: 'Zone "deployed" must be an array.' });
   } else {
     entries = entries.concat(
-      collectArrayOfCardsZone(game.deck.drawPile, 'drawPile', errors),
-      collectArrayOfCardsZone(game.deck.discardPile, 'discardPile', errors),
-      collectArrayOfCardsZone(game.deck.hand, 'hand', errors),
+      collectArrayOfCardsZone(game.deck.drawPile, 'drawPile', registry, errors),
+      collectArrayOfCardsZone(game.deck.discardPile, 'discardPile', registry, errors),
+      collectArrayOfCardsZone(game.deck.hand, 'hand', registry, errors),
+      collectDeployedZone(game.deck.deployed, game.board, errors),
     );
   }
 
-  if (game.camp === undefined) {
-    errors.push({ code: 'MALFORMED_ZONE', zone: 'camp', message: 'game.camp is required.' });
-  } else if (!isPlainObject(game.camp)) {
+  if (!isPlainObject(game.camp)) {
     errors.push({ code: 'MALFORMED_ZONE', zone: 'camp', message: 'game.camp must be an object.' });
   } else {
     entries = entries.concat(collectArrayOfIdsZone(game.camp.cardIds, 'camp', errors));
   }
 
   entries = entries.concat(collectBoardZone(game.boardCards, game.board, errors));
-
-  if (isPlainObject(game.deck)) {
-    entries = entries.concat(collectDeployedZone(game.deck.deployed, game.board, errors));
-  }
 
   return { entries, errors };
 }
@@ -344,7 +378,8 @@ function collectMissingOwnership(registry, zonesByCardId, errors) {
  */
 export function collectCardZones(game) {
   if (!isPlainObject(game)) return [];
-  return collectZoneEntries(game).entries;
+  const registry = isPlainObject(game.cardsById) ? game.cardsById : null;
+  return collectZoneEntries(game, registry).entries;
 }
 
 /**
@@ -374,7 +409,7 @@ export function validateCardOwnership(game) {
     validateRegistryEntries(game.cardsById, errors);
   }
 
-  const { entries, errors: zoneErrors } = collectZoneEntries(game);
+  const { entries, errors: zoneErrors } = collectZoneEntries(game, registryOk ? game.cardsById : null);
   errors.push(...zoneErrors);
 
   const perZoneCounts = new Map();
@@ -422,6 +457,8 @@ function formatOwnershipError(error) {
   if (error.zone) parts.push(`zone=${error.zone}`);
   if (error.zones) parts.push(`zones=[${error.zones.join(', ')}]`);
   if (error.cell) parts.push(`cell=${error.cell}`);
+  if (error.expectedSymbol) parts.push(`expected=${error.expectedSymbol}`);
+  if (error.actualSymbol) parts.push(`actual=${error.actualSymbol}`);
   if (error.count) parts.push(`count=${error.count}`);
   if (error.message) parts.push(error.message);
   return parts.join(' ');
