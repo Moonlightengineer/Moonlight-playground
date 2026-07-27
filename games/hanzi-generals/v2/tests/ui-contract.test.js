@@ -8,12 +8,19 @@ async function source(path) {
   return readFile(new URL(path, root), 'utf8').catch(() => '');
 }
 
-async function interactiveRenderSource() {
-  const [entry, implementation] = await Promise.all([
-    source('src/ui/render-interactive.js'),
-    source('src/ui/render-interactive-base.js'),
+async function renderArchitectureSource() {
+  const sources = await Promise.all([
+    source('src/ui/view-model.js'),
+    source('src/ui/render-app.js'),
+    source('src/ui/panels/run-status-panel.js'),
+    source('src/ui/panels/battle-stage-panel.js'),
+    source('src/ui/panels/camp-panel.js'),
+    source('src/ui/panels/primary-panel.js'),
+    source('src/ui/panels/combat-orders-panel.js'),
+    source('src/ui/panels/hand-panel.js'),
+    source('src/ui/panels/details-panel.js'),
   ]);
-  return `${entry}\n${implementation}`;
+  return sources.join('\n');
 }
 
 test('v2 shell exposes the hidden game root and module entry', async () => {
@@ -101,38 +108,43 @@ test('interaction layer exposes only two-unit swaps and eligible focus targets',
   assert.match(interactionSource, /unitIds:\s*\[orderMode\.unitId,\s*target\.dataset\.unitId\]/);
 });
 
-test('render layer spatially renders enemies from top to bottom', async () => {
-  const base = await source('src/ui/render.js');
-  const interactive = await interactiveRenderSource();
-  const renderSource = `${base}\n${interactive}`;
-  assert.match(renderSource, /renderEnemyField/);
-  assert.match(renderSource, /dataEnemyId/);
+test('ViewModel and battle panel spatially render enemies from top to bottom', async () => {
+  const viewModel = await source('src/ui/view-model.js');
+  const battlePanel = await source('src/ui/panels/battle-stage-panel.js');
+  const renderSource = `${viewModel}\n${battlePanel}`;
+  assert.match(renderSource, /buildBattleStage/);
+  assert.match(renderSource, /dataEnemyId|enemy\.id/);
   assert.match(renderSource, /--enemy-progress/);
   assert.match(renderSource, /enemy\.distance/);
-  assert.match(interactive, /--enemy-columns/);
+  assert.match(renderSource, /--enemy-columns/);
 });
 
-test('render layer exposes legal order eligibility and visible order state', async () => {
-  const renderSource = await interactiveRenderSource();
-  assert.match(renderSource, /select-camp-card/);
+test('selector, ViewModel and orders panel expose legal order eligibility and visible order state', async () => {
+  const selectors = await source('src/core/selectors/commands.js');
+  const viewModel = await source('src/ui/view-model.js');
+  const ordersPanel = await source('src/ui/panels/combat-orders-panel.js');
+  const renderSource = `${selectors}\n${viewModel}\n${ordersPanel}`;
+  assert.match(renderSource, /selectOrderTargets/);
+  assert.match(renderSource, /swapPairs/);
+  assert.match(renderSource, /focusEnemyIds/);
   assert.match(renderSource, /remainingFriendlyTurns/);
   assert.match(renderSource, /remainingEnemyTurns/);
   assert.match(renderSource, /begin-order/);
-  assert.match(renderSource, /adjacentSwapPairExists/);
-  assert.match(renderSource, /canFocusEnemy/);
   assert.match(renderSource, /focusEligible/);
 });
 
-test('reward choices expose summary, exact effect, and tactical use case', async () => {
-  const renderSource = await source('src/ui/render.js');
+test('reward ViewModel and primary panel expose summary, exact effect, and tactical use case', async () => {
+  const viewModel = await source('src/ui/view-model.js');
+  const primaryPanel = await source('src/ui/panels/primary-panel.js');
   const css = await source('styles/game.css');
+  const renderSource = `${viewModel}\n${primaryPanel}`;
   assert.match(renderSource, /reward-name/);
   assert.match(renderSource, /reward-summary/);
   assert.match(renderSource, /reward-effect/);
   assert.match(renderSource, /reward-use-case/);
-  assert.match(renderSource, /reward\.description\.summary/);
-  assert.match(renderSource, /reward\.description\.effect/);
-  assert.match(renderSource, /reward\.description\.useCase/);
+  assert.match(viewModel, /reward\.description\.summary/);
+  assert.match(viewModel, /reward\.description\.effect/);
+  assert.match(viewModel, /reward\.description\.useCase/);
   assert.match(css, /\.reward-summary/);
   assert.match(css, /\.reward-effect/);
   assert.match(css, /\.reward-use-case/);
@@ -140,15 +152,15 @@ test('reward choices expose summary, exact effect, and tactical use case', async
 
 test('combat feedback is non-blocking, identifiable, and reduced-motion safe', async () => {
   const html = await source('index.html');
-  const baseRender = await source('src/ui/render.js');
+  const battlePanel = await source('src/ui/panels/battle-stage-panel.js');
   const feedback = await source('src/ui/combat-feedback.js');
   const app = await source('src/app.js');
   const css = await source('styles/game.css');
 
   assert.match(html, /id="combat-feedback-layer"/);
   assert.match(html, /id="combat-feedback-layer"[^>]*aria-live="polite"/);
-  assert.match(baseRender, /button\.dataset\.unitId/);
-  assert.match(baseRender, /token\.dataset\.enemyId/);
+  assert.match(battlePanel, /button\.dataset\.unitId/);
+  assert.match(battlePanel, /token\.dataset\.enemyId/);
   assert.match(feedback, /export function createCombatFeedback/);
   assert.match(feedback, /function present\(events\)/);
   assert.match(feedback, /function clear\(\)/);
