@@ -21,9 +21,9 @@ const PANEL_CONTRACTS = [
 test('render-app is the only orchestration layer and invokes every panel owner once', async () => {
   const renderApp = await source('src/ui/render-app.js');
   for (const [file, functionName] of PANEL_CONTRACTS) {
-    assert.match(renderApp, new RegExp(`from './panels/${file.replace('.', '\\.')}'`));
-    const calls = renderApp.match(new RegExp(`${functionName}\\(`, 'g')) ?? [];
-    assert.equal(calls.length, 2, `${functionName} should appear once in import and once in orchestration`);
+    assert.match(renderApp, new RegExp(`import \\{ ${functionName} \\} from './panels/${file.replace('.', '\\.')}'`));
+    const calls = renderApp.match(new RegExp(`^\\s*${functionName}\\(`, 'gm')) ?? [];
+    assert.equal(calls.length, 1, `${functionName} should be invoked once in orchestration`);
   }
 });
 
