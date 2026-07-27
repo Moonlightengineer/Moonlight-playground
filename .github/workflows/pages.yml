@@ -55,6 +55,9 @@ jobs:
       - name: Test v2 canonical state flow
         run: node --test games/hanzi-generals/v2/tests/canonical-state-machine.test.js
 
+      - name: Test v2 card ownership invariants
+        run: node --test games/hanzi-generals/v2/tests/card-invariants.test.js
+
       - name: Test v2 route reward fix
         run: >-
           node --test
