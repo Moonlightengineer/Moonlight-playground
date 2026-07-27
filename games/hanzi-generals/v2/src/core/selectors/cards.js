@@ -1,31 +1,12 @@
+import { collectCardZones } from '../card-invariants.js';
 import { listCells } from '../../board/board.js';
-
-function addZone(index, cardId, zone) {
-  if (typeof cardId !== 'string' || !cardId) return;
-  if (!index.has(cardId)) index.set(cardId, []);
-  const zones = index.get(cardId);
-  if (!zones.includes(zone)) zones.push(zone);
-}
 
 export function selectCardZoneIndex(game) {
   const index = new Map();
-  const deck = game?.deck ?? {};
-  const objectZones = [
-    ['drawPile', deck.drawPile],
-    ['discardPile', deck.discardPile],
-    ['hand', deck.hand],
-  ];
-  for (const [zone, cards] of objectZones) {
-    for (const card of Array.isArray(cards) ? cards : []) addZone(index, card?.id, zone);
-  }
-  for (const cardId of Array.isArray(game?.camp?.cardIds) ? game.camp.cardIds : []) {
-    addZone(index, cardId, 'camp');
-  }
-  for (const cardId of Object.values(game?.boardCards ?? {})) addZone(index, cardId, 'board');
-  for (const record of Array.isArray(deck.deployed) ? deck.deployed : []) {
-    for (const cardId of Array.isArray(record?.cardIds) ? record.cardIds : []) {
-      addZone(index, cardId, 'deployed');
-    }
+  for (const { zone, cardId } of collectCardZones(game)) {
+    if (!index.has(cardId)) index.set(cardId, []);
+    const zones = index.get(cardId);
+    if (!zones.includes(zone)) zones.push(zone);
   }
   return index;
 }
