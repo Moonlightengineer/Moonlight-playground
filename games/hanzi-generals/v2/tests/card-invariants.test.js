@@ -15,6 +15,25 @@ function makeCard(id, symbol) {
   return { id, symbol, locked: false };
 }
 
+function makeDeployedUnit(unitId, cell = { column: 2, row: 2 }) {
+  return {
+    id: unitId,
+    definitionId: 'huang-zhong',
+    kind: 'general',
+    hp: 18,
+    maxHp: 18,
+    cooldown: 0,
+    evolution: null,
+    statuses: [],
+    cell,
+  };
+}
+
+function boardWithUnits(units) {
+  const board = createBoard('base');
+  return { ...board, units: Object.fromEntries(units.map((unit) => [unit.id, unit])) };
+}
+
 function baseFixture(overrides = {}) {
   const cardsById = {
     'card-1': makeCard('card-1', '黃'),
@@ -81,6 +100,7 @@ test('collectCardZones includes deployed cards sealed into board units', () => {
 
 test('valid complete state with every zone populated reports no errors', () => {
   const game = baseFixture({
+    board: boardWithUnits([makeDeployedUnit('unit-9')]),
     boardCards: { '0,0': 'card-3' },
     camp: { capacity: 2, cardIds: ['card-4'] },
     deck: {
@@ -158,6 +178,7 @@ test('detects board ownership conflict against hand', () => {
 
 test('board and deployed are distinct owner zones, not references to the same ownership', () => {
   const game = baseFixture({
+    board: boardWithUnits([makeDeployedUnit('unit-1')]),
     boardCards: { '0,0': 'card-3' },
     deck: {
       ...baseFixture().deck,
@@ -248,10 +269,157 @@ test('flags a selection reference that is not available in hand or camp', () => 
 
 test('a legitimate retained reference into the hand produces no error', () => {
   const game = baseFixture({
-    deck: { ...baseFixture().deck, retained: ['card-1'] },
+    cardsById: {
+      'card-1': makeCard('card-1', '黃'),
+      'card-2': makeCard('card-2', '忠'),
+    },
+    deck: {
+      drawPile: [],
+      discardPile: [],
+      hand: [makeCard('card-1', '黃'), makeCard('card-2', '忠')],
+      retained: ['card-1'],
+      deployed: [],
+      freeRerollsRemaining: 1,
+    },
   });
   const result = validateCardOwnership(game);
   assert.deepEqual(result, { valid: true, errors: [] });
+});
+
+test('detects a registry card that has been dropped from every owner zone', () => {
+  const game = baseFixture({
+    deck: {
+      ...baseFixture().deck,
+      drawPile: [],
+      discardPile: [],
+      hand: [makeCard('card-1', '黃')],
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const codes = new Set(['card-2', 'card-3', 'card-4', 'card-5', 'card-6']);
+  const missing = result.errors.filter((error) => error.code === 'MISSING_CARD_OWNERSHIP');
+  assert.equal(missing.length, codes.size);
+  assert.deepEqual(new Set(missing.map((error) => error.cardId)), codes);
+});
+
+test('a real reducer flow never produces an unowned registry card', () => {
+  const game = createExpedition('missing-ownership-sanity');
+  const result = validateCardOwnership(game);
+  assert.equal(result.errors.some((error) => error.code === 'MISSING_CARD_OWNERSHIP'), false);
+});
+
+test('detects a registry entry with a null value', () => {
+  const game = baseFixture({
+    cardsById: { ...baseFixture().cardsById, 'card-1': null },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'MALFORMED_REGISTRY_ENTRY' && item.cardId === 'card-1');
+  assert.ok(error);
+});
+
+test('detects a registry entry whose id does not match its own key', () => {
+  const game = baseFixture({
+    cardsById: {
+      ...baseFixture().cardsById,
+      'card-1': makeCard('card-2', '黃'),
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'MALFORMED_REGISTRY_ENTRY' && item.cardId === 'card-1');
+  assert.ok(error);
+});
+
+test('detects a registry entry missing a valid symbol', () => {
+  const game = baseFixture({
+    cardsById: { ...baseFixture().cardsById, 'card-1': { id: 'card-1', locked: false } },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'MALFORMED_REGISTRY_ENTRY' && item.cardId === 'card-1');
+  assert.ok(error);
+});
+
+test('detects an unparseable board cell key', () => {
+  const game = baseFixture({ boardCards: { 'not-a-cell': 'card-3' } });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'INVALID_BOARD_CELL' && item.cell === 'not-a-cell');
+  assert.ok(error);
+});
+
+test('detects a board cell outside the current board bounds', () => {
+  const game = baseFixture({ boardCards: { '99,99': 'card-3' } });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'INVALID_BOARD_CELL' && item.cell === '99,99');
+  assert.ok(error);
+});
+
+test('detects a deployed record with a missing unitId', () => {
+  const game = baseFixture({
+    deck: { ...baseFixture().deck, deployed: [{ cardIds: ['card-1', 'card-2'] }] },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  assert.equal(
+    result.errors.some((error) => error.code === 'MALFORMED_CARD_ENTRY' && error.zone === 'deployed'),
+    true,
+  );
+});
+
+test('detects duplicate unitId across deployed records', () => {
+  const game = baseFixture({
+    board: boardWithUnits([makeDeployedUnit('unit-1')]),
+    deck: {
+      ...baseFixture().deck,
+      hand: [],
+      deployed: [
+        { unitId: 'unit-1', cardIds: ['card-1'] },
+        { unitId: 'unit-1', cardIds: ['card-2'] },
+      ],
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'DUPLICATE_DEPLOYED_UNIT' && item.unitId === 'unit-1');
+  assert.ok(error);
+});
+
+test('detects a deployed unit that does not exist on the board', () => {
+  const game = baseFixture({
+    deck: {
+      ...baseFixture().deck,
+      hand: [],
+      deployed: [{ unitId: 'ghost-unit', cardIds: ['card-1', 'card-2'] }],
+    },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'DEPLOYED_UNIT_NOT_ON_BOARD' && item.unitId === 'ghost-unit');
+  assert.ok(error);
+});
+
+test('detects duplicate ids within the retained reference zone', () => {
+  const game = baseFixture({
+    deck: { ...baseFixture().deck, retained: ['card-1', 'card-1'] },
+  });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'DUPLICATE_CARD_IN_ZONE' && item.zone === 'retained');
+  assert.ok(error);
+  assert.equal(error.cardId, 'card-1');
+});
+
+test('detects duplicate ids within the selection reference zone', () => {
+  const game = baseFixture({ selection: { cardIds: ['card-1', 'card-1'] } });
+  const result = validateCardOwnership(game);
+  assert.equal(result.valid, false);
+  const error = result.errors.find((item) => item.code === 'DUPLICATE_CARD_IN_ZONE' && item.zone === 'selection');
+  assert.ok(error);
+  assert.equal(error.cardId, 'card-1');
 });
 
 test('validateCardOwnership does not mutate the input state', () => {

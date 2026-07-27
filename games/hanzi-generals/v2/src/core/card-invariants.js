@@ -1,10 +1,13 @@
 /**
  * Canonical card ownership invariants for the v2 engine.
  *
- * Ownership model discovered from `deck/deck.js`, `deck/assembly.js` and
- * `expedition/expedition.js`:
+ * Ownership model discovered from `deck/deck.js`, `deck/assembly.js`,
+ * `board/board.js` and `expedition/expedition.js`:
  *
  * - `game.cardsById` is the canonical card registry (id -> card object).
+ *   Every registry entry must be an object whose `id` matches its own key
+ *   and which carries a usable `symbol`, and every registry card must have
+ *   exactly one owner zone (zero owners is as invalid as two).
  * - Owner zones hold exclusive, physical ownership of a card and are
  *   mutually exclusive: `deck.drawPile`, `deck.discardPile`, `deck.hand`,
  *   `camp.cardIds`, `boardCards` (single cards placed pre-assembly) and
@@ -13,9 +16,15 @@
  *   references to the same ownership: `confirmAssembly` removes a card's
  *   id from `boardCards` in the same transition that adds it to
  *   `deck.deployed`, so a card is never in both at once.
+ * - `boardCards` keys must parse as `"column,row"` and, when `game.board`
+ *   carries a usable size, fall inside its current bounds. `deck.deployed`
+ *   records must carry a unique `unitId` that exists in `game.board.units`
+ *   — a deployed card is only truly owned while its unit is still on the
+ *   board.
  * - `deck.retained` and `selection.cardIds` are reference-only zones: they
  *   point at ids that must already live in an owner zone (hand, or hand/camp
- *   for selection) rather than owning cards themselves.
+ *   for selection) rather than owning cards themselves. Duplicate ids
+ *   within either reference zone are invalid, same as for an owner zone.
  */
 
 const OWNER_ZONES = Object.freeze(['drawPile', 'discardPile', 'hand', 'camp', 'board', 'deployed']);
@@ -26,6 +35,19 @@ function isPlainObject(value) {
 
 function isNonEmptyString(value) {
   return typeof value === 'string' && value.length > 0;
+}
+
+function parseBoardCellKey(key) {
+  const match = /^(\d+),(\d+)$/.exec(key);
+  if (!match) return null;
+  return { column: Number(match[1]), row: Number(match[2]) };
+}
+
+function isCellWithinBoard(board, cell) {
+  if (!isPlainObject(board) || !isPlainObject(board.size)) return true;
+  const { columns, rows } = board.size;
+  if (!Number.isInteger(columns) || !Number.isInteger(rows)) return true;
+  return cell.column >= 0 && cell.row >= 0 && cell.column < columns && cell.row < rows;
 }
 
 function collectArrayOfCardsZone(container, zone, errors) {
@@ -70,7 +92,7 @@ function collectArrayOfIdsZone(container, zone, errors) {
   return entries;
 }
 
-function collectBoardZone(boardCards, errors) {
+function collectBoardZone(boardCards, board, errors) {
   const zone = 'board';
   const entries = [];
   if (boardCards === undefined) return entries;
@@ -87,12 +109,30 @@ function collectBoardZone(boardCards, errors) {
       });
       continue;
     }
+    const parsedCell = parseBoardCellKey(cell);
+    if (!parsedCell) {
+      errors.push({
+        code: 'INVALID_BOARD_CELL',
+        zone,
+        cardId,
+        cell,
+        message: `Zone "board" has an unparseable cell key "${cell}".`,
+      });
+    } else if (!isCellWithinBoard(board, parsedCell)) {
+      errors.push({
+        code: 'INVALID_BOARD_CELL',
+        zone,
+        cardId,
+        cell,
+        message: `Zone "board" cell "${cell}" is outside the current board bounds.`,
+      });
+    }
     entries.push({ zone, cardId });
   }
   return entries;
 }
 
-function collectDeployedZone(deployed, errors) {
+function collectDeployedZone(deployed, board, errors) {
   const zone = 'deployed';
   const entries = [];
   if (deployed === undefined) return entries;
@@ -100,6 +140,8 @@ function collectDeployedZone(deployed, errors) {
     errors.push({ code: 'MALFORMED_ZONE', zone, message: 'Zone "deployed" must be an array.' });
     return entries;
   }
+  const boardUnitsOk = isPlainObject(board) && isPlainObject(board.units);
+  const seenUnitIds = new Set();
   deployed.forEach((record, index) => {
     if (!isPlainObject(record) || !Array.isArray(record.cardIds)) {
       errors.push({
@@ -108,6 +150,31 @@ function collectDeployedZone(deployed, errors) {
         message: `Zone "deployed" has a malformed record at index ${index}.`,
       });
       return;
+    }
+    if (!isNonEmptyString(record.unitId)) {
+      errors.push({
+        code: 'MALFORMED_CARD_ENTRY',
+        zone,
+        message: `Zone "deployed" record ${index} is missing a valid unitId.`,
+      });
+    } else {
+      if (seenUnitIds.has(record.unitId)) {
+        errors.push({
+          code: 'DUPLICATE_DEPLOYED_UNIT',
+          unitId: record.unitId,
+          zone,
+          message: `Zone "deployed" has more than one record for unit ${record.unitId}.`,
+        });
+      }
+      seenUnitIds.add(record.unitId);
+      if (boardUnitsOk && !Object.prototype.hasOwnProperty.call(board.units, record.unitId)) {
+        errors.push({
+          code: 'DEPLOYED_UNIT_NOT_ON_BOARD',
+          unitId: record.unitId,
+          zone,
+          message: `Deployed unit ${record.unitId} does not exist on the board.`,
+        });
+      }
     }
     record.cardIds.forEach((cardId) => {
       if (!isNonEmptyString(cardId)) {
@@ -148,13 +215,24 @@ function collectZoneEntries(game) {
     entries = entries.concat(collectArrayOfIdsZone(game.camp.cardIds, 'camp', errors));
   }
 
-  entries = entries.concat(collectBoardZone(game.boardCards, errors));
+  entries = entries.concat(collectBoardZone(game.boardCards, game.board, errors));
 
   if (isPlainObject(game.deck)) {
-    entries = entries.concat(collectDeployedZone(game.deck.deployed, errors));
+    entries = entries.concat(collectDeployedZone(game.deck.deployed, game.board, errors));
   }
 
   return { entries, errors };
+}
+
+function checkReferenceZoneDuplicates(ids, zone, errors) {
+  const counts = new Map();
+  for (const cardId of ids) {
+    if (!isNonEmptyString(cardId)) continue;
+    counts.set(cardId, (counts.get(cardId) ?? 0) + 1);
+  }
+  for (const [cardId, count] of counts) {
+    if (count > 1) errors.push({ code: 'DUPLICATE_CARD_IN_ZONE', cardId, zone, count });
+  }
 }
 
 function collectReferenceIssues(game, handIds, campIds, errors) {
@@ -182,6 +260,7 @@ function collectReferenceIssues(game, handIds, campIds, errors) {
           });
         }
       });
+      checkReferenceZoneDuplicates(retained, 'retained', errors);
     }
   }
 
@@ -209,6 +288,46 @@ function collectReferenceIssues(game, handIds, campIds, errors) {
           });
         }
       });
+      checkReferenceZoneDuplicates(selection.cardIds, 'selection', errors);
+    }
+  }
+}
+
+function validateRegistryEntries(registry, errors) {
+  for (const [key, card] of Object.entries(registry)) {
+    if (!isPlainObject(card)) {
+      errors.push({
+        code: 'MALFORMED_REGISTRY_ENTRY',
+        cardId: key,
+        message: `Registry entry "${key}" must be a card object.`,
+      });
+      continue;
+    }
+    if (card.id !== key) {
+      errors.push({
+        code: 'MALFORMED_REGISTRY_ENTRY',
+        cardId: key,
+        message: `Registry entry "${key}" has a mismatched id "${card.id}".`,
+      });
+    }
+    if (!isNonEmptyString(card.symbol)) {
+      errors.push({
+        code: 'MALFORMED_REGISTRY_ENTRY',
+        cardId: key,
+        message: `Registry entry "${key}" is missing a valid symbol.`,
+      });
+    }
+  }
+}
+
+function collectMissingOwnership(registry, zonesByCardId, errors) {
+  for (const cardId of Object.keys(registry)) {
+    if (!zonesByCardId.has(cardId)) {
+      errors.push({
+        code: 'MISSING_CARD_OWNERSHIP',
+        cardId,
+        message: `Registry card ${cardId} is not present in any owner zone.`,
+      });
     }
   }
 }
@@ -229,11 +348,15 @@ export function collectCardZones(game) {
 }
 
 /**
- * Validate that every card referenced by the game state has exactly one
- * owner zone, that every referenced id is known to `game.cardsById`, and
- * that reference-only zones (`retained`, `selection`) only point at ids
- * currently held by their expected owner zone(s). Pure: never mutates
- * `game`. Never throws — malformed input produces structured errors.
+ * Validate that every card in the canonical registry (`game.cardsById`) has
+ * exactly one owner zone — zero owners (a silently lost card) and more than
+ * one owner (duplicate ownership) are both reported — that every id
+ * referenced by a zone is known to the registry, that registry entries are
+ * themselves well-formed, that `boardCards`/`deck.deployed` reference real
+ * cells/units, and that reference-only zones (`retained`, `selection`) only
+ * point at ids currently held by their expected owner zone(s) without
+ * duplicates. Pure: never mutates `game`. Never throws — malformed input
+ * produces structured errors.
  *
  * @param {object} game
  * @returns {{ valid: boolean, errors: Array<object> }}
@@ -247,6 +370,8 @@ export function validateCardOwnership(game) {
   const registryOk = isPlainObject(game.cardsById);
   if (!registryOk) {
     errors.push({ code: 'MALFORMED_CARD_REGISTRY', message: 'game.cardsById must be an object.' });
+  } else {
+    validateRegistryEntries(game.cardsById, errors);
   }
 
   const { entries, errors: zoneErrors } = collectZoneEntries(game);
@@ -280,6 +405,7 @@ export function validateCardOwnership(game) {
         errors.push({ code: 'UNKNOWN_CARD_ID', cardId, zones: [...zones] });
       }
     }
+    collectMissingOwnership(game.cardsById, zonesByCardId, errors);
   }
 
   const handIds = new Set(entries.filter((entry) => entry.zone === 'hand').map((entry) => entry.cardId));
@@ -292,8 +418,10 @@ export function validateCardOwnership(game) {
 function formatOwnershipError(error) {
   const parts = [error.code];
   if (error.cardId) parts.push(`card=${error.cardId}`);
+  if (error.unitId) parts.push(`unit=${error.unitId}`);
   if (error.zone) parts.push(`zone=${error.zone}`);
   if (error.zones) parts.push(`zones=[${error.zones.join(', ')}]`);
+  if (error.cell) parts.push(`cell=${error.cell}`);
   if (error.count) parts.push(`count=${error.count}`);
   if (error.message) parts.push(error.message);
   return parts.join(' ');
