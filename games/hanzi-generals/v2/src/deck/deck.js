@@ -58,46 +58,6 @@ export function drawToHand(deck, handSize, rng) {
   return { deck: next, rng: current };
 }
 
-/**
- * @deprecated Canonical runtime retention is owned by reroll-policy.js.
- * Kept temporarily because state-machine-base.js still imports this symbol
- * during the strangler migration. Remove with the legacy reducer in T10.
- */
-export function retainCards(deck, cardIds) {
-  if (cardIds.length > 2) throw new Error('retain at most 2 cards');
-  if (new Set(cardIds).size !== cardIds.length) throw new Error('duplicate retained card');
-  if (cardIds.some((id) => !deck.hand.some((card) => card.id === id))) {
-    throw new Error('cannot retain missing card');
-  }
-  return { ...cloneDeck(deck), retained: [...cardIds] };
-}
-
-/**
- * @deprecated Canonical runtime rerolls are owned by reroll-policy.js and
- * ignore action payload card IDs. This remains import-compatible only until
- * state-machine-base.js is removed in T10.
- */
-export function rerollHand(deck, lockedCardIds, rng) {
-  if (deck.freeRerollsRemaining < 1) throw new Error('no free reroll remaining');
-  const locked = new Set(lockedCardIds);
-  if ([...locked].some((id) => !deck.hand.some((card) => card.id === id))) {
-    throw new Error('cannot lock missing card');
-  }
-  const keep = deck.hand
-    .filter((card) => locked.has(card.id))
-    .map((card) => ({ ...card, locked: true }));
-  const discard = deck.hand
-    .filter((card) => !locked.has(card.id))
-    .map((card) => ({ ...card, locked: false }));
-  return drawToHand({
-    ...cloneDeck(deck),
-    hand: keep,
-    discardPile: [...deck.discardPile.map(cloneCard), ...discard],
-    retained: [],
-    freeRerollsRemaining: deck.freeRerollsRemaining - 1,
-  }, 5, rng);
-}
-
 export function discardCard(deck, cardId) {
   const card = deck.hand.find((item) => item.id === cardId);
   if (!card) throw new Error('missing card');
