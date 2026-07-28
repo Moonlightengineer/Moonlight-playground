@@ -1,18 +1,17 @@
 import { ENEMY_BY_ID } from '../../data/enemies.js';
 import { resolveEvolvedDefinition } from '../../data/evolutions.js';
 import { GENERAL_BY_ID } from '../../data/generals.js';
-import { REWARDS } from '../../data/rewards.js';
 import { STAGE_BY_ID } from '../../data/stages.js';
 import { TUNING } from '../../data/tuning.js';
 import { createBoard, listCells } from '../board/board.js';
 import { createCombatState, stepCombat } from '../combat/combat-engine.js';
 import { releaseUnitCards } from '../deck/assembly.js';
-import { generateRewardChoices } from '../expedition/rewards.js';
 import {
   createBattleMetrics,
   finalizeBattleReport,
   recordBattleEvents,
 } from '../report/battle-report.js';
+import { generateRewardOffer } from '../reward/reward-flow.js';
 import { gameEvent } from '../core/events.js';
 
 function success(state, events = []) {
@@ -210,34 +209,6 @@ function settleAfterBattle(game) {
   };
 }
 
-function rewardChoicesFor(game) {
-  const completedAfterCurrent = game.completedBattleIds.length + 1;
-  if (completedAfterCurrent === 3) {
-    const id = game.route === 'safe' ? 'unlock-zhang-fei' : 'unlock-zhuge-liang';
-    return {
-      choices: REWARDS.filter((reward) => [id, 'repair-wall', 'remove-card'].includes(reward.id)),
-      rng: game.rng,
-    };
-  }
-  if (completedAfterCurrent === 4 && game.boardSizeId === 'base') {
-    return {
-      choices: REWARDS.filter((reward) => ['expand-wing', 'expand-depth', 'repair-wall'].includes(reward.id)),
-      rng: game.rng,
-    };
-  }
-  if (completedAfterCurrent === 5) {
-    return {
-      choices: REWARDS.filter((reward) => ['evolve-general', 'fire-arrows', 'first-aid'].includes(reward.id)),
-      rng: game.rng,
-    };
-  }
-  return generateRewardChoices(
-    game,
-    REWARDS.filter(({ rarity }) => rarity !== 'scripted'),
-    game.rng,
-  );
-}
-
 function recordLifecycleEvents(game, events, combat) {
   return recordBattleEvents(
     game.battleMetrics ?? createBattleMetrics(game),
@@ -282,7 +253,7 @@ export function finishBattle(game, combat, events = []) {
     currentBattleResult: 'victory',
     battleMetrics: metrics,
   });
-  const generated = rewardChoicesFor(settled);
+  const generated = generateRewardOffer(settled);
   const withRewards = {
     ...settled,
     rng: generated.rng,
