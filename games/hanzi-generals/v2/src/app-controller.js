@@ -2,7 +2,6 @@ import { createRuntimeState } from './runtime/runtime-state.js';
 
 const BUILTIN_UI_INTENTS = new Set([
   'UI_CLEAR_SELECTION',
-  'UI_OPEN_RANGE',
   'UI_CLOSE_RANGE',
   'UI_SET_MESSAGE',
   'UI_TOGGLE_REDUCED_MOTION',
@@ -39,38 +38,34 @@ function handleBuiltinUiIntent(runtime, intent) {
       return cloneRuntime(runtime, {
         ui: { ...runtime.ui, selectedCardIds: [], lastMessage: '已清除字牌選取。' },
       });
-    case 'UI_OPEN_RANGE':
-      return cloneRuntime(runtime, {
-        ui: { ...runtime.ui, rangeUnitId: intent.unitId ?? null },
-      });
     case 'UI_CLOSE_RANGE':
       return cloneRuntime(runtime, {
-        ui: { ...runtime.ui, rangeUnitId: null },
+        ui: { ...runtime.ui, rangeUnitId: null, lastMessage: '已關閉範圍資訊。' },
       });
     case 'UI_SET_MESSAGE':
       return cloneRuntime(runtime, {
         ui: { ...runtime.ui, lastMessage: intent.message ?? '' },
       });
-    case 'UI_TOGGLE_REDUCED_MOTION':
+    case 'UI_TOGGLE_REDUCED_MOTION': {
+      const enabled = !runtime.profile.settings.reducedMotion;
       return cloneRuntime(runtime, {
         profile: {
           ...runtime.profile,
-          settings: {
-            ...runtime.profile.settings,
-            reducedMotion: !runtime.profile.settings.reducedMotion,
-          },
+          settings: { ...runtime.profile.settings, reducedMotion: enabled },
         },
+        ui: { ...runtime.ui, lastMessage: enabled ? '已開啟低動態模式。' : '已關閉低動態模式。' },
       });
-    case 'UI_TOGGLE_VIBRATION':
+    }
+    case 'UI_TOGGLE_VIBRATION': {
+      const enabled = !runtime.profile.settings.vibration;
       return cloneRuntime(runtime, {
         profile: {
           ...runtime.profile,
-          settings: {
-            ...runtime.profile.settings,
-            vibration: !runtime.profile.settings.vibration,
-          },
+          settings: { ...runtime.profile.settings, vibration: enabled },
         },
+        ui: { ...runtime.ui, lastMessage: enabled ? '已開啟震動。' : '已關閉震動。' },
       });
+    }
     default:
       return runtime;
   }
@@ -147,8 +142,9 @@ export function createAppController({
   }
 
   function finishUiIntent(nextRuntime, effects = []) {
+    const profileChanged = nextRuntime.profile !== runtime.profile;
     runtime = nextRuntime;
-    persistProfile(runtime.profile);
+    if (profileChanged) persistProfile(runtime.profile);
     renderNow();
     if (effects.length) emitEffects(effects);
     scheduleCombatTick();
@@ -187,6 +183,7 @@ export function createAppController({
 
   function dispatchDomainIntent(intent) {
     const originalGame = runtime.game;
+    const originalProfile = runtime.profile;
     const result = reduceGame(originalGame, intent);
     if (!result.ok) {
       runtime = cloneRuntime(runtime, {
@@ -199,6 +196,7 @@ export function createAppController({
     }
 
     runtime = finalizeDomainRuntime({ runtime, intent, result });
+    if (runtime.profile !== originalProfile) persistProfile(runtime.profile);
     if (shouldPersistGame(runtime.game)) persistGame(runtime.game);
     renderNow();
     const events = result.events ?? [];
