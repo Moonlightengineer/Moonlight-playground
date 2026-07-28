@@ -52,22 +52,7 @@ export function selectOrderTargets(game) {
   };
 }
 
-function isLegacyPreDrawConfiguration(game) {
-  return Array.isArray(game.legalActions)
-    && game.legalActions.length === 1
-    && game.legalActions[0] === 'DRAW_CARDS';
-}
-
 function addConfigurationCommands(game, commands) {
-  // Until Task 6 introduces an explicit battle lifecycle step, the existing
-  // DRAW_CARDS-only marker is the compatibility signal that a new phase has
-  // not completed its mandatory draw transition. It is never copied as the
-  // general command authority; all ready-state commands below are derived.
-  if (isLegacyPreDrawConfiguration(game)) {
-    commands.add('DRAW_CARDS');
-    return;
-  }
-
   const hand = Array.isArray(game.deck?.hand) ? game.deck.hand : [];
   const drawCount = (game.deck?.drawPile?.length ?? 0) + (game.deck?.discardPile?.length ?? 0);
   const camp = selectCampState(game);
