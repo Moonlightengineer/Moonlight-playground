@@ -133,7 +133,18 @@ export function applyReward(game, rewardId, payload = {}) {
       };
       const cardsById = { ...game.cardsById };
       delete cardsById[removeId];
-      next = { ...game, deck, cardsById };
+      next = {
+        ...game,
+        deck,
+        cardsById,
+        camp: {
+          ...game.camp,
+          cardIds: game.camp.cardIds.filter((id) => id !== removeId),
+        },
+        selection: {
+          cardIds: (game.selection?.cardIds ?? []).filter((id) => id !== removeId),
+        },
+      };
       break;
     }
     default:
