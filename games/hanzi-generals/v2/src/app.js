@@ -134,7 +134,7 @@ function eventMessage(events) {
     FORTIFY_ORDERED: `第 ${(important.payload?.lane ?? 0) + 1} 路已堅守，持續 ${important.payload?.turns ?? 2} 輪。`,
     WALL_DAMAGED: '城牆受到攻擊。',
     BOSS_PHASE_CHANGED: '華雄進入第二階段，重騎增援到達。',
-    BATTLE_COMPLETED: '戰鬥勝利，請選擇獎勵。',
+    BATTLE_COMPLETED: '戰鬥勝利，請查看戰報。',
     BATTLE_PHASE_COMPLETED: '本段敵軍已清除，可以重新整軍。',
     REWARD_CHOSEN: '獎勵已加入遠征。',
     ROUTE_CHOSEN: '遠征路線已確定。',
