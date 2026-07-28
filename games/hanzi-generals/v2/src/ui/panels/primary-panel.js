@@ -18,8 +18,41 @@ function appendActions(container, actions) {
   }
 }
 
+function appendRewardDescription(container, reward) {
+  container.append(
+    node('span', 'reward-summary', reward.summary),
+    node('span', 'reward-effect', reward.effect),
+    node('span', 'reward-use-case', reward.useCase),
+  );
+}
+
+function appendTargetReward(container, reward) {
+  const panel = node('details', `reward-button reward-target-panel${reward.disabled ? ' is-disabled' : ''}`);
+  panel.dataset.rewardId = reward.id;
+  const summary = node('summary', 'reward-target-summary');
+  summary.append(node('strong', 'reward-name', reward.name));
+  panel.append(summary);
+  appendRewardDescription(panel, reward);
+
+  if (reward.disabledReason) panel.append(node('p', 'empty-copy', reward.disabledReason));
+  const choices = node('div', 'reward-target-choices');
+  for (const choice of reward.targetChoices) {
+    choices.append(actionButton(choice.label, choice.action, {
+      className: 'primary-button reward-target-choice',
+      data: choice.data,
+      ariaLabel: choice.ariaLabel,
+    }));
+  }
+  panel.append(choices);
+  container.append(panel);
+}
+
 function appendRewards(container, rewards) {
   for (const reward of rewards) {
+    if (reward.requiresTarget) {
+      appendTargetReward(container, reward);
+      continue;
+    }
     const button = actionButton('', reward.action, {
       className: 'primary-button reward-button',
       data: reward.data,
@@ -27,12 +60,8 @@ function appendRewards(container, rewards) {
       ariaLabel: reward.ariaLabel,
     });
     button.dataset.rewardId = reward.id;
-    button.append(
-      node('strong', 'reward-name', reward.name),
-      node('span', 'reward-summary', reward.summary),
-      node('span', 'reward-effect', reward.effect),
-      node('span', 'reward-use-case', reward.useCase),
-    );
+    button.append(node('strong', 'reward-name', reward.name));
+    appendRewardDescription(button, reward);
     container.append(button);
   }
 }
