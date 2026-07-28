@@ -119,7 +119,7 @@ function randomRewardOffer(game, eligible, rng) {
   const rest = eligible.filter(({ id }) => !preferredIds.has(id));
   const shuffled = shuffle(rng, rest);
   return {
-    choices: fillChoices(game, preferred, shuffled.items),
+    choices: fillChoices(game, preferred, [...shuffled.items, ...REWARDS]),
     rng: shuffled.rng,
   };
 }
