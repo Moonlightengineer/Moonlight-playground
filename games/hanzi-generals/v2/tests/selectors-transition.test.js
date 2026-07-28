@@ -5,7 +5,7 @@ import { createBoard } from '../src/board/board.js';
 import { createExpedition } from '../src/expedition/expedition.js';
 import { selectLegalCommands } from '../src/core/selectors/index.js';
 
-test('between-phase configuration requires draw before another phase can start', () => {
+test('between-phase configuration may draw or start with existing units', () => {
   const game = createExpedition('selector-between-phase');
   const board = createBoard('base');
   board.units = {
@@ -43,7 +43,7 @@ test('between-phase configuration requires draw before another phase can start',
 
   const commands = selectLegalCommands(state);
   assert.equal(commands.has('DRAW_CARDS'), true);
-  assert.equal(commands.has('START_PHASE'), false);
-  assert.equal(commands.has('SELECT_CARD'), false);
-  assert.equal(commands.has('REROLL'), false);
+  assert.equal(commands.has('START_PHASE'), true);
+  assert.equal(commands.has('SELECT_CARD'), true);
+  assert.equal(commands.has('REROLL'), true);
 });
