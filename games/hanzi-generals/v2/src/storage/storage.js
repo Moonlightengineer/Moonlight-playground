@@ -1,12 +1,16 @@
+import { validateCardOwnership } from '../core/card-invariants.js';
 import { normalizeGameState } from '../core/state-machine.js';
+import {
+  CURRENT_SAVE_VERSION,
+  migrateSaveEnvelope,
+  prepareGameForSave,
+} from './migrations.js';
 
 const STORAGE_NAMESPACE = 'hanzi-generals-v2:';
 const SAVE_KEY = `${STORAGE_NAMESPACE}save:v1`;
 const SETTINGS_KEY = `${STORAGE_NAMESPACE}settings:v1`;
 const TUTORIAL_KEY = `${STORAGE_NAMESPACE}tutorial:v1`;
 const FRESH_RESET_SESSION_KEY = `${STORAGE_NAMESPACE}fresh-reset`;
-const SAVE_VERSION = 2;
-const SUPPORTED_SAVE_VERSIONS = new Set([1, 2]);
 const TUTORIAL_VERSION = 1;
 
 export const V2_STORAGE_KEYS = Object.freeze([
@@ -41,9 +45,30 @@ function consumeFreshReset() {
   }
 }
 
+function validateSnapshotState(game) {
+  const validation = validateCardOwnership(game);
+  if (validation.valid) return null;
+  return {
+    code: 'INVALID_SAVE_STATE',
+    message: '存檔內字牌狀態不一致，可重設 v2 存檔。',
+    details: validation.errors,
+  };
+}
+
 export function saveSnapshot(game, storage) {
   const target = resolveStorage(storage);
-  target.setItem(SAVE_KEY, JSON.stringify({ schemaVersion: SAVE_VERSION, game: normalizeGameState(game) }));
+  const prepared = prepareGameForSave(normalizeGameState(game));
+  const invalid = validateSnapshotState(prepared);
+  if (invalid) {
+    const error = new Error(invalid.message);
+    error.code = invalid.code;
+    error.details = invalid.details;
+    throw error;
+  }
+  target.setItem(SAVE_KEY, JSON.stringify({
+    schemaVersion: CURRENT_SAVE_VERSION,
+    game: prepared,
+  }));
 }
 
 export function loadSnapshot(storage) {
@@ -58,23 +83,28 @@ export function loadSnapshot(storage) {
   if (!raw) {
     return { ok: false, error: { code: 'NO_SAVE', message: '未有 v2 測試存檔。' } };
   }
+
+  let parsed;
   try {
-    const parsed = JSON.parse(raw);
-    if (!SUPPORTED_SAVE_VERSIONS.has(parsed.schemaVersion)) {
-      return { ok: false, error: { code: 'UNSUPPORTED_SAVE', message: '存檔版本不支援。' } };
-    }
-    if (!parsed.game || typeof parsed.game !== 'object') {
-      return { ok: false, error: { code: 'CORRUPT_SAVE', message: '存檔內容不完整，可重設 v2 測試存檔。' } };
-    }
-    return {
-      ok: true,
-      game: normalizeGameState(parsed.game),
-      migrated: parsed.schemaVersion !== SAVE_VERSION,
-      schemaVersion: SAVE_VERSION,
-    };
+    parsed = JSON.parse(raw);
   } catch {
     return { ok: false, error: { code: 'CORRUPT_SAVE', message: '存檔已損壞，可重設 v2 測試存檔。' } };
   }
+
+  const migration = migrateSaveEnvelope(parsed);
+  if (!migration.ok) return migration;
+  const game = normalizeGameState(migration.envelope.game);
+  const invalid = validateSnapshotState(game);
+  if (invalid) return { ok: false, error: invalid };
+
+  return {
+    ok: true,
+    game,
+    migrated: migration.migrated,
+    migratedFrom: migration.migratedFrom,
+    appliedMigrations: migration.applied,
+    schemaVersion: CURRENT_SAVE_VERSION,
+  };
 }
 
 export function clearSnapshot(storage) {
