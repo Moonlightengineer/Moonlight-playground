@@ -1,5 +1,7 @@
 import { GENERAL_BY_ID } from '../../data/generals.js';
 import { REWARDS } from '../../data/rewards.js';
+import { TUNING } from '../../data/tuning.js';
+import { rerollRetainedHand, setRetainedCards } from '../deck/reroll-policy.js';
 import { eligibleEvolutionGenerals } from '../expedition/evolution-eligibility.js';
 import { reduceGame as reduceBaseGame, ALLOWED } from './state-machine-base.js';
 
@@ -55,8 +57,49 @@ export function finalizeGameResult(result) {
   return { ...result, state: normalizeGameState(recruited) };
 }
 
+function canonicalDeckPolicyResult(game, action) {
+  if (!ALLOWED[game.status]?.has(action.type)) return null;
+  try {
+    if (action.type === 'RETAIN_CARDS') {
+      return {
+        ok: true,
+        state: { ...game, deck: setRetainedCards(game.deck, action.cardIds ?? []) },
+        events: [],
+      };
+    }
+    if (action.type === 'REROLL') {
+      const result = rerollRetainedHand(game.deck, game.rng, TUNING.handSize);
+      return {
+        ok: true,
+        state: {
+          ...game,
+          deck: result.deck,
+          rng: result.rng,
+          selection: { cardIds: [] },
+        },
+        events: [],
+      };
+    }
+  } catch (error) {
+    return {
+      ok: false,
+      state: game,
+      events: [],
+      error: {
+        code: action.type === 'REROLL' ? 'REROLL_UNAVAILABLE' : 'INVALID_RETAIN',
+        message: error.message,
+      },
+    };
+  }
+  return null;
+}
+
 export function reduceGame(game, action) {
-  const result = reduceBaseGame(normalizeGameState(game), action);
+  const normalized = normalizeGameState(game);
+  const canonical = action && ['RETAIN_CARDS', 'REROLL'].includes(action.type)
+    ? canonicalDeckPolicyResult(normalized, action)
+    : null;
+  const result = canonical ?? reduceBaseGame(normalized, action);
   if (!result.ok) return { ...result, state: game };
   return finalizeGameResult(result);
 }
