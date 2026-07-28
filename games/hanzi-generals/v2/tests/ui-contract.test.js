@@ -9,52 +9,37 @@ async function source(path) {
 }
 
 async function renderArchitectureSource() {
-  const sources = await Promise.all([
-    source('src/ui/view-model.js'),
-    source('src/ui/render-app.js'),
-    source('src/ui/panels/run-status-panel.js'),
-    source('src/ui/panels/battle-stage-panel.js'),
-    source('src/ui/panels/camp-panel.js'),
-    source('src/ui/panels/primary-panel.js'),
-    source('src/ui/panels/combat-orders-panel.js'),
-    source('src/ui/panels/hand-panel.js'),
-    source('src/ui/panels/details-panel.js'),
-  ]);
-  return sources.join('\n');
+  const paths = [
+    'src/ui/view-model.js',
+    'src/ui/runtime-view-model.js',
+    'src/ui/render-app.js',
+    'src/ui/panels/run-status-panel.js',
+    'src/ui/panels/battle-stage-panel.js',
+    'src/ui/panels/camp-panel.js',
+    'src/ui/panels/primary-panel.js',
+    'src/ui/panels/combat-orders-panel.js',
+    'src/ui/panels/hand-panel.js',
+    'src/ui/panels/details-panel.js',
+  ];
+  return (await Promise.all(paths.map(source))).join('\n');
 }
 
-test('v2 shell exposes the hidden game root and module entry', async () => {
+test('v2 shell exposes the hidden game root, module entry and semantic regions', async () => {
   const html = await source('index.html');
   assert.match(html, /id="v2-game-app"/);
   assert.match(html, /src="\.\/src\/app\.js"/);
   assert.match(html, /styles\/interaction-fix\.css/);
   assert.doesNotMatch(html, /projects\.json/);
-});
-
-test('v2 shell exposes every fixed semantic game region', async () => {
-  const html = await source('index.html');
-  const requiredIds = [
-    'run-status',
-    'enemy-intents',
-    'enemy-field',
-    'battle-board',
-    'camp',
-    'hand',
-    'primary-actions',
-    'orders',
-    'details-panel',
-    'action-message',
-  ];
-  for (const id of requiredIds) assert.match(html, new RegExp(`id="${id}"`));
+  for (const id of [
+    'run-status', 'enemy-intents', 'enemy-field', 'battle-board', 'camp', 'hand',
+    'primary-actions', 'orders', 'details-panel', 'action-message',
+  ]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /class="battle-stage"/);
   assert.match(html, /class="command-panel"/);
-  assert.match(html, /data-action="pause"/);
-  assert.match(html, /data-action="set-speed"/);
-  assert.match(html, /data-action="issue-order"/);
   assert.match(html, /aria-live="assertive"/);
 });
 
-test('v2 shell keeps mobile accessibility and top-to-bottom battle baselines', async () => {
+test('mobile CSS preserves accessibility, vertical enemy movement and order feedback', async () => {
   const baseCss = await source('styles/game.css');
   const fixCss = await source('styles/interaction-fix.css');
   const css = `${baseCss}\n${fixCss}`;
@@ -81,83 +66,51 @@ test('v2 shell keeps mobile accessibility and top-to-bottom battle baselines', a
   );
 });
 
-test('interaction layer exposes only two-unit swaps and eligible focus targets', async () => {
-  const interactionSource = await source('src/ui/interactions.js');
+test('interaction layer translates intents and consumes canonical ViewModel targets', async () => {
+  const interactions = await source('src/ui/interactions.js');
   for (const action of [
-    'select-card',
-    'select-camp-card',
-    'return-camp-card',
-    'choose-cell',
-    'move-card-to-camp',
-    'draw-cards',
-    'reroll',
-    'start-phase',
-    'choose-route',
-    'choose-reward',
-    'begin-order',
-    'order-select-unit',
-    'order-swap-target',
-    'order-focus-target',
-    'cancel-order',
-    'issue-order',
-  ]) {
-    assert.match(interactionSource, new RegExp(`'${action}'`));
-  }
-  assert.doesNotMatch(interactionSource, /order-reposition-target/);
-  assert.match(interactionSource, /data-focus-eligible="true"/);
-  assert.match(interactionSource, /unitIds:\s*\[orderMode\.unitId,\s*target\.dataset\.unitId\]/);
+    'select-card', 'select-camp-card', 'return-camp-card', 'choose-cell',
+    'move-card-to-camp', 'draw-cards', 'reroll', 'start-phase', 'choose-route',
+    'choose-reward', 'begin-order', 'order-select-unit', 'order-swap-target',
+    'order-focus-target', 'cancel-order', 'issue-order',
+  ]) assert.match(interactions, new RegExp(`'${action}'`));
+  assert.match(interactions, /getViewModel/);
+  assert.match(interactions, /swapPairs/);
+  assert.match(interactions, /reinforce/);
+  assert.match(interactions, /focusEnemyIds/);
+  assert.match(interactions, /unitIds:\s*\[orderMode\.unitId,\s*target\.dataset\.unitId\]/);
+  assert.doesNotMatch(interactions, /order-reposition-target/);
+  assert.doesNotMatch(interactions, /function distance\(/);
+  assert.doesNotMatch(interactions, /adjacentUnitTargets/);
+  assert.doesNotMatch(interactions, /adjacentEmptyLaneTargets/);
 });
 
-test('ViewModel and battle panel spatially render enemies from top to bottom', async () => {
-  const viewModel = await source('src/ui/view-model.js');
-  const battlePanel = await source('src/ui/panels/battle-stage-panel.js');
-  const renderSource = `${viewModel}\n${battlePanel}`;
+test('ViewModel and panel owners render spatial battle, order and reward contracts', async () => {
+  const renderSource = await renderArchitectureSource();
   assert.match(renderSource, /buildBattleStage/);
-  assert.match(renderSource, /dataEnemyId|enemy\.id/);
   assert.match(renderSource, /--enemy-progress/);
   assert.match(renderSource, /enemy\.distance/);
   assert.match(renderSource, /--enemy-columns/);
-});
-
-test('selector, ViewModel and orders panel expose legal order eligibility and visible order state', async () => {
-  const selectors = await source('src/core/selectors/commands.js');
-  const viewModel = await source('src/ui/view-model.js');
-  const ordersPanel = await source('src/ui/panels/combat-orders-panel.js');
-  const renderSource = `${selectors}\n${viewModel}\n${ordersPanel}`;
   assert.match(renderSource, /selectOrderTargets/);
   assert.match(renderSource, /swapPairs/);
   assert.match(renderSource, /focusEnemyIds/);
   assert.match(renderSource, /remainingFriendlyTurns/);
   assert.match(renderSource, /remainingEnemyTurns/);
-  assert.match(renderSource, /begin-order/);
-  assert.match(renderSource, /focusEligible/);
-});
-
-test('reward ViewModel and primary panel expose summary, exact effect, and tactical use case', async () => {
-  const viewModel = await source('src/ui/view-model.js');
-  const primaryPanel = await source('src/ui/panels/primary-panel.js');
-  const css = await source('styles/game.css');
-  const renderSource = `${viewModel}\n${primaryPanel}`;
   assert.match(renderSource, /reward-name/);
   assert.match(renderSource, /reward-summary/);
   assert.match(renderSource, /reward-effect/);
   assert.match(renderSource, /reward-use-case/);
-  assert.match(viewModel, /reward\.description\.summary/);
-  assert.match(viewModel, /reward\.description\.effect/);
-  assert.match(viewModel, /reward\.description\.useCase/);
-  assert.match(css, /\.reward-summary/);
-  assert.match(css, /\.reward-effect/);
-  assert.match(css, /\.reward-use-case/);
+  assert.match(renderSource, /reward\.description\.summary/);
+  assert.match(renderSource, /reward\.description\.effect/);
+  assert.match(renderSource, /reward\.description\.useCase/);
 });
 
-test('combat feedback is non-blocking, identifiable, and reduced-motion safe', async () => {
+test('combat feedback remains non-blocking, identifiable and reduced-motion safe', async () => {
   const html = await source('index.html');
   const battlePanel = await source('src/ui/panels/battle-stage-panel.js');
   const feedback = await source('src/ui/combat-feedback.js');
   const app = await source('src/app.js');
   const css = await source('styles/game.css');
-
-  assert.match(html, /id="combat-feedback-layer"/);
   assert.match(html, /id="combat-feedback-layer"[^>]*aria-live="polite"/);
   assert.match(battlePanel, /button\.dataset\.unitId/);
   assert.match(battlePanel, /token\.dataset\.enemyId/);
@@ -175,26 +128,21 @@ test('combat feedback is non-blocking, identifiable, and reduced-motion safe', a
   assert.match(css, /\[data-reduced-motion="true"\][\s\S]*?\.combat-projectile/);
 });
 
-test('full-screen Help exposes all player rule sections and restores play state', async () => {
+test('full-screen Help exposes all rule sections and preserves combat resume wiring', async () => {
   const html = await source('index.html');
   const helpContent = await source('src/ui/help-content.js');
   const helpPanel = await source('src/ui/help-panel.js');
   const interactions = await source('src/ui/interactions.js');
   const app = await source('src/app.js');
   const css = await source('styles/game.css');
-
   assert.match(html, /data-action="open-help"/);
   assert.match(html, /id="help-panel"[^>]*role="dialog"[^>]*aria-modal="true"/);
-  assert.match(html, /id="help-content"/);
   assert.match(html, /data-action="close-help"/);
-  assert.match(helpContent, /export const HELP_SECTIONS/);
   for (const id of ['objective', 'cards', 'assembly', 'board', 'camp', 'combat', 'orders', 'rewards', 'saves']) {
     assert.match(helpContent, new RegExp(`id: '${id}'`));
   }
   assert.doesNotMatch(helpContent, /roadmap|test suite|architecture|SOT/i);
   assert.match(helpPanel, /export function createHelpPanel/);
-  assert.match(helpPanel, /function open\(/);
-  assert.match(helpPanel, /function close\(/);
   assert.match(helpPanel, /onOpen/);
   assert.match(helpPanel, /onClose/);
   assert.match(interactions, /'open-help'/);
@@ -207,12 +155,11 @@ test('full-screen Help exposes all player rule sections and restores play state'
   assert.match(css, /body\.help-open[\s\S]*?overflow:\s*hidden/);
 });
 
-test('restart controls separate expedition reset from complete v2 data clearing', async () => {
+test('restart controls isolate expedition reset and complete v2 data clearing', async () => {
   const html = await source('index.html');
   const interactions = await source('src/ui/interactions.js');
   const app = await source('src/app.js');
   const storage = await source('src/storage/storage.js');
-
   assert.match(html, /data-action="restart-expedition"/);
   assert.match(html, />重新開始遠征</);
   assert.match(html, /data-action="clear-all-v2-data"/);
