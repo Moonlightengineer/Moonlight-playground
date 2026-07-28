@@ -10,7 +10,7 @@ import {
   selectRewardTargets,
   validateRewardChoice,
 } from '../src/reward/reward-flow.js';
-import { buildAppViewModel } from '../src/ui/view-model.js';
+import { buildAppViewModel } from '../src/ui/runtime-view-model.js';
 
 function rewardState(rewardIds = ['copy-card', 'remove-card', 'extra-reroll']) {
   const game = createExpedition('reward-flow');
