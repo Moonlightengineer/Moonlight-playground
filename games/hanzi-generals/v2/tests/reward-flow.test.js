@@ -72,6 +72,19 @@ test('copy targets are explicit and deduplicated by symbol across loose and camp
   assert.equal(targets.every(({ type }) => type === 'card'), true);
 });
 
+test('copying an explicit camp target succeeds and keeps the camp card owned by camp', () => {
+  const game = moveFirstCardToCamp(rewardState(['copy-card']));
+  const target = selectRewardTargets(game, 'copy-card').find(({ zone }) => zone === 'camp');
+  assert.ok(target);
+  const beforeCount = Object.keys(game.cardsById).length;
+
+  const applied = applyRewardChoice(game, 'copy-card', { cardId: target.cardId });
+  assert.equal(applied.ok, true);
+  assert.equal(applied.state.status, 'expedition-map');
+  assert.equal(Object.keys(applied.state.cardsById).length, beforeCount + 1);
+  assert.equal(applied.state.camp.cardIds.includes(target.cardId), true);
+});
+
 test('remove targets identify exact undeployed card ids and keep a minimum six-card pool', () => {
   const game = moveFirstCardToCamp(rewardState(['remove-card']));
   const targets = selectRewardTargets(game, 'remove-card');
