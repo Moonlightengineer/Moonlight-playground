@@ -13,6 +13,8 @@ import {
   returnCampCardToHand,
 } from '../expedition/camp-lifecycle.js';
 import { eligibleEvolutionGenerals } from '../expedition/evolution-eligibility.js';
+import { createExpedition } from '../expedition/expedition.js';
+import { recordBattleEvents } from '../report/battle-report.js';
 import { reduceGame as reduceBaseGame, ALLOWED } from './state-machine-base.js';
 
 const SAFE_REWARD_FALLBACKS = Object.freeze([
@@ -22,6 +24,14 @@ const SAFE_REWARD_FALLBACKS = Object.freeze([
   'fire-arrows',
   'first-aid',
 ]);
+
+function success(state, events = []) {
+  return { ok: true, state, events };
+}
+
+function failure(game, code, message) {
+  return { ok: false, state: game, events: [], error: { code, message } };
+}
 
 function recordAssembledGenerals(state, events) {
   const recruited = new Set(state.recruitedGeneralIds ?? []);
@@ -57,6 +67,9 @@ export function normalizeGameState(state) {
     recruitedGeneralIds: [...new Set(state.recruitedGeneralIds ?? [])],
     rewardHistory: [...(state.rewardHistory ?? [])],
     evolutions: { ...(state.evolutions ?? {}) },
+    battleReport: state.battleReport ?? null,
+    lastBattleReport: state.lastBattleReport ?? null,
+    battleMetrics: state.battleMetrics ?? null,
   });
   return normalizeEvolutionRewards(migrated);
 }
@@ -119,6 +132,40 @@ function canonicalBattlePolicyResult(game, action) {
   return null;
 }
 
+function continueAfterReport(game) {
+  const report = game.battleReport;
+  if (!report) return failure(game, 'MISSING_BATTLE_REPORT', '戰鬥報告不存在。');
+  if (report.nextStatus === 'reward') {
+    return success({
+      ...game,
+      status: 'reward',
+      battleReport: null,
+      lastBattleReport: report,
+      legalActions: ['CHOOSE_REWARD'],
+    });
+  }
+  if (report.nextStatus === 'defeat') {
+    return success({
+      ...game,
+      status: 'defeat',
+      combat: null,
+      battleReport: null,
+      lastBattleReport: report,
+      legalActions: ['START_NEW_RUN'],
+    });
+  }
+  return failure(game, 'INVALID_BATTLE_REPORT_DESTINATION', '戰鬥報告下一步無效。');
+}
+
+function canonicalReportPolicyResult(game, action) {
+  if (game.status !== 'battle-report') return null;
+  if (action.type === 'CONTINUE_AFTER_REPORT') return continueAfterReport(game);
+  if (action.type === 'RESET_RUN') {
+    return success(createExpedition(action.seed ?? game.seed ?? Date.now()));
+  }
+  return failure(game, 'ILLEGAL_ACTION_FOR_STATE', '而家唔可以執行呢個操作。');
+}
+
 function applyCampRewardBoundary(action, result) {
   if (!result.ok) return result;
   if (action.type === 'CHOOSE_REWARD' && action.rewardId === 'extra-camp') {
@@ -127,17 +174,41 @@ function applyCampRewardBoundary(action, result) {
   return result;
 }
 
+function recordOngoingBattleResult(action, result) {
+  if (!result.ok || !result.state?.battleMetrics || action.type === 'STEP_COMBAT') return result;
+  const state = result.state;
+  return {
+    ...result,
+    state: {
+      ...state,
+      battleMetrics: recordBattleEvents(
+        state.battleMetrics,
+        result.events,
+        {
+          turn: state.combat?.turn ?? 0,
+          ordersRemaining: state.combat?.ordersRemaining
+            ?? state.currentBattle?.ordersRemaining,
+          phaseCount: state.currentBattle?.phaseCount,
+        },
+      ),
+    },
+  };
+}
+
 export function reduceGame(game, action) {
   const normalized = normalizeGameState(game);
-  const canonical = action && ['RETAIN_CARDS', 'REROLL'].includes(action.type)
-    ? canonicalDeckPolicyResult(normalized, action)
-    : action && ['MOVE_CARD_TO_CAMP', 'RETURN_CAMP_CARD'].includes(action.type)
-      ? canonicalCampPolicyResult(normalized, action)
-      : action && ['START_BATTLE', 'START_PHASE', 'STEP_COMBAT'].includes(action.type)
-        ? canonicalBattlePolicyResult(normalized, action)
-        : null;
+  const canonical = action && normalized.status === 'battle-report'
+    ? canonicalReportPolicyResult(normalized, action)
+    : action && ['RETAIN_CARDS', 'REROLL'].includes(action.type)
+      ? canonicalDeckPolicyResult(normalized, action)
+      : action && ['MOVE_CARD_TO_CAMP', 'RETURN_CAMP_CARD'].includes(action.type)
+        ? canonicalCampPolicyResult(normalized, action)
+        : action && ['START_BATTLE', 'START_PHASE', 'STEP_COMBAT'].includes(action.type)
+          ? canonicalBattlePolicyResult(normalized, action)
+          : null;
   const baseResult = canonical ?? reduceBaseGame(normalized, action);
-  const result = action ? applyCampRewardBoundary(action, baseResult) : baseResult;
+  const campResult = action ? applyCampRewardBoundary(action, baseResult) : baseResult;
+  const result = action ? recordOngoingBattleResult(action, campResult) : campResult;
   if (!result.ok) return { ...result, state: game };
   return finalizeGameResult(result);
 }
