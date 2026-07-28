@@ -4,6 +4,7 @@ const STORAGE_NAMESPACE = 'hanzi-generals-v2:';
 const SAVE_KEY = `${STORAGE_NAMESPACE}save:v1`;
 const SETTINGS_KEY = `${STORAGE_NAMESPACE}settings:v1`;
 const TUTORIAL_KEY = `${STORAGE_NAMESPACE}tutorial:v1`;
+const FRESH_RESET_SESSION_KEY = `${STORAGE_NAMESPACE}fresh-reset`;
 const SAVE_VERSION = 2;
 const SUPPORTED_SAVE_VERSIONS = new Set([1, 2]);
 const TUTORIAL_VERSION = 1;
@@ -18,6 +19,26 @@ function resolveStorage(storage) {
   if (storage) return storage;
   if (typeof localStorage !== 'undefined') return localStorage;
   throw new Error('Storage is unavailable');
+}
+
+function markFreshReset() {
+  if (typeof sessionStorage === 'undefined') return;
+  try {
+    sessionStorage.setItem(FRESH_RESET_SESSION_KEY, 'true');
+  } catch {
+    // The reset itself is complete even when session storage is unavailable.
+  }
+}
+
+function consumeFreshReset() {
+  if (typeof sessionStorage === 'undefined') return false;
+  try {
+    const fresh = sessionStorage.getItem(FRESH_RESET_SESSION_KEY) === 'true';
+    if (fresh) sessionStorage.removeItem(FRESH_RESET_SESSION_KEY);
+    return fresh;
+  } catch {
+    return false;
+  }
 }
 
 export function saveSnapshot(game, storage) {
@@ -61,7 +82,9 @@ export function clearSnapshot(storage) {
 }
 
 export function saveSettings(settings, storage) {
+  if (!storage && consumeFreshReset()) return false;
   resolveStorage(storage).setItem(SETTINGS_KEY, JSON.stringify({ schemaVersion: 1, settings }));
+  return true;
 }
 
 export function loadSettings(storage) {
@@ -133,6 +156,7 @@ export function clearAllV2Data(storage) {
   try {
     const target = resolveStorage(storage);
     for (const key of discoverOwnedKeys(target)) target.removeItem(key);
+    if (!storage) markFreshReset();
     return { ok: true };
   } catch (error) {
     return { ok: false, error };
