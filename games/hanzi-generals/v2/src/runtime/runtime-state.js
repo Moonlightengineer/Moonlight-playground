@@ -14,6 +14,10 @@ function cloneTutorial(tutorial) {
   return tutorial && typeof tutorial === 'object' ? { ...tutorial } : null;
 }
 
+function explicitOrLegacy(object, key, legacy, fallback = null) {
+  return Object.prototype.hasOwnProperty.call(object, key) ? object[key] : legacy ?? fallback;
+}
+
 export function createRuntimeState({ game, profile = {}, ui = {} }) {
   if (!game || typeof game !== 'object') throw new Error('Runtime game state must be an object.');
   const explicitSelected = Array.isArray(ui.selectedCardIds) ? ui.selectedCardIds : null;
@@ -26,10 +30,10 @@ export function createRuntimeState({ game, profile = {}, ui = {} }) {
     },
     ui: {
       selectedCardIds: [...(explicitSelected ?? legacySelected)],
-      rangeUnitId: ui.rangeUnitId ?? game.ui?.rangeUnitId ?? null,
-      lastMessage: ui.lastMessage ?? game.ui?.lastMessage ?? '',
-      overlay: ui.overlay ?? null,
-      orderDraft: ui.orderDraft ?? null,
+      rangeUnitId: explicitOrLegacy(ui, 'rangeUnitId', game.ui?.rangeUnitId),
+      lastMessage: explicitOrLegacy(ui, 'lastMessage', game.ui?.lastMessage, ''),
+      overlay: explicitOrLegacy(ui, 'overlay', null),
+      orderDraft: explicitOrLegacy(ui, 'orderDraft', null),
     },
   };
 }
