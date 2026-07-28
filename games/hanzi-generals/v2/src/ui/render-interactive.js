@@ -1,6 +1,6 @@
 import { normalizeGameState } from '../core/state-machine.js';
 import { renderApp as renderViewModel } from './render-app.js';
-import { buildAppViewModel } from './view-model.js';
+import { buildAppViewModel } from './runtime-view-model.js';
 
 function legacyProfile(game) {
   return {
@@ -20,5 +20,6 @@ function legacyUi(game) {
 export function renderApp(root, game) {
   const normalized = normalizeGameState(game);
   const viewModel = buildAppViewModel(normalized, legacyProfile(normalized), legacyUi(normalized));
-  return renderViewModel(root, viewModel);
+  renderViewModel(root, viewModel);
+  return viewModel;
 }
