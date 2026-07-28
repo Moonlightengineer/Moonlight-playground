@@ -45,6 +45,13 @@ function consumeFreshReset() {
   }
 }
 
+function corruptSaveError() {
+  return {
+    code: 'CORRUPT_SAVE',
+    message: '存檔已損壞，可重設 v2 測試存檔。',
+  };
+}
+
 function validateSnapshotState(game) {
   const validation = validateCardOwnership(game);
   if (validation.valid) return null;
@@ -79,7 +86,12 @@ export function loadSnapshot(storage) {
     return { ok: false, error: { code: 'STORAGE_UNAVAILABLE', message: '瀏覽器暫時無法使用本機存檔。' } };
   }
 
-  const raw = target.getItem(SAVE_KEY);
+  let raw;
+  try {
+    raw = target.getItem(SAVE_KEY);
+  } catch {
+    return { ok: false, error: { code: 'STORAGE_UNAVAILABLE', message: '瀏覽器暫時無法讀取本機存檔。' } };
+  }
   if (!raw) {
     return { ok: false, error: { code: 'NO_SAVE', message: '未有 v2 測試存檔。' } };
   }
@@ -88,23 +100,27 @@ export function loadSnapshot(storage) {
   try {
     parsed = JSON.parse(raw);
   } catch {
-    return { ok: false, error: { code: 'CORRUPT_SAVE', message: '存檔已損壞，可重設 v2 測試存檔。' } };
+    return { ok: false, error: corruptSaveError() };
   }
 
-  const migration = migrateSaveEnvelope(parsed);
-  if (!migration.ok) return migration;
-  const game = normalizeGameState(migration.envelope.game);
-  const invalid = validateSnapshotState(game);
-  if (invalid) return { ok: false, error: invalid };
+  try {
+    const migration = migrateSaveEnvelope(parsed);
+    if (!migration.ok) return migration;
+    const game = normalizeGameState(migration.envelope.game);
+    const invalid = validateSnapshotState(game);
+    if (invalid) return { ok: false, error: invalid };
 
-  return {
-    ok: true,
-    game,
-    migrated: migration.migrated,
-    migratedFrom: migration.migratedFrom,
-    appliedMigrations: migration.applied,
-    schemaVersion: CURRENT_SAVE_VERSION,
-  };
+    return {
+      ok: true,
+      game,
+      migrated: migration.migrated,
+      migratedFrom: migration.migratedFrom,
+      appliedMigrations: migration.applied,
+      schemaVersion: CURRENT_SAVE_VERSION,
+    };
+  } catch {
+    return { ok: false, error: corruptSaveError() };
+  }
 }
 
 export function clearSnapshot(storage) {
