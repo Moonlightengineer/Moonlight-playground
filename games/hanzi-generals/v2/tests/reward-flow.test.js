@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { REWARD_BY_ID, REWARDS } from '../data/rewards.js';
+import { assertCardOwnership } from '../src/core/card-invariants.js';
 import { reduceGame } from '../src/core/state-machine.js';
 import { createExpedition } from '../src/expedition/expedition.js';
 import {
@@ -83,6 +84,7 @@ test('copying an explicit camp target succeeds and keeps the camp card owned by 
   assert.equal(applied.state.status, 'expedition-map');
   assert.equal(Object.keys(applied.state.cardsById).length, beforeCount + 1);
   assert.equal(applied.state.camp.cardIds.includes(target.cardId), true);
+  assertCardOwnership(applied.state);
 });
 
 test('remove targets identify exact undeployed card ids and keep a minimum six-card pool', () => {
@@ -105,6 +107,20 @@ test('remove targets identify exact undeployed card ids and keep a minimum six-c
     },
   };
   assert.deepEqual(selectRewardTargets(sixCardGame, 'remove-card'), []);
+});
+
+test('removing an explicit camp target clears camp ownership and registry together', () => {
+  const game = moveFirstCardToCamp(rewardState(['remove-card']));
+  const target = selectRewardTargets(game, 'remove-card').find(({ zone }) => zone === 'camp');
+  assert.ok(target);
+  const beforeCount = Object.keys(game.cardsById).length;
+
+  const applied = applyRewardChoice(game, 'remove-card', { cardId: target.cardId });
+  assert.equal(applied.ok, true);
+  assert.equal(applied.state.status, 'expedition-map');
+  assert.equal(Object.keys(applied.state.cardsById).length, beforeCount - 1);
+  assert.equal(applied.state.camp.cardIds.includes(target.cardId), false);
+  assertCardOwnership(applied.state);
 });
 
 test('evolution targets include every legal recruited general branch', () => {
