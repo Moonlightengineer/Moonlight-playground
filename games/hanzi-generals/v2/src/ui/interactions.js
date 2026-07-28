@@ -253,7 +253,7 @@ export function bindInteractions(
         dispatch({ type: 'RETAIN_CARDS', cardIds: target.dataset.cardIds.split(',').filter(Boolean) });
         break;
       case 'reroll':
-        dispatch({ type: 'REROLL', lockedCardIds: [] });
+        dispatch({ type: 'REROLL' });
         break;
       case 'start-phase':
         dispatch({ type: 'START_PHASE' });
