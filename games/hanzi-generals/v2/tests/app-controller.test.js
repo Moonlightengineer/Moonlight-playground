@@ -113,6 +113,19 @@ test('UI-only selection intent updates transient state without calling reducer',
   assert.equal(calls.render.length, 1);
 });
 
+test('next domain command receives transient selection instead of stale legacy selection', () => {
+  const { controller, calls } = controllerHarness();
+  const originalGame = controller.getRuntime().game;
+
+  controller.dispatchIntent({ type: 'UI_CLEAR_SELECTION' });
+  controller.dispatchIntent({ type: 'SELECT_CARD', cardId: 'card-2' });
+
+  assert.equal(calls.reducer.length, 1);
+  assert.notEqual(calls.reducer[0].game, originalGame);
+  assert.deepEqual(calls.reducer[0].game.selection, { cardIds: [] });
+  assert.deepEqual(calls.reducer[0].game.settings, controller.getRuntime().profile.settings);
+});
+
 test('profile intent persists profile only and keeps game identity', () => {
   const { controller, calls } = controllerHarness();
   const originalGame = controller.getRuntime().game;
