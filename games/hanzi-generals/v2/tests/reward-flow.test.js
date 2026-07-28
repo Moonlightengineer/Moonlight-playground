@@ -49,7 +49,7 @@ test('generateRewardOffer is deterministic and returns three unique choices', ()
   assert.equal(new Set(first.choices.map(({ id }) => id)).size, 3);
 });
 
-test('generateRewardOffer preserves scripted third-battle route rewards', () => {
+test('generateRewardOffer preserves route reward while replacing unavailable repair', () => {
   const game = {
     ...rewardState([]),
     route: 'safe',
@@ -59,9 +59,10 @@ test('generateRewardOffer preserves scripted third-battle route rewards', () => 
     },
   };
   const offer = generateRewardOffer(game, REWARDS, game.rng);
-  assert.deepEqual(offer.choices.map(({ id }) => id), [
-    'unlock-zhang-fei', 'repair-wall', 'remove-card',
-  ]);
+  assert.equal(offer.choices.length, 3);
+  assert.equal(offer.choices.some(({ id }) => id === 'unlock-zhang-fei'), true);
+  assert.equal(offer.choices.some(({ id }) => id === 'remove-card'), true);
+  assert.equal(offer.choices.some(({ id }) => id === 'repair-wall'), false);
 });
 
 test('copy targets are explicit and deduplicated by symbol across loose and camp zones', () => {
@@ -164,9 +165,9 @@ test('applyRewardChoice requires an explicit target and advances only after vali
 });
 
 test('targetless rewards validate and apply without fabricated payloads', () => {
-  const game = rewardState(['repair-wall']);
+  const game = { ...rewardState(['repair-wall']), wallHp: 40 };
   assert.equal(validateRewardChoice(game, 'repair-wall').valid, true);
-  const applied = applyRewardChoice({ ...game, wallHp: 40 }, 'repair-wall');
+  const applied = applyRewardChoice(game, 'repair-wall');
   assert.equal(applied.ok, true);
   assert.equal(applied.state.wallHp > 40, true);
 });
