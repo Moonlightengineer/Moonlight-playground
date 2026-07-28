@@ -159,7 +159,9 @@ function continueAfterReport(game) {
 
 function canonicalReportPolicyResult(game, action) {
   if (game.status !== 'battle-report') return null;
-  if (action.type === 'CONTINUE_AFTER_REPORT') return continueAfterReport(game);
+  if (['CONTINUE_AFTER_REPORT', 'START_NEW_RUN'].includes(action.type)) {
+    return continueAfterReport(game);
+  }
   if (action.type === 'RESET_RUN') {
     return success(createExpedition(action.seed ?? game.seed ?? Date.now()));
   }
