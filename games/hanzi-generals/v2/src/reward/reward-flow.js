@@ -1,15 +1,16 @@
 import { EVOLUTION_BY_ID } from '../../data/evolutions.js';
 import { GENERAL_BY_ID } from '../../data/generals.js';
 import { REWARD_BY_ID, REWARDS } from '../../data/rewards.js';
-import { selectCardZoneIndex } from '../core/selectors/index.js';
 import { gameEvent } from '../core/events.js';
-import { advanceExpedition } from '../expedition/expedition.js';
+import { shuffle } from '../core/rng.js';
+import { selectCardZoneIndex } from '../core/selectors/index.js';
+import { normalizeLegacyCampBonus } from '../expedition/camp-lifecycle.js';
 import {
   eligibleEvolutionGenerals,
   validateEvolutionSelection,
 } from '../expedition/evolution-eligibility.js';
-import { normalizeLegacyCampBonus } from '../expedition/camp-lifecycle.js';
-import { applyReward, generateRewardChoices } from '../expedition/rewards.js';
+import { advanceExpedition } from '../expedition/expedition.js';
+import { applyReward } from '../expedition/rewards.js';
 
 const CARD_TARGET_ZONES = new Set(['drawPile', 'discardPile', 'hand', 'camp']);
 const TARGET_REQUIRED = new Set(['copy-card', 'remove-card', 'evolve-general']);
@@ -90,6 +91,15 @@ function rewardCanBeOffered(game, reward) {
   return true;
 }
 
+function rewardMatchesBuild(game, reward) {
+  if (reward.id === 'repair-wall') return game.wallHp < game.wallMaxHp * 0.65;
+  if (reward.id === 'extra-camp') return cardTargetCandidates(game).length >= 4;
+  if (reward.id === 'fire-arrows') return game.route === 'danger';
+  if (reward.id === 'unlock-zhang-fei') return game.boardSizeId === 'wing';
+  if (reward.id === 'unlock-zhuge-liang') return game.boardSizeId === 'depth';
+  return false;
+}
+
 function fillChoices(game, choices, catalogue, targetCount = 3) {
   const result = [];
   const seen = new Set();
@@ -100,6 +110,17 @@ function fillChoices(game, choices, catalogue, targetCount = 3) {
     if (result.length >= targetCount) break;
   }
   return result;
+}
+
+function randomRewardOffer(game, eligible, rng) {
+  const preferred = eligible.filter((reward) => rewardMatchesBuild(game, reward));
+  const preferredIds = new Set(preferred.map(({ id }) => id));
+  const rest = eligible.filter(({ id }) => !preferredIds.has(id));
+  const shuffled = shuffle(rng, rest);
+  return {
+    choices: fillChoices(game, preferred, shuffled.items),
+    rng: shuffled.rng,
+  };
 }
 
 export function generateRewardOffer(game, catalogue = REWARDS, rng = game.rng) {
@@ -120,7 +141,7 @@ export function generateRewardOffer(game, catalogue = REWARDS, rng = game.rng) {
   }
 
   const eligible = catalogue.filter((reward) => rewardCanBeOffered(game, reward));
-  return generateRewardChoices(game, eligible, rng);
+  return randomRewardOffer(game, eligible, rng);
 }
 
 export function validateRewardChoice(game, rewardId, payload = {}) {
