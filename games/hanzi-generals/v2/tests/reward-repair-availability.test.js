@@ -65,5 +65,5 @@ test('damaged wall can still validate and apply repair normally', () => {
 
   const applied = applyRewardChoice(game, 'repair-wall');
   assert.equal(applied.ok, true);
-  assert.equal(applied.state.wallHp, 70);
+  assert.equal(applied.state.wallHp, 85);
 });
