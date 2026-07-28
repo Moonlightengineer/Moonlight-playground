@@ -4,7 +4,10 @@ import { REWARD_BY_ID, REWARDS } from '../../data/rewards.js';
 import { selectCardZoneIndex } from '../core/selectors/index.js';
 import { gameEvent } from '../core/events.js';
 import { advanceExpedition } from '../expedition/expedition.js';
-import { eligibleEvolutionGenerals } from '../expedition/evolution-eligibility.js';
+import {
+  eligibleEvolutionGenerals,
+  validateEvolutionSelection,
+} from '../expedition/evolution-eligibility.js';
 import { normalizeLegacyCampBonus } from '../expedition/camp-lifecycle.js';
 import { applyReward, generateRewardChoices } from '../expedition/rewards.js';
 
@@ -139,6 +142,11 @@ export function validateRewardChoice(game, rewardId, payload = {}) {
 
   if (!TARGET_REQUIRED.has(rewardId)) return { valid: true, target: null };
 
+  if (rewardId === 'evolve-general') {
+    const invalid = validateEvolutionSelection(game, payload);
+    if (invalid) return { valid: false, error: invalid };
+  }
+
   const targets = selectRewardTargets(game, rewardId);
   if (!targets.length) {
     return {
@@ -147,10 +155,7 @@ export function validateRewardChoice(game, rewardId, payload = {}) {
     };
   }
 
-  const missing = rewardId === 'evolve-general'
-    ? !payload.generalId || !payload.evolutionId
-    : !payload.cardId;
-  if (missing) {
+  if (rewardId !== 'evolve-general' && !payload.cardId) {
     return {
       valid: false,
       error: { code: 'REWARD_TARGET_REQUIRED', message: '請先明確選擇獎勵目標。' },
