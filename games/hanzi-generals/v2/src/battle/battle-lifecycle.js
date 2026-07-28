@@ -8,6 +8,11 @@ import { createBoard, listCells } from '../board/board.js';
 import { createCombatState, stepCombat } from '../combat/combat-engine.js';
 import { releaseUnitCards } from '../deck/assembly.js';
 import { generateRewardChoices } from '../expedition/rewards.js';
+import {
+  createBattleMetrics,
+  finalizeBattleReport,
+  recordBattleEvents,
+} from '../report/battle-report.js';
 import { gameEvent } from '../core/events.js';
 
 function success(state, events = []) {
@@ -113,8 +118,11 @@ export function startBattle(game) {
     temporary: { ...game.temporary, extraRerolls: 0, extraCamp: 0 },
     legalCells: listCells(board),
     legalActions: ['DRAW_CARDS'],
+    battleReport: null,
   };
-  return success(state, [gameEvent('BATTLE_STARTED', { stageId: state.currentBattle.stageId })]);
+  return success({ ...state, battleMetrics: createBattleMetrics(state) }, [
+    gameEvent('BATTLE_STARTED', { stageId: state.currentBattle.stageId }),
+  ]);
 }
 
 export function startPhase(game) {
@@ -230,9 +238,24 @@ function rewardChoicesFor(game) {
   );
 }
 
+function recordLifecycleEvents(game, events, combat) {
+  return recordBattleEvents(
+    game.battleMetrics ?? createBattleMetrics(game),
+    events,
+    {
+      turn: combat?.turn ?? game.combat?.turn ?? 0,
+      ordersRemaining: combat?.ordersRemaining ?? game.currentBattle?.ordersRemaining,
+      phaseCount: game.currentBattle?.phaseCount,
+    },
+  );
+}
+
 export function finishPhase(game, combat, events = []) {
-  const prepared = settleBetweenPhases({ ...game, combat });
   const phaseIndex = game.currentBattle.phaseIndex + 1;
+  const phaseEvent = gameEvent('BATTLE_PHASE_COMPLETED', { phaseIndex: phaseIndex - 1 });
+  const combinedEvents = [...events, phaseEvent];
+  const metrics = recordLifecycleEvents(game, combinedEvents, combat);
+  const prepared = settleBetweenPhases({ ...game, combat, battleMetrics: metrics });
   return success({
     ...prepared,
     status: 'configuration',
@@ -246,23 +269,33 @@ export function finishPhase(game, combat, events = []) {
         ));
     }),
     legalActions: ['DRAW_CARDS'],
-  }, [...events, gameEvent('BATTLE_PHASE_COMPLETED', { phaseIndex: phaseIndex - 1 })]);
+  }, combinedEvents);
 }
 
 export function finishBattle(game, combat, events = []) {
-  const rewardGame = settleAfterBattle({
+  const battleEvent = gameEvent('BATTLE_COMPLETED', { stageId: game.currentBattle.stageId });
+  const combinedEvents = [...events, battleEvent];
+  const metrics = recordLifecycleEvents(game, combinedEvents, combat);
+  const settled = settleAfterBattle({
     ...game,
     combat: null,
-    status: 'reward',
     currentBattleResult: 'victory',
-    legalActions: ['CHOOSE_REWARD'],
+    battleMetrics: metrics,
   });
-  const generated = rewardChoicesFor(rewardGame);
-  return success({
-    ...rewardGame,
+  const generated = rewardChoicesFor(settled);
+  const withRewards = {
+    ...settled,
     rng: generated.rng,
     rewardChoices: generated.choices,
-  }, [...events, gameEvent('BATTLE_COMPLETED', { stageId: game.currentBattle.stageId })]);
+  };
+  const battleReport = finalizeBattleReport(withRewards, 'victory', 'reward');
+  return success({
+    ...withRewards,
+    status: 'battle-report',
+    battleMetrics: null,
+    battleReport,
+    legalActions: ['CONTINUE_AFTER_REPORT', 'RESET_RUN'],
+  }, combinedEvents);
 }
 
 export function stepBattleCombat(game) {
@@ -281,9 +314,28 @@ export function stepBattleCombat(game) {
   };
 
   if (result.combat.status === 'defeat') {
-    return success({ ...next, status: 'defeat', legalActions: ['START_NEW_RUN'] }, result.events);
+    const metrics = recordLifecycleEvents(next, result.events, result.combat);
+    const battleReport = finalizeBattleReport(
+      { ...next, battleMetrics: metrics },
+      'defeat',
+      'defeat',
+    );
+    return success({
+      ...next,
+      status: 'battle-report',
+      combat: null,
+      currentBattleResult: 'defeat',
+      battleMetrics: null,
+      battleReport,
+      legalActions: ['CONTINUE_AFTER_REPORT', 'RESET_RUN'],
+    }, result.events);
   }
-  if (result.combat.status !== 'victory') return success(next, result.events);
+  if (result.combat.status !== 'victory') {
+    return success({
+      ...next,
+      battleMetrics: recordLifecycleEvents(next, result.events, result.combat),
+    }, result.events);
+  }
 
   const nextPhaseIndex = game.currentBattle.phaseIndex + 1;
   if (nextPhaseIndex < game.currentBattle.phaseCount) {
