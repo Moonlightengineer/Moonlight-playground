@@ -37,6 +37,24 @@ function cardTargetCandidates(game) {
     .filter(Boolean);
 }
 
+function resolveReward(rewardOrId) {
+  if (typeof rewardOrId === 'string') return REWARD_BY_ID[rewardOrId] ?? null;
+  if (!rewardOrId || typeof rewardOrId.id !== 'string') return null;
+  return REWARD_BY_ID[rewardOrId.id] ?? rewardOrId;
+}
+
+function canonicalCatalogue(catalogue) {
+  const result = [];
+  const seen = new Set();
+  for (const entry of Array.isArray(catalogue) ? catalogue : []) {
+    const reward = resolveReward(entry);
+    if (!reward || seen.has(reward.id)) continue;
+    seen.add(reward.id);
+    result.push(reward);
+  }
+  return result;
+}
+
 export function selectRewardTargets(game, rewardId) {
   if (rewardId === 'copy-card') {
     const seenSymbols = new Set();
@@ -81,15 +99,61 @@ export function selectRewardTargets(game, rewardId) {
   return [];
 }
 
-function rewardCanBeOffered(game, reward) {
-  if (!reward) return false;
-  if (reward.id === 'repair-wall') return game.wallHp < game.wallMaxHp;
-  if (TARGET_REQUIRED.has(reward.id)) return selectRewardTargets(game, reward.id).length > 0;
-  if (reward.type === 'board-expand') return game.boardSizeId === 'base';
-  if (reward.type === 'recipe-pack') {
-    return !game.unlockedRecipes.includes(reward.id.replace('unlock-', ''));
+export function assessRewardAvailability(game, rewardOrId) {
+  const reward = resolveReward(rewardOrId);
+  if (!reward) {
+    return {
+      available: false,
+      code: 'UNKNOWN_REWARD',
+      reason: '獎勵資料不存在。',
+      targets: [],
+    };
   }
-  return true;
+
+  if (reward.id === 'repair-wall' && !(game.wallHp < game.wallMaxHp)) {
+    return {
+      available: false,
+      code: 'REWARD_UNAVAILABLE',
+      reason: '城牆已經滿血，請選擇其他獎勵。',
+      targets: [],
+    };
+  }
+
+  if (TARGET_REQUIRED.has(reward.id)) {
+    const targets = selectRewardTargets(game, reward.id);
+    if (!targets.length) {
+      return {
+        available: false,
+        code: 'REWARD_UNAVAILABLE',
+        reason: '目前冇符合資格嘅獎勵目標，請選擇其他獎勵。',
+        targets,
+      };
+    }
+    return { available: true, code: null, reason: null, targets };
+  }
+
+  if (reward.type === 'board-expand' && game.boardSizeId !== 'base') {
+    return {
+      available: false,
+      code: 'REWARD_UNAVAILABLE',
+      reason: '戰陣已經擴展，請選擇其他獎勵。',
+      targets: [],
+    };
+  }
+
+  if (reward.type === 'recipe-pack') {
+    const recipeId = reward.id.replace('unlock-', '');
+    if ((game.unlockedRecipes ?? []).includes(recipeId)) {
+      return {
+        available: false,
+        code: 'REWARD_UNAVAILABLE',
+        reason: '呢個武將配方已經解鎖，請選擇其他獎勵。',
+        targets: [],
+      };
+    }
+  }
+
+  return { available: true, code: null, reason: null, targets: [] };
 }
 
 function rewardMatchesBuild(game, reward) {
@@ -101,48 +165,69 @@ function rewardMatchesBuild(game, reward) {
   return false;
 }
 
-function fillChoices(game, choices, catalogue, targetCount = 3) {
+function selectChoices(game, orderedCandidates, catalogue, targetCount = 3) {
+  const allowed = canonicalCatalogue(catalogue);
+  const allowedById = new Map(allowed.map((reward) => [reward.id, reward]));
   const result = [];
   const seen = new Set();
-  for (const reward of [...choices, ...catalogue]) {
-    if (!reward || seen.has(reward.id) || !rewardCanBeOffered(game, reward)) continue;
-    result.push(reward);
-    seen.add(reward.id);
+  for (const candidate of orderedCandidates) {
+    const reward = resolveReward(candidate);
+    const allowedReward = reward ? allowedById.get(reward.id) : null;
+    if (!allowedReward || seen.has(allowedReward.id)) continue;
+    if (!assessRewardAvailability(game, allowedReward).available) continue;
+    result.push(allowedReward);
+    seen.add(allowedReward.id);
     if (result.length >= targetCount) break;
   }
   return result;
 }
 
-function randomRewardOffer(game, eligible, rng) {
+export function normalizeRewardChoices(
+  game,
+  choices = game.rewardChoices ?? [],
+  catalogue = REWARDS,
+  targetCount = 3,
+) {
+  const allowed = canonicalCatalogue(catalogue);
+  return selectChoices(game, [...(Array.isArray(choices) ? choices : []), ...allowed], allowed, targetCount);
+}
+
+function randomRewardOffer(game, catalogue, rng) {
+  const allowed = canonicalCatalogue(catalogue);
+  const eligible = allowed.filter((reward) => assessRewardAvailability(game, reward).available);
   const preferred = eligible.filter((reward) => rewardMatchesBuild(game, reward));
   const preferredIds = new Set(preferred.map(({ id }) => id));
   const rest = eligible.filter(({ id }) => !preferredIds.has(id));
   const shuffled = shuffle(rng, rest);
   return {
-    choices: fillChoices(game, preferred, [...shuffled.items, ...REWARDS]),
+    choices: selectChoices(game, [...preferred, ...shuffled.items], allowed),
     rng: shuffled.rng,
   };
 }
 
+/**
+ * Generate an offer strictly within `catalogue`. When fewer than three
+ * catalogue entries are currently usable, the returned offer is intentionally
+ * shorter rather than silently crossing the caller's progression boundary.
+ */
 export function generateRewardOffer(game, catalogue = REWARDS, rng = game.rng) {
+  const allowed = canonicalCatalogue(catalogue);
   const completedAfterCurrent = (game.completedBattleIds?.length ?? 0) + 1;
   if (completedAfterCurrent === 3) {
     const routeReward = game.route === 'safe' ? 'unlock-zhang-fei' : 'unlock-zhuge-liang';
     const scripted = [routeReward, 'repair-wall', 'remove-card'].map((id) => REWARD_BY_ID[id]);
-    return { choices: fillChoices(game, scripted, catalogue), rng };
+    return { choices: selectChoices(game, [...scripted, ...allowed], allowed), rng };
   }
   if (completedAfterCurrent === 4 && game.boardSizeId === 'base') {
     const scripted = ['expand-wing', 'expand-depth', 'repair-wall'].map((id) => REWARD_BY_ID[id]);
-    return { choices: fillChoices(game, scripted, catalogue), rng };
+    return { choices: selectChoices(game, [...scripted, ...allowed], allowed), rng };
   }
   if (completedAfterCurrent === 5) {
     const scripted = ['evolve-general', 'fire-arrows', 'first-aid'].map((id) => REWARD_BY_ID[id]);
     const fallbacks = SAFE_FALLBACKS.map((id) => REWARD_BY_ID[id]);
-    return { choices: fillChoices(game, scripted, [...fallbacks, ...catalogue]), rng };
+    return { choices: selectChoices(game, [...scripted, ...fallbacks, ...allowed], allowed), rng };
   }
-
-  const eligible = catalogue.filter((reward) => rewardCanBeOffered(game, reward));
-  return randomRewardOffer(game, eligible, rng);
+  return randomRewardOffer(game, allowed, rng);
 }
 
 export function validateRewardChoice(game, rewardId, payload = {}) {
@@ -155,17 +240,11 @@ export function validateRewardChoice(game, rewardId, payload = {}) {
   }
 
   const reward = REWARD_BY_ID[rewardId] ?? game.rewardChoices.find(({ id }) => id === rewardId);
-  if (!reward) {
+  const availability = assessRewardAvailability(game, reward);
+  if (!availability.available) {
     return {
       valid: false,
-      error: { code: 'UNKNOWN_REWARD', message: '獎勵資料不存在。' },
-    };
-  }
-
-  if (!rewardCanBeOffered(game, reward)) {
-    return {
-      valid: false,
-      error: { code: 'REWARD_UNAVAILABLE', message: '目前狀態無法使用呢個獎勵。' },
+      error: { code: availability.code, message: availability.reason },
     };
   }
 
@@ -176,14 +255,6 @@ export function validateRewardChoice(game, rewardId, payload = {}) {
     if (invalid) return { valid: false, error: invalid };
   }
 
-  const targets = selectRewardTargets(game, rewardId);
-  if (!targets.length) {
-    return {
-      valid: false,
-      error: { code: 'REWARD_UNAVAILABLE', message: '目前冇符合資格嘅獎勵目標。' },
-    };
-  }
-
   if (rewardId !== 'evolve-general' && !payload.cardId) {
     return {
       valid: false,
@@ -192,10 +263,10 @@ export function validateRewardChoice(game, rewardId, payload = {}) {
   }
 
   const target = rewardId === 'evolve-general'
-    ? targets.find(({ generalId, evolutionId }) => (
+    ? availability.targets.find(({ generalId, evolutionId }) => (
       generalId === payload.generalId && evolutionId === payload.evolutionId
     ))
-    : targets.find(({ cardId }) => cardId === payload.cardId);
+    : availability.targets.find(({ cardId }) => cardId === payload.cardId);
   if (!target) {
     return {
       valid: false,
