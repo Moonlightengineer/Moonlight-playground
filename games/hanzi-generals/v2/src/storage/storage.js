@@ -173,7 +173,7 @@ export function buildLatestVersionUrl(location, timestamp = Date.now()) {
 
 export function isApprovedSaveBoundary(game) {
   if (!game || typeof game !== 'object') return false;
-  if (['expedition-map', 'reward', 'victory', 'defeat'].includes(game.status)) return true;
+  if (['expedition-map', 'battle-report', 'reward', 'victory', 'defeat'].includes(game.status)) return true;
   return game.status === 'configuration' && game.currentBattle?.phaseIndex === 0;
 }
 
