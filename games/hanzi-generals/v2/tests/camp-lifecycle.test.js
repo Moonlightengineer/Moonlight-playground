@@ -165,14 +165,20 @@ test('camp survives a between-phase settlement without entering discard', () => 
   assertCardOwnership(result.state);
 });
 
-test('camp survives final battle settlement into reward', () => {
+test('camp survives final battle settlement through report into reward', () => {
   const { game, campCardId } = prepareBattleWithCamp('camp-after-battle');
   const result = reduceGame(forceOneEnemyVictory(game, true), { type: 'STEP_COMBAT' });
   assert.equal(result.ok, true);
-  assert.equal(result.state.status, 'reward');
+  assert.equal(result.state.status, 'battle-report');
   assert.equal(result.state.camp.cardIds.includes(campCardId), true);
   assert.equal(result.state.deck.discardPile.some(({ id }) => id === campCardId), false);
   assertCardOwnership(result.state);
+
+  const continued = reduceGame(result.state, { type: 'CONTINUE_AFTER_REPORT' });
+  assert.equal(continued.ok, true);
+  assert.equal(continued.state.status, 'reward');
+  assert.equal(continued.state.camp.cardIds.includes(campCardId), true);
+  assertCardOwnership(continued.state);
 });
 
 test('extra-camp reward permanently increases expedition capacity and clears legacy pending bonus', () => {
