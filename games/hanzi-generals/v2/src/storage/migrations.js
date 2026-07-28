@@ -1,14 +1,15 @@
-import { REWARD_BY_ID } from '../../data/rewards.js';
-import { eligibleEvolutionGenerals } from '../expedition/evolution-eligibility.js';
+import { REWARDS } from '../../data/rewards.js';
+import { normalizeRewardChoices as normalizeEligibleRewardChoices } from '../reward/reward-flow.js';
 
 export const CURRENT_SAVE_VERSION = 3;
 const MINIMUM_SAVE_VERSION = 1;
-const SAFE_REWARD_FALLBACKS = Object.freeze([
-  'extra-reroll', 'extra-camp', 'repair-wall', 'fire-arrows', 'first-aid',
-]);
 
 function isObject(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function owns(object, key) {
+  return Object.prototype.hasOwnProperty.call(object, key);
 }
 
 function clone(value) {
@@ -24,28 +25,53 @@ function corruptSave() {
   return failure('CORRUPT_SAVE', '存檔內容已損壞，可重設 v2 存檔。');
 }
 
-function uniqueStrings(values) {
-  return [...new Set((Array.isArray(values) ? values : []).filter((value) => (
-    typeof value === 'string' && value.length > 0
-  )))];
+function optionalStringArray(object, key) {
+  if (!owns(object, key) || object[key] === undefined) return [];
+  const values = object[key];
+  if (!Array.isArray(values)) throw new TypeError(`${key} must be an array.`);
+  if (values.some((value) => typeof value !== 'string' || !value)) {
+    throw new TypeError(`${key} must contain strings only.`);
+  }
+  return [...new Set(values)];
 }
 
-function cloneObjectArray(values, label) {
-  if (!Array.isArray(values)) return [];
+function optionalObjectArray(object, key) {
+  if (!owns(object, key) || object[key] === undefined) return [];
+  const values = object[key];
+  if (!Array.isArray(values)) throw new TypeError(`${key} must be an array.`);
   if (values.some((entry) => !isObject(entry))) {
-    throw new TypeError(`${label} must contain objects only.`);
+    throw new TypeError(`${key} must contain objects only.`);
   }
   return values.map((entry) => ({ ...entry }));
 }
 
+function optionalStringMap(object, key) {
+  if (!owns(object, key) || object[key] === undefined) return {};
+  const value = object[key];
+  if (!isObject(value)) throw new TypeError(`${key} must be an object.`);
+  if (Object.values(value).some((entry) => typeof entry !== 'string' || !entry)) {
+    throw new TypeError(`${key} values must be strings.`);
+  }
+  return { ...value };
+}
+
+function normalizeProgressFields(game) {
+  return {
+    ...game,
+    recruitedGeneralIds: optionalStringArray(game, 'recruitedGeneralIds'),
+    rewardHistory: optionalObjectArray(game, 'rewardHistory'),
+    evolutions: optionalStringMap(game, 'evolutions'),
+  };
+}
+
 function stripTransientSelection(game) {
-  if (!isObject(game) || !Object.prototype.hasOwnProperty.call(game, 'selection')) return game;
+  if (!isObject(game) || !owns(game, 'selection')) return game;
   const next = { ...game };
   delete next.selection;
   return next;
 }
 
-function normalizeRewardChoices(game) {
+function normalizeRewardSnapshot(game) {
   if (game.status !== 'reward') return game;
   if (!Array.isArray(game.rewardChoices)) {
     throw new TypeError('rewardChoices must be an array.');
@@ -53,29 +79,21 @@ function normalizeRewardChoices(game) {
   if (game.rewardChoices.some((choice) => !isObject(choice) || typeof choice.id !== 'string')) {
     throw new TypeError('rewardChoices must contain valid reward objects.');
   }
-  const source = game.rewardChoices.map((choice) => ({ ...choice }));
-  if (eligibleEvolutionGenerals(game).length) return { ...game, rewardChoices: source };
-  const choices = source.filter(({ id }) => id !== 'evolve-general');
-  const seen = new Set(choices.map(({ id }) => id));
-  for (const rewardId of SAFE_REWARD_FALLBACKS) {
-    if (choices.length >= 3) break;
-    if (seen.has(rewardId)) continue;
-    const reward = REWARD_BY_ID[rewardId];
-    if (!reward) continue;
-    choices.push(reward);
-    seen.add(rewardId);
-  }
-  return { ...game, rewardChoices: choices.slice(0, 3) };
+  return {
+    ...game,
+    rewardChoices: normalizeEligibleRewardChoices(game, game.rewardChoices, REWARDS, 3),
+  };
+}
+
+function normalizeCurrentGame(game) {
+  return normalizeRewardSnapshot(normalizeProgressFields(stripTransientSelection(game)));
 }
 
 function migrateV1ToV2(envelope) {
-  const game = normalizeRewardChoices({
-    ...envelope.game,
-    recruitedGeneralIds: uniqueStrings(envelope.game.recruitedGeneralIds),
-    rewardHistory: cloneObjectArray(envelope.game.rewardHistory, 'rewardHistory'),
-    evolutions: isObject(envelope.game.evolutions) ? { ...envelope.game.evolutions } : {},
-  });
-  return { schemaVersion: 2, game };
+  return {
+    schemaVersion: 2,
+    game: normalizeRewardSnapshot(normalizeProgressFields(envelope.game)),
+  };
 }
 
 function normalizeCard(card) {
@@ -83,13 +101,15 @@ function normalizeCard(card) {
   return { ...card, locked: false };
 }
 
-function normalizeCardArray(values) {
-  if (!Array.isArray(values)) return values;
+function normalizeCardArray(values, label) {
+  if (values === undefined) return undefined;
+  if (!Array.isArray(values)) throw new TypeError(`${label} must be an array.`);
   return values.map(normalizeCard);
 }
 
 function normalizeDeployed(values) {
-  if (!Array.isArray(values)) return values;
+  if (values === undefined) return undefined;
+  if (!Array.isArray(values)) throw new TypeError('deployed must be an array.');
   return values.map((record) => {
     if (!isObject(record) || !Array.isArray(record.cardIds)) {
       throw new TypeError('deployed must contain valid records.');
@@ -102,13 +122,13 @@ function normalizeDeployed(values) {
 }
 
 function migrateV2ToV3(envelope) {
-  const game = envelope.game;
+  const game = normalizeProgressFields(envelope.game);
   const deck = isObject(game.deck) ? game.deck : {};
-  const hand = normalizeCardArray(deck.hand);
+  const hand = normalizeCardArray(deck.hand, 'hand');
   const handIds = new Set(Array.isArray(hand)
     ? hand.map((card) => card.id).filter((id) => typeof id === 'string' && id)
     : []);
-  const retained = uniqueStrings(deck.retained)
+  const retained = optionalStringArray(deck, 'retained')
     .filter((cardId) => handIds.has(cardId))
     .slice(0, 2);
   const camp = isObject(game.camp) ? game.camp : {};
@@ -116,17 +136,14 @@ function migrateV2ToV3(envelope) {
   const extraCamp = Number.isInteger(temporary.extraCamp) && temporary.extraCamp > 0
     ? temporary.extraCamp
     : 0;
-  const campIds = uniqueStrings(camp.cardIds);
+  const campIds = optionalStringArray(camp, 'cardIds');
 
-  const migrated = normalizeRewardChoices({
+  const migrated = normalizeRewardSnapshot({
     ...stripTransientSelection(game),
-    recruitedGeneralIds: uniqueStrings(game.recruitedGeneralIds),
-    rewardHistory: cloneObjectArray(game.rewardHistory, 'rewardHistory'),
-    evolutions: isObject(game.evolutions) ? { ...game.evolutions } : {},
     deck: {
       ...deck,
-      drawPile: normalizeCardArray(deck.drawPile),
-      discardPile: normalizeCardArray(deck.discardPile),
+      drawPile: normalizeCardArray(deck.drawPile, 'drawPile'),
+      discardPile: normalizeCardArray(deck.discardPile, 'discardPile'),
       hand,
       retained,
       deployed: normalizeDeployed(deck.deployed),
@@ -171,14 +188,15 @@ export function migrateSaveEnvelope(input) {
       applied.push(step.id);
     }
 
-    const selectionWasPresent = Object.prototype.hasOwnProperty.call(envelope.game, 'selection');
-    envelope = { ...envelope, game: stripTransientSelection(envelope.game) };
+    const beforeNormalization = JSON.stringify(envelope.game);
+    envelope = { ...envelope, game: normalizeCurrentGame(envelope.game) };
+    const normalized = JSON.stringify(envelope.game) !== beforeNormalization;
     return {
       ok: true,
       envelope,
       migratedFrom,
       applied,
-      migrated: applied.length > 0 || selectionWasPresent,
+      migrated: applied.length > 0 || normalized,
     };
   } catch {
     return corruptSave();
