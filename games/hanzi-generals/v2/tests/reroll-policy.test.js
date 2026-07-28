@@ -85,13 +85,10 @@ test('rerollRetainedHand keeps only deck.retained cards and clears retained afte
 });
 
 test('rerollRetainedHand discards non-retained cards before drawing', () => {
-  const deck = setRetainedCards(completeDeck(), ['card-1']);
-  const discardedIds = deck.hand.filter(({ id }) => id !== 'card-1').map(({ id }) => id);
+  const deck = setRetainedCards(completeDeck(), ['card-1', 'card-2']);
+  const discardedIds = deck.hand.filter(({ id }) => !deck.retained.includes(id)).map(({ id }) => id);
   const result = rerollRetainedHand(deck, createRng(13), 5);
-  assert.equal(discardedIds.every((id) => (
-    result.deck.discardPile.some((card) => card.id === id)
-    || result.deck.hand.some((card) => card.id === id)
-  )), true);
+  assert.equal(discardedIds.every((id) => result.deck.discardPile.some((card) => card.id === id)), true);
 });
 
 test('rerollRetainedHand recycles discard when the draw pile is insufficient', () => {
