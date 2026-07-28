@@ -139,20 +139,27 @@ test('phase victory returns to configuration and preserves expedition camp', () 
   assertCardOwnership(result.state);
 });
 
-test('final phase victory enters reward with a completed battle event', () => {
+test('final phase victory enters battle report before reward', () => {
   const configured = prepareConfiguredBattle('battle-finish');
   const started = startPhase(configured).state;
   const finalPhase = configured.currentBattle.phaseCount - 1;
   const result = stepBattleCombat(forceSingleEnemy(started, { phaseIndex: finalPhase }));
   assert.equal(result.ok, true);
-  assert.equal(result.state.status, 'reward');
+  assert.equal(result.state.status, 'battle-report');
   assert.equal(result.state.currentBattleResult, 'victory');
+  assert.equal(result.state.battleReport.nextStatus, 'reward');
   assert.equal(result.state.rewardChoices.length > 0, true);
   assert.equal(result.events.some(({ type }) => type === 'BATTLE_COMPLETED'), true);
   assertCardOwnership(result.state);
+
+  const continued = reduceGame(result.state, { type: 'CONTINUE_AFTER_REPORT' });
+  assert.equal(continued.ok, true);
+  assert.equal(continued.state.status, 'reward');
+  assert.equal(continued.state.lastBattleReport.result, 'victory');
+  assertCardOwnership(continued.state);
 });
 
-test('wall defeat enters defeat and releases cards from defeated board units', () => {
+test('wall defeat enters battle report before defeat and releases cards', () => {
   const configured = prepareConfiguredBattle('battle-defeat');
   const started = startPhase(configured).state;
   const result = stepBattleCombat(forceSingleEnemy(started, {
@@ -161,8 +168,15 @@ test('wall defeat enters defeat and releases cards from defeated board units', (
     enemyHp: 8,
   }));
   assert.equal(result.ok, true);
-  assert.equal(result.state.status, 'defeat');
+  assert.equal(result.state.status, 'battle-report');
+  assert.equal(result.state.battleReport.nextStatus, 'defeat');
   assert.equal(result.state.wallHp, 0);
   assert.equal(result.state.deck.deployed.length, 0);
   assertCardOwnership(result.state);
+
+  const continued = reduceGame(result.state, { type: 'CONTINUE_AFTER_REPORT' });
+  assert.equal(continued.ok, true);
+  assert.equal(continued.state.status, 'defeat');
+  assert.equal(continued.state.lastBattleReport.result, 'defeat');
+  assertCardOwnership(continued.state);
 });
