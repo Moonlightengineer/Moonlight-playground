@@ -7,10 +7,12 @@ import {
   discardCard,
   drawToHand,
   lockCard,
-  rerollHand,
-  retainCards,
   unlockAllCards,
 } from '../src/deck/deck.js';
+import {
+  rerollRetainedHand,
+  setRetainedCards,
+} from '../src/deck/reroll-policy.js';
 
 const symbols = ['黃', '忠', '趙', '雲', '關', '羽', '呂', '布', '弓', '兵', '盾', '兵'];
 
@@ -26,25 +28,26 @@ test('draws to five and retains at most two', () => {
   result = drawToHand(result.deck, 5, rng);
   assert.equal(result.deck.hand.length, 5);
   assert.throws(
-    () => retainCards(result.deck, result.deck.hand.slice(0, 3).map((card) => card.id)),
+    () => setRetainedCards(result.deck, result.deck.hand.slice(0, 3).map((card) => card.id)),
     /at most 2/,
   );
-  const retained = retainCards(result.deck, result.deck.hand.slice(0, 2).map((card) => card.id));
+  const retained = setRetainedCards(result.deck, result.deck.hand.slice(0, 2).map((card) => card.id));
   assert.equal(retained.retained.length, 2);
 });
 
-test('one free reroll moves unlocked cards to discard', () => {
+test('one free reroll moves non-retained cards to discard', () => {
   let rng = createRng(9);
   let result = createDeckState(symbols, rng);
   rng = result.rng;
   result = drawToHand(result.deck, 5, rng);
   rng = result.rng;
-  const locked = [result.deck.hand[0].id];
-  const rerolled = rerollHand(result.deck, locked, rng);
+  const retainedId = result.deck.hand[0].id;
+  const prepared = setRetainedCards(result.deck, [retainedId]);
+  const rerolled = rerollRetainedHand(prepared, rng, 5);
   assert.equal(rerolled.deck.freeRerollsRemaining, 0);
-  assert.equal(rerolled.deck.hand.some((card) => card.id === locked[0]), true);
+  assert.equal(rerolled.deck.hand.some((card) => card.id === retainedId), true);
   assert.equal(rerolled.deck.discardPile.length, 4);
-  assert.throws(() => rerollHand(rerolled.deck, [], rerolled.rng), /no free reroll/);
+  assert.throws(() => rerollRetainedHand(rerolled.deck, rerolled.rng, 5), /no free reroll/);
 });
 
 test('repeated rerolls decrement one use at a time and refill a complete hand', () => {
@@ -52,7 +55,7 @@ test('repeated rerolls decrement one use at a time and refill a complete hand', 
   result = drawToHand({ ...result.deck, freeRerollsRemaining: 2 }, 5, result.rng);
 
   const retainedFirst = result.deck.hand.slice(0, 2).map(({ id }) => id);
-  const first = rerollHand(result.deck, retainedFirst, result.rng);
+  const first = rerollRetainedHand(setRetainedCards(result.deck, retainedFirst), result.rng, 5);
   assert.equal(first.deck.freeRerollsRemaining, 1);
   assert.equal(first.deck.hand.length, 5);
   assert.deepEqual(
@@ -62,12 +65,12 @@ test('repeated rerolls decrement one use at a time and refill a complete hand', 
   assertUniqueCardIds(first.deck);
 
   const retainedSecond = [first.deck.hand[0].id];
-  const second = rerollHand(first.deck, retainedSecond, first.rng);
+  const second = rerollRetainedHand(setRetainedCards(first.deck, retainedSecond), first.rng, 5);
   assert.equal(second.deck.freeRerollsRemaining, 0);
   assert.equal(second.deck.hand.length, 5);
   assert.equal(second.deck.hand.some((card) => card.id === retainedSecond[0]), true);
   assertUniqueCardIds(second.deck);
-  assert.throws(() => rerollHand(second.deck, [], second.rng), /no free reroll/);
+  assert.throws(() => rerollRetainedHand(second.deck, second.rng, 5), /no free reroll/);
 });
 
 test('reroll reshuffles discard when draw pile cannot refill the hand', () => {
@@ -76,7 +79,7 @@ test('reroll reshuffles discard when draw pile cannot refill the hand', () => {
     symbol,
     locked: false,
   }));
-  const deck = {
+  const deck = setRetainedCards({
     drawPile: cards.slice(5, 6),
     discardPile: cards.slice(6),
     hand: cards.slice(0, 5),
@@ -84,15 +87,15 @@ test('reroll reshuffles discard when draw pile cannot refill the hand', () => {
     deployed: [],
     freeRerollsRemaining: 1,
     nextCardId: 8,
-  };
+  }, [cards[0].id, cards[1].id]);
 
-  const rerolled = rerollHand(deck, [cards[0].id, cards[1].id], createRng(23));
+  const rerolled = rerollRetainedHand(deck, createRng(23), 5);
   assert.equal(rerolled.deck.hand.length, 5);
   assert.equal(rerolled.deck.freeRerollsRemaining, 0);
   assertUniqueCardIds(rerolled.deck);
 });
 
-test('lock, unlock and discard preserve card identity', () => {
+test('lock, unlock and discard preserve card identity but do not control reroll policy', () => {
   let result = createDeckState(symbols, createRng(3));
   result = drawToHand(result.deck, 5, result.rng);
   const card = result.deck.hand[0];
