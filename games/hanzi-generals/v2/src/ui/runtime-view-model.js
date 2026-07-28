@@ -1,5 +1,6 @@
 import { selectOrderTargets } from '../core/selectors/index.js';
 import { buildBattleReportViewModel } from './battle-report-view-model.js';
+import { buildRewardViewModels } from './reward-view-model.js';
 import { buildAppViewModel as buildBaseViewModel } from './view-model.js';
 
 function battleReportAction(report) {
@@ -21,6 +22,7 @@ export function buildAppViewModel(game, profile, ui) {
   const viewModel = buildBaseViewModel(game, profile, ui);
   const targets = selectOrderTargets(game);
   const battleReport = buildBattleReportViewModel(game.battleReport);
+  const rewards = buildRewardViewModels(game);
   return {
     ...viewModel,
     runStatus: {
@@ -30,6 +32,8 @@ export function buildAppViewModel(game, profile, ui) {
     primary: {
       ...viewModel.primary,
       battleReport,
+      rewards,
+      evolution: null,
       actions: battleReport.visible
         ? battleReportAction(battleReport)
         : viewModel.primary.actions,
