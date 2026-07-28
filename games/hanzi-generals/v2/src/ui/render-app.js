@@ -5,8 +5,10 @@ import { renderDetailsPanel } from './panels/details-panel.js';
 import { renderHandPanel } from './panels/hand-panel.js';
 import { renderPrimaryPanel } from './panels/primary-panel.js';
 import { renderRunStatusPanel } from './panels/run-status-panel.js';
+import { rememberRenderedViewModel } from './rendered-view-model.js';
 
 export function renderApp(root, viewModel) {
+  rememberRenderedViewModel(root, viewModel);
   root.dataset.status = viewModel.root.status;
   root.dataset.reducedMotion = String(viewModel.root.reducedMotion);
 
