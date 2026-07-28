@@ -72,9 +72,12 @@ async function run() {
       `;
       document.body.append(root);
       const base = createExpedition('reward-target-fixture');
+      const campCard = base.deck.drawPile[0];
       const game = {
         ...base,
         status: 'reward',
+        deck: { ...base.deck, drawPile: base.deck.drawPile.slice(1) },
+        camp: { ...base.camp, cardIds: [campCard.id] },
         currentBattle: { stageId: 'tutorial', phaseIndex: 2, phaseCount: 3, ordersRemaining: 0 },
         currentBattleResult: 'victory',
         rewardChoices: [
@@ -93,31 +96,46 @@ async function run() {
 
       const copyPanel = root.querySelector('[data-reward-id="copy-card"]');
       copyPanel.open = true;
-      const copyTarget = copyPanel.querySelector('.reward-target-choice');
+      const copyTarget = copyPanel.querySelector(`.reward-target-choice[data-card-id="${campCard.id}"]`);
       copyTarget?.click();
+
+      const removePanel = root.querySelector('[data-reward-id="remove-card"]');
+      removePanel.open = true;
+      const removeTarget = removePanel.querySelector(`.reward-target-choice[data-card-id="${campCard.id}"]`);
+      removeTarget?.click();
 
       const rerollButton = root.querySelector('[data-reward-id="extra-reroll"]');
       rerollButton?.click();
 
       return {
+        campCardId: campCard.id,
         offerCount: root.querySelectorAll('#primary-actions > .reward-button').length,
         copyTopLevelCardId: copyPanel?.dataset.cardId ?? null,
         copyTargetCount: copyPanel?.querySelectorAll('.reward-target-choice').length ?? 0,
         copyTargetLabel: copyTarget?.textContent?.trim() ?? null,
+        removeTargetLabel: removeTarget?.textContent?.trim() ?? null,
         dispatched,
         overflow: root.scrollWidth > root.clientWidth + 1,
       };
     });
 
     observations.push(result);
-    const [copyIntent, rerollIntent] = result.dispatched;
+    const [copyIntent, removeIntent, rerollIntent] = result.dispatched;
     if (result.offerCount !== 3) bug('reward-offer-count', 'Reward screen does not expose exactly three top-level offers', result);
     if (result.copyTopLevelCardId !== null) bug('reward-target-guessed', 'Copy reward still guesses a top-level card target', result);
     if (result.copyTargetCount < 1) bug('reward-targets-missing', 'Copy reward does not expose explicit target choices', result);
+    if (!/軍營/.test(result.copyTargetLabel ?? '') || !/軍營/.test(result.removeTargetLabel ?? '')) {
+      bug('camp-reward-target-label-missing', 'Camp reward targets are not visibly identified as camp cards', result);
+    }
     if (copyIntent?.type !== 'CHOOSE_REWARD'
       || copyIntent.rewardId !== 'copy-card'
-      || !copyIntent.payload?.cardId) {
-      bug('reward-target-dispatch-invalid', 'Copy target click did not dispatch an explicit card target', { copyIntent });
+      || copyIntent.payload?.cardId !== result.campCardId) {
+      bug('reward-target-dispatch-invalid', 'Camp copy click did not dispatch the explicit camp card target', { copyIntent, result });
+    }
+    if (removeIntent?.type !== 'CHOOSE_REWARD'
+      || removeIntent.rewardId !== 'remove-card'
+      || removeIntent.payload?.cardId !== result.campCardId) {
+      bug('remove-target-dispatch-invalid', 'Camp remove click did not dispatch the explicit camp card target', { removeIntent, result });
     }
     if (rerollIntent?.type !== 'CHOOSE_REWARD'
       || rerollIntent.rewardId !== 'extra-reroll'
