@@ -41,8 +41,12 @@ export function generateRewardChoices(game, catalogue, rng) {
 
 function rebuildCardsById(game, deck) {
   const cards = [...deck.drawPile, ...deck.discardPile, ...deck.hand];
-  const deployedIds = new Set(deck.deployed.flatMap(({ cardIds }) => cardIds));
-  for (const id of deployedIds) {
+  const ownerIds = new Set([
+    ...(game.camp?.cardIds ?? []),
+    ...Object.values(game.boardCards ?? {}),
+    ...deck.deployed.flatMap(({ cardIds }) => cardIds),
+  ]);
+  for (const id of ownerIds) {
     if (game.cardsById[id]) cards.push(game.cardsById[id]);
   }
   return Object.fromEntries(cards.map((card) => [card.id, card]));
