@@ -74,7 +74,7 @@ test('remove targets identify exact undeployed card ids and keep a minimum six-c
   const game = moveFirstCardToCamp(rewardState(['remove-card']));
   const targets = selectRewardTargets(game, 'remove-card');
   assert.equal(targets.length, Object.keys(game.cardsById).length);
-  assert.equal(new Set(targets.map(({ cardId }) => cardId).size, targets.length));
+  assert.equal(new Set(targets.map(({ cardId }) => cardId)).size, targets.length);
   assert.equal(targets.some(({ zone }) => zone === 'camp'), true);
 
   const sixIds = Object.keys(game.cardsById).slice(0, 6);
