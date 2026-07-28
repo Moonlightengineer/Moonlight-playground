@@ -1,11 +1,15 @@
 import { GENERAL_BY_ID } from '../../data/generals.js';
 import { REWARDS } from '../../data/rewards.js';
 import { TUNING } from '../../data/tuning.js';
+import {
+  startBattle,
+  startPhase,
+  stepBattleCombat,
+} from '../battle/battle-lifecycle.js';
 import { rerollRetainedHand, setRetainedCards } from '../deck/reroll-policy.js';
 import {
   moveHandCardToCamp,
   normalizeLegacyCampBonus,
-  preserveCampAcrossTransition,
   returnCampCardToHand,
 } from '../expedition/camp-lifecycle.js';
 import { eligibleEvolutionGenerals } from '../expedition/evolution-eligibility.js';
@@ -107,11 +111,16 @@ function canonicalCampPolicyResult(game, action) {
   return null;
 }
 
-function applyCampLifecycleBoundary(before, action, result) {
+function canonicalBattlePolicyResult(game, action) {
+  if (!ALLOWED[game.status]?.has(action.type)) return null;
+  if (action.type === 'START_BATTLE') return startBattle(game);
+  if (action.type === 'START_PHASE') return startPhase(game);
+  if (action.type === 'STEP_COMBAT') return stepBattleCombat(game);
+  return null;
+}
+
+function applyCampRewardBoundary(action, result) {
   if (!result.ok) return result;
-  if (['START_BATTLE', 'STEP_COMBAT'].includes(action.type)) {
-    return { ...result, state: preserveCampAcrossTransition(before, result.state) };
-  }
   if (action.type === 'CHOOSE_REWARD' && action.rewardId === 'extra-camp') {
     return { ...result, state: normalizeLegacyCampBonus(result.state) };
   }
@@ -124,9 +133,11 @@ export function reduceGame(game, action) {
     ? canonicalDeckPolicyResult(normalized, action)
     : action && ['MOVE_CARD_TO_CAMP', 'RETURN_CAMP_CARD'].includes(action.type)
       ? canonicalCampPolicyResult(normalized, action)
-      : null;
+      : action && ['START_BATTLE', 'START_PHASE', 'STEP_COMBAT'].includes(action.type)
+        ? canonicalBattlePolicyResult(normalized, action)
+        : null;
   const baseResult = canonical ?? reduceBaseGame(normalized, action);
-  const result = action ? applyCampLifecycleBoundary(normalized, action, baseResult) : baseResult;
+  const result = action ? applyCampRewardBoundary(action, baseResult) : baseResult;
   if (!result.ok) return { ...result, state: game };
   return finalizeGameResult(result);
 }
