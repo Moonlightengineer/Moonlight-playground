@@ -1,3 +1,5 @@
+import { getRenderedViewModel } from './rendered-view-model.js';
+
 function number(value) {
   return Number(value);
 }
@@ -182,7 +184,11 @@ function selectedInHand(viewModel) {
   return (viewModel?.hand?.cards ?? []).some((card) => card.selected);
 }
 
-export function bindInteractions(root, dispatch, getViewModel = () => null) {
+export function bindInteractions(
+  root,
+  dispatch,
+  getViewModel = () => getRenderedViewModel(root),
+) {
   let orderMode = null;
 
   function beginOrder(type) {
