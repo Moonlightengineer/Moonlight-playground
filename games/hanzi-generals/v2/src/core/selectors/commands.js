@@ -93,6 +93,10 @@ export function selectLegalCommands(game) {
       if ((game.combat?.ordersRemaining ?? 0) > 0) commands.add('ISSUE_ORDER');
       commands.add('RESET_RUN');
       break;
+    case 'battle-report':
+      if (game.battleReport) commands.add('CONTINUE_AFTER_REPORT');
+      commands.add('RESET_RUN');
+      break;
     case 'reward':
       if ((game.rewardChoices ?? []).length) commands.add('CHOOSE_REWARD');
       commands.add('RESET_RUN');
