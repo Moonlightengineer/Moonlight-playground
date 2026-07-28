@@ -83,6 +83,7 @@ export function selectRewardTargets(game, rewardId) {
 
 function rewardCanBeOffered(game, reward) {
   if (!reward) return false;
+  if (reward.id === 'repair-wall') return game.wallHp < game.wallMaxHp;
   if (TARGET_REQUIRED.has(reward.id)) return selectRewardTargets(game, reward.id).length > 0;
   if (reward.type === 'board-expand') return game.boardSizeId === 'base';
   if (reward.type === 'recipe-pack') {
@@ -158,6 +159,13 @@ export function validateRewardChoice(game, rewardId, payload = {}) {
     return {
       valid: false,
       error: { code: 'UNKNOWN_REWARD', message: '獎勵資料不存在。' },
+    };
+  }
+
+  if (!rewardCanBeOffered(game, reward)) {
+    return {
+      valid: false,
+      error: { code: 'REWARD_UNAVAILABLE', message: '目前狀態無法使用呢個獎勵。' },
     };
   }
 
