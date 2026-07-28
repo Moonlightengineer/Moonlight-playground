@@ -73,6 +73,28 @@ function appendStat(list, label, value) {
   list.append(item);
 }
 
+function appendBattleReport(container, report) {
+  if (!report?.visible) return;
+  const panel = node('section', `battle-report report-${report.result}`);
+  panel.dataset.battleReportVisible = 'true';
+  panel.append(node('p', 'result-kicker', report.kicker));
+  panel.append(node('h2', 'result-title', report.title));
+  panel.append(node('p', 'result-summary', report.summary));
+  const stats = node('ul', 'result-stats battle-report-stats');
+  for (const [label, value] of report.stats) appendStat(stats, label, value);
+  panel.append(stats);
+  const eventEntries = Object.entries(report.eventCounts ?? {});
+  if (eventEntries.length) {
+    const details = node('details', 'result-details battle-report-events');
+    details.append(node('summary', '', '查看事件統計'));
+    const list = node('ul', 'result-stats');
+    for (const [type, count] of eventEntries) appendStat(list, type, count);
+    details.append(list);
+    panel.append(details);
+  }
+  container.append(panel);
+}
+
 function appendResult(container, result) {
   if (!result) return;
   const panel = node('section', `expedition-result result-${result.status}`);
@@ -97,6 +119,7 @@ export function renderPrimaryPanel(container, model) {
   setVisible(container, model.visible);
   if (!model.visible) return;
   container.replaceChildren();
+  appendBattleReport(container, model.battleReport);
   appendResult(container, model.result);
   appendEvolution(container, model.evolution);
   appendRewards(container, model.rewards);
