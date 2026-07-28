@@ -38,6 +38,13 @@ function cloneObjectArray(values, label) {
   return values.map((entry) => ({ ...entry }));
 }
 
+function stripTransientSelection(game) {
+  if (!isObject(game) || !Object.prototype.hasOwnProperty.call(game, 'selection')) return game;
+  const next = { ...game };
+  delete next.selection;
+  return next;
+}
+
 function normalizeRewardChoices(game) {
   if (game.status !== 'reward') return game;
   if (!Array.isArray(game.rewardChoices)) {
@@ -110,13 +117,9 @@ function migrateV2ToV3(envelope) {
     ? temporary.extraCamp
     : 0;
   const campIds = uniqueStrings(camp.cardIds);
-  const selectableIds = new Set([...handIds, ...campIds]);
-  const selection = uniqueStrings(game.selection?.cardIds)
-    .filter((cardId) => selectableIds.has(cardId))
-    .slice(0, 3);
 
   const migrated = normalizeRewardChoices({
-    ...game,
+    ...stripTransientSelection(game),
     recruitedGeneralIds: uniqueStrings(game.recruitedGeneralIds),
     rewardHistory: cloneObjectArray(game.rewardHistory, 'rewardHistory'),
     evolutions: isObject(game.evolutions) ? { ...game.evolutions } : {},
@@ -134,7 +137,6 @@ function migrateV2ToV3(envelope) {
       cardIds: campIds,
     },
     temporary: { ...temporary, extraCamp: 0 },
-    selection: { cardIds: selection },
     battleReport: game.battleReport ?? null,
     lastBattleReport: game.lastBattleReport ?? null,
     battleMetrics: game.battleMetrics ?? null,
@@ -168,12 +170,15 @@ export function migrateSaveEnvelope(input) {
       }
       applied.push(step.id);
     }
+
+    const selectionWasPresent = Object.prototype.hasOwnProperty.call(envelope.game, 'selection');
+    envelope = { ...envelope, game: stripTransientSelection(envelope.game) };
     return {
       ok: true,
       envelope,
       migratedFrom,
       applied,
-      migrated: applied.length > 0,
+      migrated: applied.length > 0 || selectionWasPresent,
     };
   } catch {
     return corruptSave();
@@ -186,5 +191,6 @@ export function prepareGameForSave(game) {
   delete prepared.settings;
   delete prepared.tutorial;
   delete prepared.ui;
+  delete prepared.selection;
   return prepared;
 }
