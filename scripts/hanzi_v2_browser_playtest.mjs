@@ -22,6 +22,7 @@ const gates = {
   rewardExplanationVisible: false,
   combatFeedbackObserved: false,
   helpRoundTripPassed: false,
+  battleReportVisible: false,
   noHorizontalOverflow: true,
 };
 
@@ -421,6 +422,34 @@ async function play() {
         terminal = status;
         break;
       }
+      if (status === 'battle-report') {
+        const panel = page.locator('#primary-actions [data-battle-report-visible="true"]');
+        const reportTitle = (await panel.locator('.result-title').textContent().catch(() => null))?.trim() ?? '';
+        const statCount = await panel.locator('.battle-report-stats .result-stat').count();
+        const continueButton = page.locator('#primary-actions [data-action="start-new-run"]');
+        const buttonVisible = await visible(continueButton);
+        gates.battleReportVisible = await visible(panel) && statCount >= 5 && buttonVisible;
+        observations.push({
+          phase: 'battle-report',
+          reportTitle,
+          statCount,
+          continueLabel: buttonVisible ? (await continueButton.textContent())?.trim() : null,
+          visible: gates.battleReportVisible,
+        });
+        await measurePage(page, 'battle-report');
+        await screenshot(page, '04-battle-report');
+        if (!gates.battleReportVisible) {
+          bug('battle-report-gate-failed', 'Battle report is missing summary stats or an explicit continue action', {
+            reportTitle,
+            statCount,
+            buttonVisible,
+          });
+          break;
+        }
+        await continueButton.click();
+        await page.waitForTimeout(100);
+        continue;
+      }
       if (status === 'configuration') {
         const startPhase = page.getByRole('button', { name: '開始呢一段', exact: true });
         if (await startPhase.count() && !await startPhase.isDisabled()) await startPhase.click();
@@ -431,11 +460,12 @@ async function play() {
     gates.smokeReachedTerminal = Boolean(terminal);
     gates.onboardingReachedReward = terminal === 'reward';
     observations.push({ phase: 'first-battle-result', terminal, gates: { ...gates } });
-    if (!terminal) bug('battle-flow-stalls', 'First battle did not reach a terminal state');
+    if (!gates.battleReportVisible) bug('battle-report-not-observed', 'First battle did not expose the canonical battle report');
+    if (!terminal) bug('battle-flow-stalls', 'First battle did not reach a terminal state after the report');
     if (terminal === 'defeat') {
       warning('onboarding-product-gate-not-passed', 'Smoke flow reached defeat, but onboarding did not reach reward', { terminal });
     }
-    await screenshot(page, '04-result');
+    await screenshot(page, '05-result');
 
     if (!gates.noHorizontalOverflow) bug('no-horizontal-overflow-gate-failed', 'One or more mobile phases overflow horizontally');
     if (runtimeErrors.length) bug('runtime-errors', 'Browser emitted runtime errors', { runtimeErrors });
