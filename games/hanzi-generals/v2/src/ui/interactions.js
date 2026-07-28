@@ -333,6 +333,9 @@ export function bindInteractions(
         if (order) dispatch({ type: 'ISSUE_ORDER', order });
         break;
       }
+      case 'continue-after-report':
+        dispatch({ type: 'CONTINUE_AFTER_REPORT' });
+        break;
       case 'start-new-run':
         dispatch({ type: 'START_NEW_RUN', seed: Date.now() });
         break;
