@@ -8,9 +8,7 @@ function battleReportAction(report) {
   return [{
     label: report.continueLabel,
     intent: report.continueIntent,
-    // Compatibility adapter until the interaction switch is deleted in T10.
-    // The reducer still exposes CONTINUE_AFTER_REPORT as the canonical command.
-    action: 'start-new-run',
+    action: 'continue-after-report',
     data: {},
     className: 'primary-button',
     disabled: false,
