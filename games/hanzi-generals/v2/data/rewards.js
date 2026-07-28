@@ -58,14 +58,14 @@ export const REWARDS = Object.freeze([
   },
   {
     id: 'extra-camp',
-    name: '臨時軍帳',
-    type: 'next-battle-camp',
+    name: '擴建軍營',
+    type: 'expedition-camp',
     value: 1,
     rarity: 'uncommon',
     description: {
-      summary: '下一戰增加軍營空間，方便暫存字牌。',
-      effect: '下一場戰鬥的軍營容量 +1。',
-      useCase: '手牌多、需要保留跨回合配方字牌時選。',
+      summary: '永久增加今次遠征的軍營空間。',
+      effect: '今次遠征軍營容量 +1，之後每場戰鬥都會保留。',
+      useCase: '需要長期保存配方字牌，或者軍營經常爆滿時選。',
     },
   },
   {
