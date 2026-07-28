@@ -2,6 +2,12 @@ import { GENERAL_BY_ID } from '../../data/generals.js';
 import { REWARDS } from '../../data/rewards.js';
 import { TUNING } from '../../data/tuning.js';
 import { rerollRetainedHand, setRetainedCards } from '../deck/reroll-policy.js';
+import {
+  moveHandCardToCamp,
+  normalizeLegacyCampBonus,
+  preserveCampAcrossTransition,
+  returnCampCardToHand,
+} from '../expedition/camp-lifecycle.js';
 import { eligibleEvolutionGenerals } from '../expedition/evolution-eligibility.js';
 import { reduceGame as reduceBaseGame, ALLOWED } from './state-machine-base.js';
 
@@ -42,12 +48,12 @@ function normalizeEvolutionRewards(state) {
 
 export function normalizeGameState(state) {
   if (!state || typeof state !== 'object') return state;
-  const migrated = {
+  const migrated = normalizeLegacyCampBonus({
     ...state,
     recruitedGeneralIds: [...new Set(state.recruitedGeneralIds ?? [])],
     rewardHistory: [...(state.rewardHistory ?? [])],
     evolutions: { ...(state.evolutions ?? {}) },
-  };
+  });
   return normalizeEvolutionRewards(migrated);
 }
 
@@ -94,12 +100,33 @@ function canonicalDeckPolicyResult(game, action) {
   return null;
 }
 
+function canonicalCampPolicyResult(game, action) {
+  if (!ALLOWED[game.status]?.has(action.type)) return null;
+  if (action.type === 'MOVE_CARD_TO_CAMP') return moveHandCardToCamp(game, action.cardId);
+  if (action.type === 'RETURN_CAMP_CARD') return returnCampCardToHand(game, action.cardId);
+  return null;
+}
+
+function applyCampLifecycleBoundary(before, action, result) {
+  if (!result.ok) return result;
+  if (['START_BATTLE', 'STEP_COMBAT'].includes(action.type)) {
+    return { ...result, state: preserveCampAcrossTransition(before, result.state) };
+  }
+  if (action.type === 'CHOOSE_REWARD' && action.rewardId === 'extra-camp') {
+    return { ...result, state: normalizeLegacyCampBonus(result.state) };
+  }
+  return result;
+}
+
 export function reduceGame(game, action) {
   const normalized = normalizeGameState(game);
   const canonical = action && ['RETAIN_CARDS', 'REROLL'].includes(action.type)
     ? canonicalDeckPolicyResult(normalized, action)
-    : null;
-  const result = canonical ?? reduceBaseGame(normalized, action);
+    : action && ['MOVE_CARD_TO_CAMP', 'RETURN_CAMP_CARD'].includes(action.type)
+      ? canonicalCampPolicyResult(normalized, action)
+      : null;
+  const baseResult = canonical ?? reduceBaseGame(normalized, action);
+  const result = action ? applyCampLifecycleBoundary(normalized, action, baseResult) : baseResult;
   if (!result.ok) return { ...result, state: game };
   return finalizeGameResult(result);
 }
