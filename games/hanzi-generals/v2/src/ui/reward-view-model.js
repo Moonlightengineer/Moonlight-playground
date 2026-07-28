@@ -1,4 +1,4 @@
-import { selectRewardTargets } from '../reward/reward-flow.js';
+import { assessRewardAvailability } from '../reward/reward-flow.js';
 
 const TARGET_REQUIRED = new Set(['copy-card', 'remove-card', 'evolve-general']);
 
@@ -38,9 +38,10 @@ function targetChoice(reward, target) {
 export function buildRewardViewModels(game) {
   if (game.status !== 'reward') return [];
   return (game.rewardChoices ?? []).map((reward) => {
-    const targets = selectRewardTargets(game, reward.id);
+    const availability = assessRewardAvailability(game, reward);
+    const targets = availability.targets;
     const requiresTarget = TARGET_REQUIRED.has(reward.id);
-    const disabled = requiresTarget && targets.length === 0;
+    const disabled = !availability.available;
     return {
       id: reward.id,
       name: reward.name,
@@ -49,11 +50,11 @@ export function buildRewardViewModels(game) {
       useCase: reward.description.useCase,
       requiresTarget,
       disabled,
-      disabledReason: disabled ? '目前冇符合資格嘅獎勵目標，請選擇其他獎勵。' : null,
+      disabledReason: disabled ? availability.reason : null,
       ariaLabel: `${reward.name}。${reward.description.summary} ${reward.description.effect} ${reward.description.useCase}`,
-      action: requiresTarget ? null : 'choose-reward',
+      action: disabled || requiresTarget ? null : 'choose-reward',
       data: { rewardId: reward.id },
-      targetChoices: targets.map((target) => targetChoice(reward, target)),
+      targetChoices: disabled ? [] : targets.map((target) => targetChoice(reward, target)),
     };
   });
 }
