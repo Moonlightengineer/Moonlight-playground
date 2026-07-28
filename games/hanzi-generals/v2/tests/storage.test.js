@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createExpedition } from '../src/expedition/expedition.js';
+import { reduceGame } from '../src/core/state-machine.js';
 import {
   buildLatestVersionUrl,
   clearAllV2Data,
@@ -31,9 +33,35 @@ function memoryStorage() {
   };
 }
 
+function stateWithStatus(status, seed = `storage-${status}`) {
+  const game = createExpedition(seed);
+  return {
+    ...game,
+    status,
+    rewardChoices: status === 'reward' ? [] : game.rewardChoices,
+    battleReport: status === 'battle-report' ? {
+      schemaVersion: 1,
+      stageId: 'tutorial',
+      battleNumber: 1,
+      result: 'victory',
+      nextStatus: 'reward',
+      wallStart: 100,
+      wallEnd: 100,
+      wallDamage: 0,
+      phasesCompleted: 3,
+      turns: 1,
+      enemiesDefeated: 1,
+      unitsFielded: 0,
+      unitsLost: 0,
+      ordersUsed: 0,
+      eventCounts: {},
+    } : null,
+  };
+}
+
 test('save/load uses schema version and rejects corrupt JSON', () => {
   const storage = memoryStorage();
-  saveSnapshot({ version: 1, status: 'expedition-map' }, storage);
+  saveSnapshot(createExpedition('storage-roundtrip'), storage);
   assert.equal(loadSnapshot(storage).ok, true);
 
   storage.setItem(STORAGE_KEYS.save, '{broken');
@@ -63,7 +91,7 @@ test('tutorial completion is stored independently from expedition progress', () 
 
 test('expedition reset removes only the run and preserves tutorial, settings, and unrelated data', () => {
   const storage = memoryStorage();
-  saveSnapshot({ status: 'reward' }, storage);
+  saveSnapshot(stateWithStatus('reward'), storage);
   saveTutorial({ step: 'complete', complete: true }, storage);
   saveSettings({ reducedMotion: true, vibration: false, speed: 2 }, storage);
   storage.setItem('hanzi-generals-v2:legacy:v0', 'legacy');
@@ -124,16 +152,20 @@ test('snapshot is written only at approved boundaries', () => {
       writes.push(JSON.parse(value).game.status);
     },
   };
+  const map = createExpedition('storage-boundaries');
+  const configuration = reduceGame(map, { type: 'START_BATTLE' }).state;
 
   assert.equal(maybeSave({ status: 'combat', combat: { turn: 3 } }, spyStorage), false);
-  assert.equal(maybeSave({ status: 'configuration', currentBattle: { phaseIndex: 1 } }, spyStorage), false);
-  assert.equal(maybeSave({ status: 'reward' }, spyStorage), true);
-  assert.equal(maybeSave({ status: 'configuration', currentBattle: { phaseIndex: 0 } }, spyStorage), true);
-  assert.equal(maybeSave({ status: 'expedition-map' }, spyStorage), true);
-  assert.deepEqual(writes, ['reward', 'configuration', 'expedition-map']);
+  assert.equal(maybeSave({ ...configuration, currentBattle: { ...configuration.currentBattle, phaseIndex: 1 } }, spyStorage), false);
+  assert.equal(maybeSave(stateWithStatus('battle-report'), spyStorage), true);
+  assert.equal(maybeSave(stateWithStatus('reward'), spyStorage), true);
+  assert.equal(maybeSave(configuration, spyStorage), true);
+  assert.equal(maybeSave(map, spyStorage), true);
+  assert.deepEqual(writes, ['battle-report', 'reward', 'configuration', 'expedition-map']);
 });
 
 test('approved save boundary helper is explicit and stable', () => {
+  assert.equal(isApprovedSaveBoundary({ status: 'battle-report' }), true);
   assert.equal(isApprovedSaveBoundary({ status: 'reward' }), true);
   assert.equal(isApprovedSaveBoundary({ status: 'victory' }), true);
   assert.equal(isApprovedSaveBoundary({ status: 'combat' }), false);

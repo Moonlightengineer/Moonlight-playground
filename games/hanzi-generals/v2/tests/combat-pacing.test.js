@@ -17,9 +17,15 @@ test('combat feedback exposes an awaitable per-turn presentation sequence', asyn
   assert.match(feedback, /return\s*\{\s*present,\s*clear,\s*whenIdle\s*\}/);
 });
 
-test('battle ticks wait for combat feedback before scheduling the next step', async () => {
-  const app = await source('src/app.js');
-  assert.match(app, /feedbackSequence\s*=\s*feedback\.present\(events\)/);
-  assert.match(app, /feedback\.whenIdle\(\)\.finally/);
-  assert.match(app, /pacingRequest/);
+test('AppController waits for feedback idle and invalidates stale battle ticks', async () => {
+  const [app, controller] = await Promise.all([
+    source('src/app.js'),
+    source('src/app-controller.js'),
+  ]);
+  assert.match(app, /const sequence = feedback\.present\(events\)/);
+  assert.match(app, /waitUntilIdle:\s*\(\)\s*=>\s*feedback\.whenIdle\(\)/);
+  assert.match(controller, /let scheduleRequest = 0/);
+  assert.match(controller, /Promise\.resolve\(idle\)\.finally\(arm\)/);
+  assert.match(controller, /request !== scheduleRequest/);
+  assert.match(controller, /dispatchIntent\(\{ type: 'STEP_COMBAT' \}\)/);
 });

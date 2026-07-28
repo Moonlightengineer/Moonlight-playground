@@ -44,7 +44,7 @@ test('browser and storage use the canonical entry without import-map or reviewed
   await assert.rejects(access(new URL('src/core/state-machine-reviewed.js', ROOT)));
 });
 
-test('canonical reducer carries board assembly through the fifth-battle evolution choice', () => {
+test('canonical reducer carries board assembly through battle report and fifth-battle evolution choice', () => {
   let game = reduceGame(createExpedition('canonical-evolution'), { type: 'START_BATTLE' }).state;
   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
 
@@ -82,10 +82,15 @@ test('canonical reducer carries board assembly through the fifth-battle evolutio
     legalActions: ['STEP_COMBAT'],
   };
 
-  const reward = reduceGame(fifthBattle, { type: 'STEP_COMBAT' });
+  const report = reduceGame(fifthBattle, { type: 'STEP_COMBAT' });
+  assert.equal(report.ok, true);
+  assert.equal(report.state.status, 'battle-report');
+  assert.equal(report.state.battleReport.nextStatus, 'reward');
+  assert.equal(report.state.rewardChoices.some(({ id }) => id === 'evolve-general'), true);
+
+  const reward = reduceGame(report.state, { type: 'CONTINUE_AFTER_REPORT' });
   assert.equal(reward.ok, true);
   assert.equal(reward.state.status, 'reward');
-  assert.equal(reward.state.rewardChoices.some(({ id }) => id === 'evolve-general'), true);
 
   const evolved = reduceGame(reward.state, {
     type: 'CHOOSE_REWARD',

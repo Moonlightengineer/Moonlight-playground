@@ -1,5 +1,16 @@
+import { getRenderedViewModel } from './rendered-view-model.js';
+
 function number(value) {
   return Number(value);
+}
+
+function didSucceed(result) {
+  return result === true || result?.ok === true;
+}
+
+function escapeSelector(value) {
+  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') return CSS.escape(value);
+  return String(value).replaceAll('"', '\\"');
 }
 
 function orderFromDataset(dataset) {
@@ -23,8 +34,35 @@ function orderFromDataset(dataset) {
   return null;
 }
 
+function rememberInteractiveState(element) {
+  if (!element.dataset.orderOriginalAction) {
+    element.dataset.orderOriginalAction = element.dataset.action ?? '';
+    element.dataset.orderOriginalDisabled = String(Boolean(element.disabled));
+  }
+}
+
+function markTarget(element, action, data = {}) {
+  if (!element) return;
+  rememberInteractiveState(element);
+  element.dataset.action = action;
+  element.disabled = false;
+  for (const [key, value] of Object.entries(data)) {
+    if (value !== undefined && value !== null) element.dataset[key] = String(value);
+  }
+  element.classList.add('is-order-target');
+}
+
 function clearOrderDecorations(root) {
   root.dataset.orderMode = '';
+  root.querySelectorAll('[data-order-original-action]').forEach((element) => {
+    const original = element.dataset.orderOriginalAction;
+    if (original) element.dataset.action = original;
+    else delete element.dataset.action;
+    element.disabled = element.dataset.orderOriginalDisabled === 'true';
+    delete element.dataset.orderOriginalAction;
+    delete element.dataset.orderOriginalDisabled;
+    delete element.dataset.sourceUnitId;
+  });
   root.querySelectorAll('.is-order-target, .is-order-source').forEach((element) => {
     element.classList.remove('is-order-target', 'is-order-source');
   });
@@ -33,11 +71,7 @@ function clearOrderDecorations(root) {
     token.removeAttribute('role');
     token.removeAttribute('tabindex');
   });
-  root.querySelectorAll('#battle-board [data-action="order-reinforce-target"]').forEach((cell) => {
-    delete cell.dataset.action;
-    cell.disabled = true;
-  });
-  root.querySelectorAll('.order-prompt').forEach((element) => element.remove());
+  root.querySelectorAll('.order-prompt, [data-action="cancel-order"]').forEach((element) => element.remove());
 }
 
 function addPrompt(root, text) {
@@ -65,122 +99,117 @@ function cellFromElement(element) {
   };
 }
 
-function distance(a, b) {
-  return Math.abs(a.column - b.column) + Math.abs(a.row - b.row);
+function unitButton(root, unitId) {
+  return root.querySelector(`#battle-board [data-unit-id="${escapeSelector(unitId)}"]`);
 }
 
-function unitButtons(root) {
-  return [...root.querySelectorAll('#battle-board .board-cell.has-unit')];
+function boardCell(root, cell) {
+  return root.querySelector(
+    `#battle-board [data-column="${cell.column}"][data-row="${cell.row}"]`,
+  );
 }
 
-function adjacentUnitTargets(source, candidates) {
-  const sourceCell = cellFromElement(source);
-  return candidates.filter((candidate) => (
-    candidate !== source && distance(sourceCell, cellFromElement(candidate)) === 1
-  ));
+function enemyToken(root, enemyId) {
+  return root.querySelector(`#enemy-field [data-enemy-id="${escapeSelector(enemyId)}"]`);
 }
 
-function adjacentEmptyLaneTargets(root, source) {
-  const sourceCell = cellFromElement(source);
-  return [...root.querySelectorAll('#battle-board .board-cell:not(.has-unit):not(.has-character)')]
-    .filter((candidate) => {
-      const target = cellFromElement(candidate);
-      return distance(sourceCell, target) === 1 && sourceCell.column !== target.column;
-    });
-}
-
-function decorateOrderTargets(root, mode) {
+function decorateOrderTargets(root, mode, getViewModel) {
   clearOrderDecorations(root);
   root.dataset.orderMode = mode.type;
+  const orders = getViewModel()?.orders ?? {};
+  const swapPairs = orders.swapPairs ?? [];
+  const reinforce = orders.reinforce ?? [];
+  const focusEnemyIds = orders.focusEnemyIds ?? [];
 
   if (mode.type === 'swap' && !mode.unitId) {
-    const candidates = unitButtons(root);
-    for (const button of candidates) {
-      if (!adjacentUnitTargets(button, candidates).length) continue;
-      button.disabled = false;
-      button.dataset.action = 'order-select-unit';
-      button.classList.add('is-order-target');
-    }
+    const sourceIds = new Set(swapPairs.flat());
+    for (const unitId of sourceIds) markTarget(unitButton(root, unitId), 'order-select-unit');
     addPrompt(root, '變陣：先揀一名有相鄰友軍嘅武將。');
     return;
   }
 
   if (mode.type === 'swap' && mode.unitId) {
-    const source = root.querySelector(`#battle-board [data-unit-id="${CSS.escape(mode.unitId)}"]`);
+    const source = unitButton(root, mode.unitId);
     if (!source) return;
     source.classList.add('is-order-source');
     source.classList.remove('is-order-target');
-
-    for (const button of adjacentUnitTargets(source, unitButtons(root))) {
-      button.disabled = false;
-      button.dataset.action = 'order-swap-target';
-      button.dataset.sourceUnitId = mode.unitId;
-      button.classList.add('is-order-target');
+    const targets = swapPairs
+      .filter((pair) => pair.includes(mode.unitId))
+      .map((pair) => pair.find((unitId) => unitId !== mode.unitId))
+      .filter(Boolean);
+    for (const unitId of targets) {
+      markTarget(unitButton(root, unitId), 'order-swap-target', { sourceUnitId: mode.unitId });
     }
     addPrompt(root, '變陣：再揀一名相鄰武將交換位置。');
     return;
   }
 
   if (mode.type === 'reinforce' && !mode.unitId) {
-    for (const button of unitButtons(root)) {
-      if (!adjacentEmptyLaneTargets(root, button).length) continue;
-      button.disabled = false;
-      button.dataset.action = 'order-select-reinforce-unit';
-      button.classList.add('is-order-target');
+    for (const option of reinforce) {
+      markTarget(unitButton(root, option.unitId), 'order-select-reinforce-unit');
     }
     addPrompt(root, '援防：先揀一名可調往相鄰空路嘅友軍。');
     return;
   }
 
   if (mode.type === 'reinforce' && mode.unitId) {
-    const source = root.querySelector(`#battle-board [data-unit-id="${CSS.escape(mode.unitId)}"]`);
+    const source = unitButton(root, mode.unitId);
     if (!source) return;
     source.classList.add('is-order-source');
     source.classList.remove('is-order-target');
-    for (const cell of adjacentEmptyLaneTargets(root, source)) {
-      cell.disabled = false;
-      cell.dataset.action = 'order-reinforce-target';
-      cell.dataset.sourceUnitId = mode.unitId;
-      cell.classList.add('is-order-target');
+    const option = reinforce.find(({ unitId }) => unitId === mode.unitId);
+    for (const cell of option?.targetCells ?? []) {
+      markTarget(boardCell(root, cell), 'order-reinforce-target', { sourceUnitId: mode.unitId });
     }
     addPrompt(root, '援防：再揀相鄰空路位置。移動後原路會失去呢名友軍。');
     return;
   }
 
   if (mode.type === 'focus') {
-    for (const token of root.querySelectorAll('#enemy-field .enemy-token[data-focus-eligible="true"]')) {
-      token.dataset.action = 'order-focus-target';
-      token.dataset.enemyId = token.dataset.enemyId ?? token.dataset.entityId;
-      token.classList.add('is-order-target');
-      token.setAttribute('role', 'button');
-      token.tabIndex = 0;
+    for (const enemyId of focusEnemyIds) {
+      const token = enemyToken(root, enemyId);
+      markTarget(token, 'order-focus-target', { enemyId });
+      token?.setAttribute('role', 'button');
+      if (token) token.tabIndex = 0;
     }
     addPrompt(root, '集火：點選友軍原本可以攻擊嘅敵人。');
   }
 }
 
-export function bindInteractions(root, dispatch) {
+function selectedInCamp(viewModel) {
+  return (viewModel?.camp?.slots ?? []).some((slot) => slot.selected);
+}
+
+function selectedInHand(viewModel) {
+  return (viewModel?.hand?.cards ?? []).some((card) => card.selected);
+}
+
+export function bindInteractions(
+  root,
+  dispatch,
+  getViewModel = () => getRenderedViewModel(root),
+) {
   let orderMode = null;
 
   function beginOrder(type) {
     const resumeAfter = Boolean(root.querySelector('#orders [data-action="pause"]'));
     orderMode = { type, unitId: null, resumeAfter };
-    dispatch({ type: 'PAUSE' });
-    decorateOrderTargets(root, orderMode);
+    const result = dispatch({ type: 'PAUSE' });
+    if (didSucceed(result)) decorateOrderTargets(root, orderMode, getViewModel);
+    else orderMode = null;
   }
 
   function finishOrder(action) {
     const resumeAfter = Boolean(orderMode?.resumeAfter);
     orderMode = null;
     clearOrderDecorations(root);
-    const ok = dispatch(action);
-    if (ok && resumeAfter) dispatch({ type: 'RESUME' });
+    const result = dispatch(action);
+    if (didSucceed(result) && resumeAfter) dispatch({ type: 'RESUME' });
   }
 
   function cancelOrder() {
     const resumeAfter = Boolean(orderMode?.resumeAfter);
     orderMode = null;
-    dispatch({ type: 'PAUSE' });
     clearOrderDecorations(root);
     if (resumeAfter) dispatch({ type: 'RESUME' });
   }
@@ -192,11 +221,11 @@ export function bindInteractions(root, dispatch) {
 
     switch (action) {
       case 'select-card':
-        if (root.querySelector('#camp .camp-select.is-selected')) dispatch({ type: 'UI_CLEAR_SELECTION' });
+        if (selectedInCamp(getViewModel())) dispatch({ type: 'UI_CLEAR_SELECTION' });
         dispatch({ type: 'SELECT_CARD', cardId: target.dataset.cardId });
         break;
       case 'select-camp-card':
-        if (root.querySelector('#hand .hand-card.is-selected')) dispatch({ type: 'UI_CLEAR_SELECTION' });
+        if (selectedInHand(getViewModel())) dispatch({ type: 'UI_CLEAR_SELECTION' });
         dispatch({ type: 'SELECT_CARD', cardId: target.dataset.cardId });
         break;
       case 'choose-cell':
@@ -224,7 +253,7 @@ export function bindInteractions(root, dispatch) {
         dispatch({ type: 'RETAIN_CARDS', cardIds: target.dataset.cardIds.split(',').filter(Boolean) });
         break;
       case 'reroll':
-        dispatch({ type: 'REROLL', lockedCardIds: [] });
+        dispatch({ type: 'REROLL' });
         break;
       case 'start-phase':
         dispatch({ type: 'START_PHASE' });
@@ -261,12 +290,12 @@ export function bindInteractions(root, dispatch) {
       case 'order-select-unit':
         if (orderMode?.type !== 'swap') break;
         orderMode = { ...orderMode, unitId: target.dataset.unitId };
-        decorateOrderTargets(root, orderMode);
+        decorateOrderTargets(root, orderMode, getViewModel);
         break;
       case 'order-select-reinforce-unit':
         if (orderMode?.type !== 'reinforce') break;
         orderMode = { ...orderMode, unitId: target.dataset.unitId };
-        decorateOrderTargets(root, orderMode);
+        decorateOrderTargets(root, orderMode, getViewModel);
         break;
       case 'order-swap-target':
         if (orderMode?.type !== 'swap' || !orderMode.unitId) break;
@@ -304,6 +333,9 @@ export function bindInteractions(root, dispatch) {
         if (order) dispatch({ type: 'ISSUE_ORDER', order });
         break;
       }
+      case 'continue-after-report':
+        dispatch({ type: 'CONTINUE_AFTER_REPORT' });
+        break;
       case 'start-new-run':
         dispatch({ type: 'START_NEW_RUN', seed: Date.now() });
         break;

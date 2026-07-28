@@ -31,17 +31,27 @@ function thirdBattleCompletion(route) {
   };
 }
 
-test('safe third battle offers Zhang Fei while danger offers Zhuge Liang', () => {
-  const safe = reduceGame(thirdBattleCompletion('safe'), { type: 'STEP_COMBAT' });
-  assert.equal(safe.ok, true);
-  assert.equal(safe.state.status, 'reward');
-  assert.equal(safe.state.rewardChoices.some(({ id }) => id === 'unlock-zhang-fei'), true);
-  assert.equal(safe.state.rewardChoices.some(({ id }) => id === 'unlock-zhuge-liang'), false);
+function continueToReward(reportState) {
+  assert.equal(reportState.status, 'battle-report');
+  assert.equal(reportState.battleReport.nextStatus, 'reward');
+  const continued = reduceGame(reportState, { type: 'CONTINUE_AFTER_REPORT' });
+  assert.equal(continued.ok, true);
+  assert.equal(continued.state.status, 'reward');
+  return continued.state;
+}
 
-  const danger = reduceGame(thirdBattleCompletion('danger'), { type: 'STEP_COMBAT' });
-  assert.equal(danger.ok, true);
-  assert.equal(danger.state.rewardChoices.some(({ id }) => id === 'unlock-zhuge-liang'), true);
-  assert.equal(danger.state.rewardChoices.some(({ id }) => id === 'unlock-zhang-fei'), false);
+test('safe third battle offers Zhang Fei while danger offers Zhuge Liang', () => {
+  const safeReport = reduceGame(thirdBattleCompletion('safe'), { type: 'STEP_COMBAT' });
+  assert.equal(safeReport.ok, true);
+  const safe = continueToReward(safeReport.state);
+  assert.equal(safe.rewardChoices.some(({ id }) => id === 'unlock-zhang-fei'), true);
+  assert.equal(safe.rewardChoices.some(({ id }) => id === 'unlock-zhuge-liang'), false);
+
+  const dangerReport = reduceGame(thirdBattleCompletion('danger'), { type: 'STEP_COMBAT' });
+  assert.equal(dangerReport.ok, true);
+  const danger = continueToReward(dangerReport.state);
+  assert.equal(danger.rewardChoices.some(({ id }) => id === 'unlock-zhuge-liang'), true);
+  assert.equal(danger.rewardChoices.some(({ id }) => id === 'unlock-zhang-fei'), false);
 });
 
 function evolutionRewardGame(overrides = {}) {
