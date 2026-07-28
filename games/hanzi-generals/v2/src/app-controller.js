@@ -16,6 +16,20 @@ function cloneRuntime(runtime, changes = {}) {
   };
 }
 
+function createLegacyCommandGame(runtime) {
+  return {
+    ...runtime.game,
+    settings: { ...runtime.profile.settings },
+    tutorial: runtime.profile.tutorial ? { ...runtime.profile.tutorial } : null,
+    selection: { cardIds: [...runtime.ui.selectedCardIds] },
+    ui: {
+      ...(runtime.game.ui ?? {}),
+      rangeUnitId: runtime.ui.rangeUnitId,
+      lastMessage: runtime.ui.lastMessage,
+    },
+  };
+}
+
 function syncLegacyRuntime(runtime, nextGame) {
   return createRuntimeState({
     game: nextGame,
@@ -184,7 +198,8 @@ export function createAppController({
   function dispatchDomainIntent(intent) {
     const originalGame = runtime.game;
     const originalProfile = runtime.profile;
-    const result = reduceGame(originalGame, intent);
+    const commandGame = createLegacyCommandGame(runtime);
+    const result = reduceGame(commandGame, intent);
     if (!result.ok) {
       runtime = cloneRuntime(runtime, {
         game: originalGame,
