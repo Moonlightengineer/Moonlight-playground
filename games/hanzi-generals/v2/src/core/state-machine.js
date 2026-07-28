@@ -15,6 +15,7 @@ import {
 import { eligibleEvolutionGenerals } from '../expedition/evolution-eligibility.js';
 import { createExpedition } from '../expedition/expedition.js';
 import { recordBattleEvents } from '../report/battle-report.js';
+import { applyRewardChoice } from '../reward/reward-flow.js';
 import { reduceGame as reduceBaseGame, ALLOWED } from './state-machine-base.js';
 
 const SAFE_REWARD_FALLBACKS = Object.freeze([
@@ -132,6 +133,16 @@ function canonicalBattlePolicyResult(game, action) {
   return null;
 }
 
+function canonicalRewardPolicyResult(game, action) {
+  if (game.status !== 'reward' || action.type !== 'CHOOSE_REWARD') return null;
+  return applyRewardChoice(
+    game,
+    action.rewardId,
+    action.payload ?? {},
+    action.route,
+  );
+}
+
 function continueAfterReport(game) {
   const report = game.battleReport;
   if (!report) return failure(game, 'MISSING_BATTLE_REPORT', '戰鬥報告不存在。');
@@ -168,14 +179,6 @@ function canonicalReportPolicyResult(game, action) {
   return failure(game, 'ILLEGAL_ACTION_FOR_STATE', '而家唔可以執行呢個操作。');
 }
 
-function applyCampRewardBoundary(action, result) {
-  if (!result.ok) return result;
-  if (action.type === 'CHOOSE_REWARD' && action.rewardId === 'extra-camp') {
-    return { ...result, state: normalizeLegacyCampBonus(result.state) };
-  }
-  return result;
-}
-
 function recordOngoingBattleResult(action, result) {
   if (!result.ok || !result.state?.battleMetrics || action.type === 'STEP_COMBAT') return result;
   const state = result.state;
@@ -201,16 +204,17 @@ export function reduceGame(game, action) {
   const normalized = normalizeGameState(game);
   const canonical = action && normalized.status === 'battle-report'
     ? canonicalReportPolicyResult(normalized, action)
-    : action && ['RETAIN_CARDS', 'REROLL'].includes(action.type)
-      ? canonicalDeckPolicyResult(normalized, action)
-      : action && ['MOVE_CARD_TO_CAMP', 'RETURN_CAMP_CARD'].includes(action.type)
-        ? canonicalCampPolicyResult(normalized, action)
-        : action && ['START_BATTLE', 'START_PHASE', 'STEP_COMBAT'].includes(action.type)
-          ? canonicalBattlePolicyResult(normalized, action)
-          : null;
+    : action && normalized.status === 'reward' && action.type === 'CHOOSE_REWARD'
+      ? canonicalRewardPolicyResult(normalized, action)
+      : action && ['RETAIN_CARDS', 'REROLL'].includes(action.type)
+        ? canonicalDeckPolicyResult(normalized, action)
+        : action && ['MOVE_CARD_TO_CAMP', 'RETURN_CAMP_CARD'].includes(action.type)
+          ? canonicalCampPolicyResult(normalized, action)
+          : action && ['START_BATTLE', 'START_PHASE', 'STEP_COMBAT'].includes(action.type)
+            ? canonicalBattlePolicyResult(normalized, action)
+            : null;
   const baseResult = canonical ?? reduceBaseGame(normalized, action);
-  const campResult = action ? applyCampRewardBoundary(action, baseResult) : baseResult;
-  const result = action ? recordOngoingBattleResult(action, campResult) : campResult;
+  const result = action ? recordOngoingBattleResult(action, baseResult) : baseResult;
   if (!result.ok) return { ...result, state: game };
   return finalizeGameResult(result);
 }
