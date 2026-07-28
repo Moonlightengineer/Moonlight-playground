@@ -426,7 +426,7 @@ async function play() {
         const panel = page.locator('#primary-actions [data-battle-report-visible="true"]');
         const reportTitle = (await panel.locator('.result-title').textContent().catch(() => null))?.trim() ?? '';
         const statCount = await panel.locator('.battle-report-stats .result-stat').count();
-        const continueButton = page.locator('#primary-actions [data-action="start-new-run"]');
+        const continueButton = page.locator('#primary-actions [data-action="continue-after-report"]');
         const buttonVisible = await visible(continueButton);
         gates.battleReportVisible = await visible(panel) && statCount >= 5 && buttonVisible;
         observations.push({
