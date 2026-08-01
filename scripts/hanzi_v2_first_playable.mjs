@@ -2,7 +2,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
 
-const ARTIFACT_DIR = 'artifacts/hanzi-v2-first-playable';
+const ARTIFACT_DIR = 'artifacts/hanzi-v2-playtest';
 const BASE_URL = 'http://127.0.0.1:8000/games/hanzi-generals/v2/?seed=first-playable-v2';
 const RECIPES = [
   { symbols: ['張', '飛'], unit: '張飛', row: 0 },
@@ -78,7 +78,12 @@ async function handWrap(page, symbol) {
 }
 
 async function chooseCell(page, recipe) {
-  const columns = [1, 0, 2];
+  const columnCounts = await page.locator('#battle-board .board-cell.has-unit').evaluateAll((cells) => {
+    const counts = [0, 0, 0];
+    for (const cell of cells) counts[Number(cell.dataset.column)] += 1;
+    return counts;
+  });
+  const columns = [0, 1, 2].sort((left, right) => columnCounts[left] - columnCounts[right] || left - right);
   const rows = [recipe.row, 1, 0, 2].filter((value, index, values) => values.indexOf(value) === index);
   for (const column of columns) {
     for (const row of rows) {
@@ -161,10 +166,24 @@ async function run() {
     await page.goto(BASE_URL, { waitUntil: 'networkidle' });
     await page.getByRole('button', { name: '開始下一戰', exact: true }).click();
 
-    const deadline = Date.now() + 70000;
+    const deadline = Date.now() + 120000;
+    let lastStatus = null;
+    let lastStatusAt = 0;
     while (Date.now() < deadline) {
       const status = await page.locator('#v2-game-app').getAttribute('data-status');
       await measure(page, status);
+      if (status !== lastStatus || Date.now() - lastStatusAt > 5000) {
+        const snapshot = await page.evaluate(() => ({
+          status: document.querySelector('#v2-game-app')?.dataset.status ?? null,
+          phase: document.querySelector('#run-status')?.textContent?.trim() ?? '',
+          orders: document.querySelector('#orders')?.textContent?.trim() ?? '',
+          units: document.querySelectorAll('#battle-board .board-cell.has-unit').length,
+          enemies: document.querySelectorAll('#enemy-field .enemy-token').length,
+        }));
+        report.observations.push({ type: 'status', elapsedMs: 120000 - (deadline - Date.now()), ...snapshot });
+        lastStatus = status;
+        lastStatusAt = Date.now();
+      }
       if (status === 'configuration') {
         await preparePhase(page);
       } else if (status === 'combat') {
