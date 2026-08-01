@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: pages-${{ github.ref }}
@@ -20,49 +20,11 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-
-      - name: Apply verified Hanzi v2 slice payload
-        if: ${{ github.event_name == 'pull_request' && hashFiles('.automation/patches/00-generals.patch') != '' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat > /tmp/hanzi-v2-slice1.sha256 <<'EOF'
-          997ac4ef53ad45ff42b2397dd9d2dcfe2563e8f208d2a7e40ac78cbc16fae675  .automation/patches/00-generals.patch
-          29a360da816241dbbef7a5cb534c1d67d9e57abafaed3051be2096c8e8d14201  .automation/patches/01-data-app.patch
-          a15735bbd2eea24025f157bf3402143d11a3a8e6c7732ad6a10c7c6462883bac  .automation/patches/02-core-flow.patch
-          987f8cec18d7dfd583d66af6cd57f22819580e605af83c875b0cbcf782562762  .automation/patches/03-tests.patch
-          e957eac26d5f5b8ebd8b161757692df3f1bddeee1ac7ef3efce70699f4b63a69  .automation/patches/04-state-machine.patch
-          EOF
-          sha256sum -c /tmp/hanzi-v2-slice1.sha256
-          for patch in .automation/patches/*.patch; do git apply --check "$patch"; done
-          for patch in .automation/patches/*.patch; do git apply "$patch"; done
-          rm -rf .automation
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "feat(hanzi-v2): establish 40-card content network"
-          git push origin "HEAD:${{ github.head_ref }}"
 
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - name: Upload Hanzi v2 working source
-        uses: actions/upload-artifact@v4
-        with:
-          name: hanzi-v2-working-source
-          path: |
-            games/hanzi-generals/v2
-            package.json
-            scripts
-            tests
-            .github/workflows/pages.yml
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 7
 
       - name: Test v2 foundations
         run: >-
