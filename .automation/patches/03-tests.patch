@@ -1,0 +1,194 @@
+--- a/games/hanzi-generals/v2/tests/battle-lifecycle.test.js
++++ b/games/hanzi-generals/v2/tests/battle-lifecycle.test.js
+@@ -15,12 +15,12 @@
+ function prepareConfiguredBattle(seed = 'battle-lifecycle') {
+   let game = startBattle(createExpedition(seed)).state;
+   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
+-  const huang = game.deck.hand.find(({ symbol }) => symbol === '黃');
+-  const zhong = game.deck.hand.find(({ symbol }) => symbol === '忠');
+-  assert.ok(huang && zhong);
++  const zhang = game.deck.hand.find(({ symbol }) => symbol === '張');
++  const fei = game.deck.hand.find(({ symbol }) => symbol === '飛');
++  assert.ok(zhang && fei);
+   game = reduceGame(game, {
+     type: 'ASSEMBLE',
+-    source: { type: 'hand', cardIds: [huang.id, zhong.id] },
++    source: { type: 'hand', cardIds: [zhang.id, fei.id] },
+     target: { column: 0, row: 0 },
+   }).state;
+   return game;
+--- a/games/hanzi-generals/v2/tests/battle-report.test.js
++++ b/games/hanzi-generals/v2/tests/battle-report.test.js
+@@ -25,11 +25,11 @@
+ function prepareCombat(seed = 'battle-report') {
+   let game = reduceGame(createExpedition(seed), { type: 'START_BATTLE' }).state;
+   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
+-  const huang = game.deck.hand.find(({ symbol }) => symbol === '黃');
+-  const zhong = game.deck.hand.find(({ symbol }) => symbol === '忠');
++  const zhang = game.deck.hand.find(({ symbol }) => symbol === '張');
++  const fei = game.deck.hand.find(({ symbol }) => symbol === '飛');
+   game = reduceGame(game, {
+     type: 'ASSEMBLE',
+-    source: { type: 'hand', cardIds: [huang.id, zhong.id] },
++    source: { type: 'hand', cardIds: [zhang.id, fei.id] },
+     target: { column: 0, row: 0 },
+   }).state;
+   game = reduceGame(game, { type: 'START_PHASE' }).state;
+--- a/games/hanzi-generals/v2/tests/camp-lifecycle.test.js
++++ b/games/hanzi-generals/v2/tests/camp-lifecycle.test.js
+@@ -30,12 +30,12 @@
+ function prepareBattleWithCamp(seed = 'camp-battle') {
+   let game = reduceGame(createExpedition(seed), { type: 'START_BATTLE' }).state;
+   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
+-  const huang = game.deck.hand.find(({ symbol }) => symbol === '黃');
+-  const zhong = game.deck.hand.find(({ symbol }) => symbol === '忠');
+-  assert.ok(huang && zhong);
++  const zhang = game.deck.hand.find(({ symbol }) => symbol === '張');
++  const fei = game.deck.hand.find(({ symbol }) => symbol === '飛');
++  assert.ok(zhang && fei);
+   game = reduceGame(game, {
+     type: 'ASSEMBLE',
+-    source: { type: 'hand', cardIds: [huang.id, zhong.id] },
++    source: { type: 'hand', cardIds: [zhang.id, fei.id] },
+     target: { column: 0, row: 0 },
+   }).state;
+   const campCard = game.deck.hand[0];
+--- a/games/hanzi-generals/v2/tests/canonical-state-machine.test.js
++++ b/games/hanzi-generals/v2/tests/canonical-state-machine.test.js
+@@ -48,17 +48,17 @@
+   let game = reduceGame(createExpedition('canonical-evolution'), { type: 'START_BATTLE' }).state;
+   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
+ 
+-  const huang = game.deck.hand.find(({ symbol }) => symbol === '黃');
+-  const zhong = game.deck.hand.find(({ symbol }) => symbol === '忠');
+-  assert.ok(huang);
+-  assert.ok(zhong);
++  const zhang = game.deck.hand.find(({ symbol }) => symbol === '張');
++  const fei = game.deck.hand.find(({ symbol }) => symbol === '飛');
++  assert.ok(zhang);
++  assert.ok(fei);
+ 
+-  game = reduceGame(game, { type: 'SELECT_CARD', cardId: huang.id }).state;
++  game = reduceGame(game, { type: 'SELECT_CARD', cardId: zhang.id }).state;
+   game = reduceGame(game, { type: 'ASSEMBLE', target: { column: 0, row: 0 } }).state;
+-  game = reduceGame(game, { type: 'SELECT_CARD', cardId: zhong.id }).state;
++  game = reduceGame(game, { type: 'SELECT_CARD', cardId: fei.id }).state;
+   const assembled = reduceGame(game, { type: 'ASSEMBLE', target: { column: 1, row: 0 } });
+   assert.equal(assembled.ok, true);
+-  assert.deepEqual(assembled.state.recruitedGeneralIds, ['huang-zhong']);
++  assert.deepEqual(assembled.state.recruitedGeneralIds, ['zhang-fei']);
+ 
+   const fifthBattle = {
+     ...assembled.state,
+@@ -95,8 +95,8 @@
+   const evolved = reduceGame(reward.state, {
+     type: 'CHOOSE_REWARD',
+     rewardId: 'evolve-general',
+-    payload: { generalId: 'huang-zhong', evolutionId: 'divine-shot' },
++    payload: { generalId: 'zhang-fei', evolutionId: 'roar' },
+   });
+   assert.equal(evolved.ok, true);
+-  assert.equal(evolved.state.evolutions['huang-zhong'], 'divine-shot');
++  assert.equal(evolved.state.evolutions['zhang-fei'], 'roar');
+ });
+--- a/games/hanzi-generals/v2/tests/card-invariants.test.js
++++ b/games/hanzi-generals/v2/tests/card-invariants.test.js
+@@ -803,16 +803,16 @@
+   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
+   assertCardOwnership(game);
+ 
+-  const huang = game.deck.hand.find(({ symbol }) => symbol === '黃');
+-  const zhong = game.deck.hand.find(({ symbol }) => symbol === '忠');
+-  assert.ok(huang);
+-  assert.ok(zhong);
+-
+-  game = reduceGame(game, { type: 'SELECT_CARD', cardId: huang.id }).state;
++  const zhang = game.deck.hand.find(({ symbol }) => symbol === '張');
++  const fei = game.deck.hand.find(({ symbol }) => symbol === '飛');
++  assert.ok(zhang);
++  assert.ok(fei);
++
++  game = reduceGame(game, { type: 'SELECT_CARD', cardId: zhang.id }).state;
+   game = reduceGame(game, { type: 'ASSEMBLE', target: { column: 0, row: 0 } }).state;
+   assertCardOwnership(game);
+ 
+-  game = reduceGame(game, { type: 'SELECT_CARD', cardId: zhong.id }).state;
++  game = reduceGame(game, { type: 'SELECT_CARD', cardId: fei.id }).state;
+   game = reduceGame(game, { type: 'ASSEMBLE', target: { column: 1, row: 0 } }).state;
+   assertCardOwnership(game);
+   assert.equal(game.deck.deployed.length, 1);
+--- a/games/hanzi-generals/v2/tests/data-validator.test.js
++++ b/games/hanzi-generals/v2/tests/data-validator.test.js
+@@ -3,12 +3,12 @@
+ import { validateGameData } from '../src/core/data-validator.js';
+ import { GENERALS } from '../data/generals.js';
+ import { ENEMIES } from '../data/enemies.js';
+-import { RECIPES } from '../data/recipes.js';
++import { RECIPES, STARTING_SYMBOLS } from '../data/recipes.js';
+ import { STAGES } from '../data/stages.js';
+ import { REWARDS } from '../data/rewards.js';
+ import { TUNING } from '../data/tuning.js';
+ 
+-const approvedData = { GENERALS, ENEMIES, RECIPES, STAGES, REWARDS, TUNING };
++const approvedData = { GENERALS, ENEMIES, RECIPES, STAGES, REWARDS, TUNING, STARTING_SYMBOLS };
+ 
+ test('approved vertical slice data is internally consistent', () => {
+   const result = validateGameData(approvedData);
+--- a/games/hanzi-generals/v2/tests/expedition.test.js
++++ b/games/hanzi-generals/v2/tests/expedition.test.js
+@@ -58,7 +58,7 @@
+   assert.deepEqual(game.board.size, { columns: 4, rows: 3 });
+ 
+   const before = Object.keys(game.cardsById).length;
+-  game = applyReward(game, 'unlock-zhang-fei');
+-  assert.equal(game.unlockedRecipes.includes('zhang-fei'), true);
++  game = applyReward(game, 'unlock-huang-zhong');
++  assert.equal(game.unlockedRecipes.includes('huang-zhong'), true);
+   assert.equal(Object.keys(game.cardsById).length, before + 2);
+ });
+--- a/games/hanzi-generals/v2/tests/review-fixes.test.js
++++ b/games/hanzi-generals/v2/tests/review-fixes.test.js
+@@ -40,18 +40,18 @@
+   return continued.state;
+ }
+ 
+-test('safe third battle offers Zhang Fei while danger offers Zhuge Liang', () => {
++test('safe third battle offers Huang Zhong while danger offers Zhuge Liang', () => {
+   const safeReport = reduceGame(thirdBattleCompletion('safe'), { type: 'STEP_COMBAT' });
+   assert.equal(safeReport.ok, true);
+   const safe = continueToReward(safeReport.state);
+-  assert.equal(safe.rewardChoices.some(({ id }) => id === 'unlock-zhang-fei'), true);
++  assert.equal(safe.rewardChoices.some(({ id }) => id === 'unlock-huang-zhong'), true);
+   assert.equal(safe.rewardChoices.some(({ id }) => id === 'unlock-zhuge-liang'), false);
+ 
+   const dangerReport = reduceGame(thirdBattleCompletion('danger'), { type: 'STEP_COMBAT' });
+   assert.equal(dangerReport.ok, true);
+   const danger = continueToReward(dangerReport.state);
+   assert.equal(danger.rewardChoices.some(({ id }) => id === 'unlock-zhuge-liang'), true);
+-  assert.equal(danger.rewardChoices.some(({ id }) => id === 'unlock-zhang-fei'), false);
++  assert.equal(danger.rewardChoices.some(({ id }) => id === 'unlock-huang-zhong'), false);
+ });
+ 
+ function evolutionRewardGame(overrides = {}) {
+--- a/games/hanzi-generals/v2/tests/reward-flow.test.js
++++ b/games/hanzi-generals/v2/tests/reward-flow.test.js
+@@ -60,7 +60,7 @@
+   };
+   const offer = generateRewardOffer(game, REWARDS, game.rng);
+   assert.equal(offer.choices.length, 3);
+-  assert.equal(offer.choices.some(({ id }) => id === 'unlock-zhang-fei'), true);
++  assert.equal(offer.choices.some(({ id }) => id === 'unlock-huang-zhong'), true);
+   assert.equal(offer.choices.some(({ id }) => id === 'remove-card'), true);
+   assert.equal(offer.choices.some(({ id }) => id === 'repair-wall'), false);
+ });
+--- a/games/hanzi-generals/v2/tests/reward-repair-availability.test.js
++++ b/games/hanzi-generals/v2/tests/reward-repair-availability.test.js
+@@ -42,7 +42,7 @@
+   });
+   const offer = generateRewardOffer(game, REWARDS, game.rng);
+   assert.equal(offer.choices.length, 3);
+-  assert.equal(offer.choices.some(({ id }) => id === 'unlock-zhang-fei'), true);
++  assert.equal(offer.choices.some(({ id }) => id === 'unlock-huang-zhong'), true);
+   assert.equal(offer.choices.some(({ id }) => id === 'repair-wall'), false);
+ });
+ 
