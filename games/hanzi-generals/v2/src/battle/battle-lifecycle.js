@@ -2,10 +2,12 @@ import { ENEMY_BY_ID } from '../../data/enemies.js';
 import { resolveEvolvedDefinition } from '../../data/evolutions.js';
 import { GENERAL_BY_ID } from '../../data/generals.js';
 import { STAGE_BY_ID } from '../../data/stages.js';
+import { TUTORIAL_SYMBOL_ORDER } from '../../data/recipes.js';
 import { TUNING } from '../../data/tuning.js';
 import { createBoard, listCells } from '../board/board.js';
 import { createCombatState, stepCombat } from '../combat/combat-engine.js';
 import { releaseUnitCards } from '../deck/assembly.js';
+import { prepareBattleDeck } from '../deck/deck.js';
 import {
   createBattleMetrics,
   finalizeBattleReport,
@@ -73,48 +75,48 @@ function spawnPhase(stageId, phaseIndex, boardColumns) {
   });
 }
 
-function prioritizeTutorialPair(deck) {
-  const drawPile = [...deck.drawPile];
-  const wanted = [];
-  for (const symbol of ['張', '飛']) {
-    const index = drawPile.findIndex((card) => card.symbol === symbol);
-    if (index >= 0) wanted.push(...drawPile.splice(index, 1));
+function orderTutorialDeck(deck) {
+  const remaining = [...deck.drawPile];
+  const ordered = [];
+  for (const symbol of TUTORIAL_SYMBOL_ORDER) {
+    const index = remaining.findIndex((card) => card.symbol === symbol);
+    if (index >= 0) ordered.push(...remaining.splice(index, 1));
   }
-  return { ...deck, drawPile: [...wanted, ...drawPile] };
+  return { ...deck, drawPile: [...ordered, ...remaining] };
 }
 
 export function startBattle(game) {
   if (!game.nextStageId) return failure(game, 'NO_STAGE_SELECTED', '未揀選下一場戰鬥。');
-  const board = createBoard(game.boardSizeId);
+  const settled = settleAfterBattle(game);
+  const prepared = prepareBattleDeck(settled.deck, settled.rng);
+  const board = createBoard(settled.boardSizeId);
   let deck = {
-    ...game.deck,
-    hand: [],
-    retained: [],
-    deployed: [],
-    freeRerollsRemaining: TUNING.freeRerollsPerBattle + (game.temporary?.extraRerolls ?? 0),
+    ...prepared.deck,
+    freeRerollsRemaining: TUNING.freeRerollsPerBattle + (settled.temporary?.extraRerolls ?? 0),
   };
-  if (game.nextStageId === 'tutorial') deck = prioritizeTutorialPair(deck);
+  if (settled.nextStageId === 'tutorial') deck = orderTutorialDeck(deck);
   const state = {
-    ...game,
+    ...settled,
+    rng: prepared.rng,
     recruitedGeneralIds: [...(game.recruitedGeneralIds ?? [])],
     status: 'configuration',
     board,
     boardCards: {},
     deck,
     camp: {
-      capacity: game.camp.capacity,
-      cardIds: [...game.camp.cardIds],
+      capacity: settled.camp.capacity,
+      cardIds: [...settled.camp.cardIds],
     },
     selection: { cardIds: [] },
     currentBattle: {
-      stageId: game.nextStageId,
+      stageId: settled.nextStageId,
       phaseIndex: 0,
       phaseCount: 3,
       ordersRemaining: TUNING.ordersPerBattle,
     },
     currentBattleResult: null,
     nextStageId: null,
-    temporary: { ...game.temporary, extraRerolls: 0, extraCamp: 0 },
+    temporary: { ...settled.temporary, extraRerolls: 0, extraCamp: 0 },
     legalCells: listCells(board),
     legalActions: ['DRAW_CARDS'],
     battleReport: null,
@@ -286,13 +288,10 @@ export function stepBattleCombat(game) {
 
   if (result.combat.status === 'defeat') {
     const metrics = recordLifecycleEvents(next, result.events, result.combat);
-    const battleReport = finalizeBattleReport(
-      { ...next, battleMetrics: metrics },
-      'defeat',
-      'defeat',
-    );
+    const settled = settleAfterBattle({ ...next, battleMetrics: metrics });
+    const battleReport = finalizeBattleReport(settled, 'defeat', 'defeat');
     return success({
-      ...next,
+      ...settled,
       status: 'battle-report',
       combat: null,
       currentBattleResult: 'defeat',

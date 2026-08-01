@@ -39,3 +39,15 @@ export const STARTING_RECIPE_IDS = Object.freeze(
 export const REWARD_PACK_RECIPE_IDS = Object.freeze(
   RECIPES.filter(({ availability }) => availability === 'reward-pack').map(({ id }) => id),
 );
+
+export const CONTENT_VERSION = 2;
+
+export const TUTORIAL_SYMBOL_ORDER = Object.freeze([
+  '張', '飛', '兵', '弓', '平',
+  '兵', '盾', '兵', '槍', '任',
+  '軍', '醫', '斥', '候', '謀', '士',
+  '關', '羽', '趙', '雲', '凌', '統',
+  '張', '任', '平', '峻', '王',
+  '兵', '盾', '兵', '槍', '兵', '弓', '兵',
+  '騎', '騎', '騎', '盾', '槍', '弓',
+]);
