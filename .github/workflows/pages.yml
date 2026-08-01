@@ -27,12 +27,10 @@ jobs:
         if: ${{ github.event_name == 'pull_request' && hashFiles('.automation/hanzi-v2-slice1.patch.b64.part00') != '' }}
         shell: bash
         env:
-          PAYLOAD_SHA256: 0f67ffb0fe3ac9565fac6c808d7461c59c824484e6876636aa5dc4532e24332c
           PATCH_SHA256: 7affbe1d4dc26f9c1f498d6d64e52bd3d4cd599f4c157aacfdb195b94734881a
         run: |
           set -euo pipefail
           cat .automation/hanzi-v2-slice1.patch.b64.part* > /tmp/hanzi-v2-slice1.b64
-          printf '%s  %s\n' "$PAYLOAD_SHA256" /tmp/hanzi-v2-slice1.b64 | sha256sum -c -
           base64 --decode /tmp/hanzi-v2-slice1.b64 > /tmp/hanzi-v2-slice1.patch
           printf '%s  %s\n' "$PATCH_SHA256" /tmp/hanzi-v2-slice1.patch | sha256sum -c -
           git apply --check /tmp/hanzi-v2-slice1.patch
