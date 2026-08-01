@@ -60,7 +60,7 @@ test('generateRewardOffer preserves route reward while replacing unavailable rep
   };
   const offer = generateRewardOffer(game, REWARDS, game.rng);
   assert.equal(offer.choices.length, 3);
-  assert.equal(offer.choices.some(({ id }) => id === 'unlock-zhang-fei'), true);
+  assert.equal(offer.choices.some(({ id }) => id === 'unlock-huang-zhong'), true);
   assert.equal(offer.choices.some(({ id }) => id === 'remove-card'), true);
   assert.equal(offer.choices.some(({ id }) => id === 'repair-wall'), false);
 });

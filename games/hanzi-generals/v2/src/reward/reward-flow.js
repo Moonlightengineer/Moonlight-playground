@@ -13,6 +13,7 @@ import { advanceExpedition } from '../expedition/expedition.js';
 import { applyReward } from '../expedition/rewards.js';
 
 const CARD_TARGET_ZONES = new Set(['drawPile', 'discardPile', 'hand', 'camp']);
+const CARD_TARGET_PRIORITY = Object.freeze({ camp: 0, hand: 1, discardPile: 2, drawPile: 3 });
 const TARGET_REQUIRED = new Set(['copy-card', 'remove-card', 'evolve-general']);
 const SAFE_FALLBACKS = Object.freeze([
   'extra-reroll', 'extra-camp', 'repair-wall', 'fire-arrows', 'first-aid',
@@ -34,7 +35,10 @@ function cardTargetCandidates(game) {
       const card = game.cardsById?.[cardId];
       return zone && card ? { cardId, symbol: card.symbol, zone } : null;
     })
-    .filter(Boolean);
+    .filter(Boolean)
+    .sort((left, right) => (
+      (CARD_TARGET_PRIORITY[left.zone] ?? 99) - (CARD_TARGET_PRIORITY[right.zone] ?? 99)
+    ));
 }
 
 function resolveReward(rewardOrId) {
@@ -160,7 +164,7 @@ function rewardMatchesBuild(game, reward) {
   if (reward.id === 'repair-wall') return game.wallHp < game.wallMaxHp * 0.65;
   if (reward.id === 'extra-camp') return cardTargetCandidates(game).length >= 4;
   if (reward.id === 'fire-arrows') return game.route === 'danger';
-  if (reward.id === 'unlock-zhang-fei') return game.boardSizeId === 'wing';
+  if (reward.id === 'unlock-huang-zhong') return game.boardSizeId === 'wing';
   if (reward.id === 'unlock-zhuge-liang') return game.boardSizeId === 'depth';
   return false;
 }
@@ -214,7 +218,7 @@ export function generateRewardOffer(game, catalogue = REWARDS, rng = game.rng) {
   const allowed = canonicalCatalogue(catalogue);
   const completedAfterCurrent = (game.completedBattleIds?.length ?? 0) + 1;
   if (completedAfterCurrent === 3) {
-    const routeReward = game.route === 'safe' ? 'unlock-zhang-fei' : 'unlock-zhuge-liang';
+    const routeReward = game.route === 'safe' ? 'unlock-huang-zhong' : 'unlock-zhuge-liang';
     const scripted = [routeReward, 'repair-wall', 'remove-card'].map((id) => REWARD_BY_ID[id]);
     return { choices: selectChoices(game, [...scripted, ...allowed], allowed), rng };
   }

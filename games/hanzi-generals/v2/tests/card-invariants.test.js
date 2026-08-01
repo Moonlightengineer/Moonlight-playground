@@ -803,16 +803,16 @@ test('card ownership stays valid across a full board-assembly life cycle through
   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
   assertCardOwnership(game);
 
-  const huang = game.deck.hand.find(({ symbol }) => symbol === '黃');
-  const zhong = game.deck.hand.find(({ symbol }) => symbol === '忠');
-  assert.ok(huang);
-  assert.ok(zhong);
+  const zhang = game.deck.hand.find(({ symbol }) => symbol === '張');
+  const fei = game.deck.hand.find(({ symbol }) => symbol === '飛');
+  assert.ok(zhang);
+  assert.ok(fei);
 
-  game = reduceGame(game, { type: 'SELECT_CARD', cardId: huang.id }).state;
+  game = reduceGame(game, { type: 'SELECT_CARD', cardId: zhang.id }).state;
   game = reduceGame(game, { type: 'ASSEMBLE', target: { column: 0, row: 0 } }).state;
   assertCardOwnership(game);
 
-  game = reduceGame(game, { type: 'SELECT_CARD', cardId: zhong.id }).state;
+  game = reduceGame(game, { type: 'SELECT_CARD', cardId: fei.id }).state;
   game = reduceGame(game, { type: 'ASSEMBLE', target: { column: 1, row: 0 } }).state;
   assertCardOwnership(game);
   assert.equal(game.deck.deployed.length, 1);

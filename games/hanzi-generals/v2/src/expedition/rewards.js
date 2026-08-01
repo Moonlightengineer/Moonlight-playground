@@ -19,7 +19,7 @@ function matchesBuild(game, reward) {
   if (reward.id === 'repair-wall') return game.wallHp < game.wallMaxHp * 0.65;
   if (reward.id === 'extra-camp') return game.deck.hand.length >= 4;
   if (reward.id === 'fire-arrows') return game.route === 'danger';
-  if (reward.id === 'unlock-zhang-fei') return game.boardSizeId === 'wing';
+  if (reward.id === 'unlock-huang-zhong') return game.boardSizeId === 'wing';
   if (reward.id === 'unlock-zhuge-liang') return game.boardSizeId === 'depth';
   return false;
 }
@@ -101,10 +101,15 @@ export function applyReward(game, rewardId, payload = {}) {
     case 'extra-camp':
       next = { ...game, temporary: { ...game.temporary, extraCamp: game.temporary.extraCamp + 1 } };
       break;
+    case 'unlock-huang-zhong':
     case 'unlock-zhang-fei':
     case 'unlock-zhuge-liang': {
-      const recipeId = rewardId === 'unlock-zhang-fei' ? 'zhang-fei' : 'zhuge-liang';
-      const symbols = recipeId === 'zhang-fei' ? ['張', '飛'] : ['諸', '葛', '亮'];
+      const pack = {
+        'unlock-huang-zhong': { recipeId: 'huang-zhong', symbols: ['黃', '忠'] },
+        'unlock-zhang-fei': { recipeId: 'zhang-fei', symbols: ['張', '飛'] },
+        'unlock-zhuge-liang': { recipeId: 'zhuge-liang', symbols: ['諸', '葛', '亮'] },
+      }[rewardId];
+      const { recipeId, symbols } = pack;
       const deck = addSymbols(game.deck, symbols);
       next = {
         ...game,

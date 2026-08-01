@@ -48,17 +48,17 @@ test('canonical reducer carries board assembly through battle report and fifth-b
   let game = reduceGame(createExpedition('canonical-evolution'), { type: 'START_BATTLE' }).state;
   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
 
-  const huang = game.deck.hand.find(({ symbol }) => symbol === '黃');
-  const zhong = game.deck.hand.find(({ symbol }) => symbol === '忠');
-  assert.ok(huang);
-  assert.ok(zhong);
+  const zhang = game.deck.hand.find(({ symbol }) => symbol === '張');
+  const fei = game.deck.hand.find(({ symbol }) => symbol === '飛');
+  assert.ok(zhang);
+  assert.ok(fei);
 
-  game = reduceGame(game, { type: 'SELECT_CARD', cardId: huang.id }).state;
+  game = reduceGame(game, { type: 'SELECT_CARD', cardId: zhang.id }).state;
   game = reduceGame(game, { type: 'ASSEMBLE', target: { column: 0, row: 0 } }).state;
-  game = reduceGame(game, { type: 'SELECT_CARD', cardId: zhong.id }).state;
+  game = reduceGame(game, { type: 'SELECT_CARD', cardId: fei.id }).state;
   const assembled = reduceGame(game, { type: 'ASSEMBLE', target: { column: 1, row: 0 } });
   assert.equal(assembled.ok, true);
-  assert.deepEqual(assembled.state.recruitedGeneralIds, ['huang-zhong']);
+  assert.deepEqual(assembled.state.recruitedGeneralIds, ['zhang-fei']);
 
   const fifthBattle = {
     ...assembled.state,
@@ -95,8 +95,8 @@ test('canonical reducer carries board assembly through battle report and fifth-b
   const evolved = reduceGame(reward.state, {
     type: 'CHOOSE_REWARD',
     rewardId: 'evolve-general',
-    payload: { generalId: 'huang-zhong', evolutionId: 'divine-shot' },
+    payload: { generalId: 'zhang-fei', evolutionId: 'roar' },
   });
   assert.equal(evolved.ok, true);
-  assert.equal(evolved.state.evolutions['huang-zhong'], 'divine-shot');
+  assert.equal(evolved.state.evolutions['zhang-fei'], 'roar');
 });

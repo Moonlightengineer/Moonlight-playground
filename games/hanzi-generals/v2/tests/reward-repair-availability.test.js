@@ -42,7 +42,7 @@ test('full-wall scripted third-battle offer replaces repair instead of showing a
   });
   const offer = generateRewardOffer(game, REWARDS, game.rng);
   assert.equal(offer.choices.length, 3);
-  assert.equal(offer.choices.some(({ id }) => id === 'unlock-zhang-fei'), true);
+  assert.equal(offer.choices.some(({ id }) => id === 'unlock-huang-zhong'), true);
   assert.equal(offer.choices.some(({ id }) => id === 'repair-wall'), false);
 });
 

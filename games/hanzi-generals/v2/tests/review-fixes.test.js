@@ -40,18 +40,18 @@ function continueToReward(reportState) {
   return continued.state;
 }
 
-test('safe third battle offers Zhang Fei while danger offers Zhuge Liang', () => {
+test('safe third battle offers Huang Zhong while danger offers Zhuge Liang', () => {
   const safeReport = reduceGame(thirdBattleCompletion('safe'), { type: 'STEP_COMBAT' });
   assert.equal(safeReport.ok, true);
   const safe = continueToReward(safeReport.state);
-  assert.equal(safe.rewardChoices.some(({ id }) => id === 'unlock-zhang-fei'), true);
+  assert.equal(safe.rewardChoices.some(({ id }) => id === 'unlock-huang-zhong'), true);
   assert.equal(safe.rewardChoices.some(({ id }) => id === 'unlock-zhuge-liang'), false);
 
   const dangerReport = reduceGame(thirdBattleCompletion('danger'), { type: 'STEP_COMBAT' });
   assert.equal(dangerReport.ok, true);
   const danger = continueToReward(dangerReport.state);
   assert.equal(danger.rewardChoices.some(({ id }) => id === 'unlock-zhuge-liang'), true);
-  assert.equal(danger.rewardChoices.some(({ id }) => id === 'unlock-zhang-fei'), false);
+  assert.equal(danger.rewardChoices.some(({ id }) => id === 'unlock-huang-zhong'), false);
 });
 
 function evolutionRewardGame(overrides = {}) {

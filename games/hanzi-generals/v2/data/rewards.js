@@ -117,9 +117,23 @@ export const REWARDS = Object.freeze([
     },
   },
   {
+    id: 'unlock-huang-zhong',
+    name: '黃忠配方包',
+    type: 'recipe-pack',
+    recipeId: 'huang-zhong',
+    symbols: ['黃', '忠'],
+    rarity: 'scripted',
+    description: {
+      summary: '招募稀有名將黃忠，並把所需字牌加入牌庫。',
+      effect: '解鎖「黃＋忠」配方，並永久加入「黃」「忠」各 1 張。',
+      useCase: '需要可靠後排遠程輸出，或者想擴充稀有武將組合時選。',
+    },
+  },
+  {
     id: 'unlock-zhang-fei',
     name: '張飛配方包',
     type: 'recipe-pack',
+    recipeId: 'zhang-fei',
     symbols: ['張', '飛'],
     rarity: 'scripted',
     description: {
@@ -132,6 +146,7 @@ export const REWARDS = Object.freeze([
     id: 'unlock-zhuge-liang',
     name: '諸葛亮配方包',
     type: 'recipe-pack',
+    recipeId: 'zhuge-liang',
     symbols: ['諸', '葛', '亮'],
     rarity: 'scripted',
     description: {

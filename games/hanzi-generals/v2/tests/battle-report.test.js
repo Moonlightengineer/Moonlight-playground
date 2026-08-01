@@ -25,11 +25,11 @@ function memoryStorage() {
 function prepareCombat(seed = 'battle-report') {
   let game = reduceGame(createExpedition(seed), { type: 'START_BATTLE' }).state;
   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
-  const huang = game.deck.hand.find(({ symbol }) => symbol === '黃');
-  const zhong = game.deck.hand.find(({ symbol }) => symbol === '忠');
+  const zhang = game.deck.hand.find(({ symbol }) => symbol === '張');
+  const fei = game.deck.hand.find(({ symbol }) => symbol === '飛');
   game = reduceGame(game, {
     type: 'ASSEMBLE',
-    source: { type: 'hand', cardIds: [huang.id, zhong.id] },
+    source: { type: 'hand', cardIds: [zhang.id, fei.id] },
     target: { column: 0, row: 0 },
   }).state;
   game = reduceGame(game, { type: 'START_PHASE' }).state;

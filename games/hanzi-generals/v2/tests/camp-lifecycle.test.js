@@ -30,12 +30,12 @@ function moveRegistryCardToCamp(game, cardId) {
 function prepareBattleWithCamp(seed = 'camp-battle') {
   let game = reduceGame(createExpedition(seed), { type: 'START_BATTLE' }).state;
   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
-  const huang = game.deck.hand.find(({ symbol }) => symbol === '黃');
-  const zhong = game.deck.hand.find(({ symbol }) => symbol === '忠');
-  assert.ok(huang && zhong);
+  const zhang = game.deck.hand.find(({ symbol }) => symbol === '張');
+  const fei = game.deck.hand.find(({ symbol }) => symbol === '飛');
+  assert.ok(zhang && fei);
   game = reduceGame(game, {
     type: 'ASSEMBLE',
-    source: { type: 'hand', cardIds: [huang.id, zhong.id] },
+    source: { type: 'hand', cardIds: [zhang.id, fei.id] },
     target: { column: 0, row: 0 },
   }).state;
   const campCard = game.deck.hand[0];

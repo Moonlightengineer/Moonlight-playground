@@ -3,12 +3,12 @@ import assert from 'node:assert/strict';
 import { validateGameData } from '../src/core/data-validator.js';
 import { GENERALS } from '../data/generals.js';
 import { ENEMIES } from '../data/enemies.js';
-import { RECIPES } from '../data/recipes.js';
+import { RECIPES, STARTING_SYMBOLS } from '../data/recipes.js';
 import { STAGES } from '../data/stages.js';
 import { REWARDS } from '../data/rewards.js';
 import { TUNING } from '../data/tuning.js';
 
-const approvedData = { GENERALS, ENEMIES, RECIPES, STAGES, REWARDS, TUNING };
+const approvedData = { GENERALS, ENEMIES, RECIPES, STAGES, REWARDS, TUNING, STARTING_SYMBOLS };
 
 test('approved vertical slice data is internally consistent', () => {
   const result = validateGameData(approvedData);

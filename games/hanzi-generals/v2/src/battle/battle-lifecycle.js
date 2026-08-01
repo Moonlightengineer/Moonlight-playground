@@ -76,7 +76,7 @@ function spawnPhase(stageId, phaseIndex, boardColumns) {
 function prioritizeTutorialPair(deck) {
   const drawPile = [...deck.drawPile];
   const wanted = [];
-  for (const symbol of ['黃', '忠']) {
+  for (const symbol of ['張', '飛']) {
     const index = drawPile.findIndex((card) => card.symbol === symbol);
     if (index >= 0) wanted.push(...drawPile.splice(index, 1));
   }

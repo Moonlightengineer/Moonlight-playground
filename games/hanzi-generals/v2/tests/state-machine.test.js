@@ -24,23 +24,23 @@ test('new run enters hidden expedition map then starts configuration', () => {
   assert.deepEqual(started.state.board.size, { columns: 3, rows: 3 });
 });
 
-test('tutorial opening guarantees direct 黃忠 board assembly through public actions', () => {
+test('tutorial opening guarantees direct 張飛 board assembly through public actions', () => {
   let game = reduceGame(createExpedition('tutorial-flow'), { type: 'START_BATTLE' }).state;
   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
-  const huang = game.deck.hand.find(({ symbol }) => symbol === '黃');
-  const zhong = game.deck.hand.find(({ symbol }) => symbol === '忠');
-  assert.ok(huang);
-  assert.ok(zhong);
+  const zhang = game.deck.hand.find(({ symbol }) => symbol === '張');
+  const fei = game.deck.hand.find(({ symbol }) => symbol === '飛');
+  assert.ok(zhang);
+  assert.ok(fei);
 
-  game = reduceGame(game, { type: 'SELECT_CARD', cardId: huang.id }).state;
+  game = reduceGame(game, { type: 'SELECT_CARD', cardId: zhang.id }).state;
   game = reduceGame(game, { type: 'ASSEMBLE', target: { column: 0, row: 0 } }).state;
-  assert.equal(game.boardCards['0,0'], huang.id);
+  assert.equal(game.boardCards['0,0'], zhang.id);
 
-  game = reduceGame(game, { type: 'SELECT_CARD', cardId: zhong.id }).state;
+  game = reduceGame(game, { type: 'SELECT_CARD', cardId: fei.id }).state;
   const assembled = reduceGame(game, { type: 'ASSEMBLE', target: { column: 1, row: 0 } });
   assert.equal(assembled.ok, true);
   assert.equal(assembled.events.some(({ type }) => type === 'UNIT_ASSEMBLED'), true);
-  assert.equal(assembled.state.board.units['unit-1'].definitionId, 'huang-zhong');
+  assert.equal(assembled.state.board.units['unit-1'].definitionId, 'zhang-fei');
   assert.deepEqual(assembled.state.boardCards, {});
 });
 

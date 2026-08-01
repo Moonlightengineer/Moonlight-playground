@@ -2,7 +2,7 @@
 
 import { ENEMIES } from '../data/enemies.js';
 import { GENERAL_BY_ID, GENERALS } from '../data/generals.js';
-import { RECIPES } from '../data/recipes.js';
+import { RECIPES, STARTING_SYMBOLS } from '../data/recipes.js';
 import { REWARDS } from '../data/rewards.js';
 import { STAGES } from '../data/stages.js';
 import { TUNING } from '../data/tuning.js';
@@ -42,7 +42,7 @@ if (!root || !message) {
   throw new Error('Hanzi Generals v2 shell is missing required elements');
 }
 
-const validation = validateGameData({ GENERALS, ENEMIES, RECIPES, STAGES, REWARDS, TUNING });
+const validation = validateGameData({ GENERALS, ENEMIES, RECIPES, STAGES, REWARDS, TUNING, STARTING_SYMBOLS });
 
 function seedFromUrl() {
   const value = new URLSearchParams(window.location.search).get('seed');
