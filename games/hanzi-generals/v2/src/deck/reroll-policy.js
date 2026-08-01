@@ -52,7 +52,7 @@ export function rerollRetainedHand(deck, rng, handSize = 5) {
   const prepared = {
     ...normalized,
     hand: keep,
-    retained: [],
+    retained: [...normalized.retained],
     discardPile: [...normalized.discardPile.map(cloneCard), ...discard],
     freeRerollsRemaining: normalized.freeRerollsRemaining - 1,
   };
@@ -63,7 +63,7 @@ export function rerollRetainedHand(deck, rng, handSize = 5) {
       drawPile: result.deck.drawPile.map(cloneCard),
       discardPile: result.deck.discardPile.map(cloneCard),
       hand: result.deck.hand.map(cloneCard),
-      retained: [],
+      retained: [...normalized.retained],
     },
     rng: result.rng,
   };

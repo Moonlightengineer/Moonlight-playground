@@ -98,7 +98,7 @@ export function startBattle(game) {
   const state = {
     ...settled,
     rng: prepared.rng,
-    recruitedGeneralIds: [...(game.recruitedGeneralIds ?? [])],
+    recruitedGeneralIds: [...(settled.recruitedGeneralIds ?? [])],
     status: 'configuration',
     board,
     boardCards: {},
@@ -181,7 +181,7 @@ function settleBetweenPhases(game) {
     deck: {
       ...game.deck,
       hand: retainedCards.map((card) => ({ ...card, locked: false })),
-      retained: [],
+      retained: retainedCards.map(({ id }) => id),
       discardPile: [...game.deck.discardPile, ...uniqueCards(game, discardIds)],
     },
     camp: { ...game.camp, cardIds: [...game.camp.cardIds] },
@@ -288,10 +288,13 @@ export function stepBattleCombat(game) {
 
   if (result.combat.status === 'defeat') {
     const metrics = recordLifecycleEvents(next, result.events, result.combat);
-    const settled = settleAfterBattle({ ...next, battleMetrics: metrics });
-    const battleReport = finalizeBattleReport(settled, 'defeat', 'defeat');
+    const battleReport = finalizeBattleReport(
+      { ...next, battleMetrics: metrics },
+      'defeat',
+      'defeat',
+    );
     return success({
-      ...settled,
+      ...next,
       status: 'battle-report',
       combat: null,
       currentBattleResult: 'defeat',
