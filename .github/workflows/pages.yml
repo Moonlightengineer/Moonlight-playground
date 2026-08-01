@@ -26,6 +26,20 @@ jobs:
         with:
           node-version: 20
 
+      - name: Upload Hanzi v2 working source
+        uses: actions/upload-artifact@v4
+        with:
+          name: hanzi-v2-working-source
+          path: |
+            games/hanzi-generals/v2
+            package.json
+            scripts
+            tests
+            .github/workflows/pages.yml
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Test v2 foundations
         run: >-
           node --test
