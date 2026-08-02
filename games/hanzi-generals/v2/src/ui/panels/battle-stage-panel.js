@@ -90,11 +90,11 @@ function renderBoard(container, model) {
     button.dataset.entityId = cell.entityId;
     if (cell.unitId) button.dataset.unitId = cell.unitId;
     button.classList.toggle('is-fortified', Boolean(cell.fortified));
+    if (cell.title) button.title = cell.title;
     if (cell.evolutionId) {
       button.classList.add('is-evolved');
       button.dataset.evolutionId = cell.evolutionId;
       button.append(node('small', 'evolution-badge', cell.evolutionLabel));
-      button.title = cell.title;
     }
     if (cell.hpLabel) button.append(node('small', 'unit-hp', cell.hpLabel));
     children.push(button);

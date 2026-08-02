@@ -28,6 +28,7 @@ import { createHelpPanel } from './ui/help-panel.js';
 import { bindInteractions } from './ui/interactions.js';
 import { renderApp } from './ui/render-app.js';
 import { buildAppViewModel } from './ui/runtime-view-model.js';
+import { buildUnitPlayerDetail } from './ui/unit-copy.js';
 import {
   advanceTutorial,
   advanceTutorialForResult,
@@ -183,6 +184,7 @@ function handleExternalUiIntent(runtime, intent) {
     const board = runtime.game.status === 'combat' ? runtime.game.combat?.board : runtime.game.board;
     const unit = board?.units?.[intent.unitId];
     const definition = unit ? GENERAL_BY_ID[unit.definitionId] : null;
+    const detail = definition ? buildUnitPlayerDetail(definition, unit?.evolution) : null;
     return {
       runtime: cloneRuntime(runtime, {
         profile: {
@@ -192,9 +194,7 @@ function handleExternalUiIntent(runtime, intent) {
         ui: {
           ...runtime.ui,
           rangeUnitId: intent.unitId ?? null,
-          lastMessage: definition
-            ? `${definition.name}：射程 ${definition.range}，攻擊方式 ${definition.pattern}。`
-            : '未能讀取單位資料。',
+          lastMessage: detail?.text ?? '未能讀取單位資料。',
         },
       }),
     };

@@ -1,5 +1,5 @@
 import { ENEMY_BY_ID } from '../../data/enemies.js';
-import { EVOLUTION_BY_ID, resolveEvolvedDefinition } from '../../data/evolutions.js';
+import { EVOLUTION_BY_ID } from '../../data/evolutions.js';
 import { GENERAL_BY_ID } from '../../data/generals.js';
 import { REWARDS } from '../../data/rewards.js';
 import { deriveLaneWarnings } from '../combat/intents.js';
@@ -16,6 +16,7 @@ import {
 } from '../core/selectors/index.js';
 import { enemyDistanceToProgress, MAX_VISIBLE_ENEMY_DISTANCE } from './enemy-field.js';
 import { tutorialText } from './tutorial.js';
+import { buildUnitPlayerDetail } from './unit-copy.js';
 
 const ROUTE_STAGES = Object.freeze({
   safe: Object.freeze(['tutorial', 'shield-line', 'route-safe', 'cavalry-warning', 'elite-mixed', 'hua-xiong']),
@@ -66,13 +67,11 @@ function buildRunStatus(game, profile, lifecycle) {
 function unitCellModel(unit, fortifiedLane) {
   const base = GENERAL_BY_ID[unit.definitionId];
   const evolution = EVOLUTION_BY_ID[unit.evolution];
-  const effective = base ? resolveEvolvedDefinition(base, unit.evolution) : null;
-  const evolutionLabel = base && evolution && effective
-    ? `進化・${evolution.name}`
-    : null;
-  const ariaLabel = base && evolution && effective
-    ? `${base.name}，已進化為${evolution.name}。生命 ${unit.hp}/${unit.maxHp}，傷害 ${base.damage}→${effective.damage}，射程 ${base.range}→${effective.range}，攻擊間隔 ${base.attackEvery}→${effective.attackEvery}。${evolution.effect}`
-    : `${base?.name ?? unit.definitionId}，生命 ${unit.hp}/${unit.maxHp}`;
+  const detail = buildUnitPlayerDetail(base, unit.evolution);
+  const evolutionLabel = evolution ? `進化・${evolution.name}` : null;
+  const ariaLabel = detail
+    ? `${detail.text}。目前生命 ${unit.hp}/${unit.maxHp}`
+    : `${base?.name ?? unit.definitionId}，目前生命 ${unit.hp}/${unit.maxHp}`;
   return {
     kind: 'unit',
     entityId: unit.id,
@@ -86,7 +85,7 @@ function unitCellModel(unit, fortifiedLane) {
     fortified: fortifiedLane === unit.cell.column,
     evolutionId: evolution?.id ?? null,
     evolutionLabel,
-    title: evolution ? `${evolution.name}｜${evolution.effect}` : null,
+    title: detail?.text ?? null,
     ariaLabel,
   };
 }
@@ -384,6 +383,7 @@ function buildDetails(game, profile, ui) {
   const board = selectActiveBoard(game) ?? game.board;
   const unit = ui?.rangeUnitId ? board?.units?.[ui.rangeUnitId] : null;
   const definition = unit ? GENERAL_BY_ID[unit.definitionId] : null;
+  const unitDetail = definition ? buildUnitPlayerDetail(definition, unit?.evolution) : null;
   return {
     visible: !boardActive,
     summary: '牌庫、設定與戰鬥詳情',
@@ -394,7 +394,7 @@ function buildDetails(game, profile, ui) {
       ['棋盤', `${game.board?.size?.columns ?? 0}×${game.board?.size?.rows ?? 0}`],
       ['遠征種子', game.seed],
     ],
-    rangeDetail: definition ? `${definition.name}｜射程 ${definition.range}｜${definition.pattern}` : null,
+    rangeDetail: unitDetail?.text ?? null,
     settings: [
       { label: profile.settings.reducedMotion ? '低動態：開' : '低動態：關', action: 'toggle-reduced-motion' },
       { label: profile.settings.vibration ? '震動：開' : '震動：關', action: 'toggle-vibration' },
