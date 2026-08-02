@@ -1,0 +1,147 @@
+name: Apply Hanzi v2 approved First Playable gaps
+
+on:
+  push:
+    branches:
+      - feature/hanzi-v2-gameplay-economy-clarity
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hanzi-v2-approved-gaps-applier
+  cancel-in-progress: false
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feature/hanzi-v2-gameplay-economy-clarity
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Apply approved fixes, verify, and self-clean
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+
+          BRANCH='feature/hanzi-v2-gameplay-economy-clarity'
+          DIAGNOSTIC='.automation/apply-diagnostic.txt'
+
+          capture_failure() {
+            local status=$?
+            local failed_command=${BASH_COMMAND:-unknown}
+            local failed_line=${BASH_LINENO[0]:-unknown}
+            trap - ERR
+            set +e
+            mkdir -p .automation
+            {
+              echo 'HANZI_V2_APPLIER_FAILED'
+              echo "exit_status=${status}"
+              echo "line=${failed_line}"
+              echo "command=${failed_command}"
+              echo
+              echo '--- git status ---'
+              git status --short
+              for log in /tmp/hanzi-focused.log /tmp/hanzi-full.log /tmp/hanzi-build.log; do
+                if [[ -f "$log" ]]; then
+                  echo
+                  echo "--- ${log} ---"
+                  cat "$log"
+                fi
+              done
+            } > "$DIAGNOSTIC"
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add "$DIAGNOSTIC"
+            git commit -m 'chore(hanzi-v2): capture approved-gap applier diagnostic' || true
+            git push origin "HEAD:${BRANCH}" || true
+            exit "$status"
+          }
+          trap capture_failure ERR
+
+          python .automation/apply-hanzi-v2-approved-gaps.py
+
+          # Keep the runtime ViewModel on the canonical seconds fields; migration
+          # remains in the state normalizer rather than leaking legacy counters
+          # into player-facing rendering.
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              target = Path(path)
+              text = target.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one exact post-apply match, found {count}')
+              target.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'games/hanzi-generals/v2/src/ui/view-model.js',
+              """  const focusSeconds = game.combat.focus?.remainingSeconds
+            ?? Math.min(6, (game.combat.focus?.remainingFriendlyTurns ?? 0) * 2);
+          const fortifySeconds = game.combat.fortify?.remainingSeconds
+            ?? Math.min(6, (game.combat.fortify?.remainingEnemyTurns ?? 0) * 3);
+          const assaultSeconds = game.combat.assault?.remainingSeconds
+            ?? Math.min(6, (game.combat.assault?.remainingFriendlyTurns ?? 0) * 2);
+          """,
+              """  const focusSeconds = game.combat.focus?.remainingSeconds ?? 0;
+          const fortifySeconds = game.combat.fortify?.remainingSeconds ?? 0;
+          const assaultSeconds = game.combat.assault?.remainingSeconds ?? 0;
+          """,
+          )
+
+          replace_once(
+              'games/hanzi-generals/v2/tests/view-model.test.js',
+              """      focus: { enemyId: 'enemy-1', remainingFriendlyTurns: 2 },
+                fortify: { lane: 0, remainingEnemyTurns: 1 },
+                pendingOrders: [],
+          """,
+              """      focus: { enemyId: 'enemy-1', remainingSeconds: 2, damageBonus: 0.2 },
+                fortify: { lane: 0, remainingSeconds: 1, damageReduction: 0.35 },
+                assault: null,
+                pendingOrders: [],
+          """,
+          )
+          PY
+
+          node --test \
+            games/hanzi-generals/v2/tests/combat-orders-v2.test.js \
+            games/hanzi-generals/v2/tests/final-battle-reward-boundary.test.js \
+            games/hanzi-generals/v2/tests/result-summary-v2.test.js \
+            games/hanzi-generals/v2/tests/orders.test.js \
+            games/hanzi-generals/v2/tests/combat-engine.test.js \
+            games/hanzi-generals/v2/tests/selectors.test.js \
+            games/hanzi-generals/v2/tests/view-model.test.js \
+            games/hanzi-generals/v2/tests/app-boundary.test.js \
+            games/hanzi-generals/v2/tests/ui-contract.test.js \
+            2>&1 | tee /tmp/hanzi-focused.log
+
+          npm test 2>&1 | tee /tmp/hanzi-full.log
+          python scripts/build_site.py 2>&1 | tee /tmp/hanzi-build.log
+          grep -Fq 'SITE_VERIFY_OK' /tmp/hanzi-build.log
+          node --check scripts/hanzi_v2_first_playable.mjs
+          node --check scripts/hanzi_v2_browser_ui_regressions.mjs
+          node --check scripts/hanzi_v2_reward_target_playtest.mjs
+          node --check scripts/hanzi_v2_corrupt_save_playtest.mjs
+
+          rm -rf .automation
+          rm -f .github/workflows/apply-hanzi-v2-approved-gaps.yml
+          test ! -e .automation
+          test ! -e .github/workflows/apply-hanzi-v2-approved-gaps.yml
+          git diff --check
+
+          trap - ERR
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --check
+          git commit -m 'feat(hanzi-v2): implement approved rewards and military orders'
+          git push origin "HEAD:${BRANCH}"
