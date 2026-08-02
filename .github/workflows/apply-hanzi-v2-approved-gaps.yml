@@ -89,47 +89,49 @@ jobs:
 
           python -u .automation/apply-hanzi-v2-approved-gaps.py 2>&1 | tee /tmp/hanzi-apply.log
 
-          # Keep the runtime ViewModel on the canonical seconds fields; migration
-          # remains in the state normalizer rather than leaking legacy counters
-          # into player-facing rendering.
+          # Keep rendering on canonical simulated seconds. Legacy counters are
+          # converted once by normalizeGameState, never interpreted by the UI.
           python - <<'PY'
           from pathlib import Path
+          import re
 
-          def replace_once(path, old, new):
-              target = Path(path)
-              text = target.read_text(encoding='utf-8')
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'{path}: expected one exact post-apply match, found {count}')
-              target.write_text(text.replace(old, new, 1), encoding='utf-8')
-
-          replace_once(
-              'games/hanzi-generals/v2/src/ui/view-model.js',
-              """  const focusSeconds = game.combat.focus?.remainingSeconds
-            ?? Math.min(6, (game.combat.focus?.remainingFriendlyTurns ?? 0) * 2);
-          const fortifySeconds = game.combat.fortify?.remainingSeconds
-            ?? Math.min(6, (game.combat.fortify?.remainingEnemyTurns ?? 0) * 3);
-          const assaultSeconds = game.combat.assault?.remainingSeconds
-            ?? Math.min(6, (game.combat.assault?.remainingFriendlyTurns ?? 0) * 2);
-          """,
-              """  const focusSeconds = game.combat.focus?.remainingSeconds ?? 0;
-          const fortifySeconds = game.combat.fortify?.remainingSeconds ?? 0;
-          const assaultSeconds = game.combat.assault?.remainingSeconds ?? 0;
-          """,
+          view_path = Path('games/hanzi-generals/v2/src/ui/view-model.js')
+          view = view_path.read_text(encoding='utf-8')
+          pattern = re.compile(
+              r"  const focusSeconds = game\.combat\.focus\?\.remainingSeconds\n"
+              r"\s+\?\? Math\.min\(6, \(game\.combat\.focus\?\.remainingFriendlyTurns \?\? 0\) \* 2\);\n"
+              r"\s+const fortifySeconds = game\.combat\.fortify\?\.remainingSeconds\n"
+              r"\s+\?\? Math\.min\(6, \(game\.combat\.fortify\?\.remainingEnemyTurns \?\? 0\) \* 3\);\n"
+              r"\s+const assaultSeconds = game\.combat\.assault\?\.remainingSeconds\n"
+              r"\s+\?\? Math\.min\(6, \(game\.combat\.assault\?\.remainingFriendlyTurns \?\? 0\) \* 2\);"
           )
-
-          replace_once(
-              'games/hanzi-generals/v2/tests/view-model.test.js',
-              """      focus: { enemyId: 'enemy-1', remainingFriendlyTurns: 2 },
-                fortify: { lane: 0, remainingEnemyTurns: 1 },
-                pendingOrders: [],
-          """,
-              """      focus: { enemyId: 'enemy-1', remainingSeconds: 2, damageBonus: 0.2 },
-                fortify: { lane: 0, remainingSeconds: 1, damageReduction: 0.35 },
-                assault: null,
-                pendingOrders: [],
-          """,
+          replacement = (
+              "  const focusSeconds = game.combat.focus?.remainingSeconds ?? 0;\n"
+              "  const fortifySeconds = game.combat.fortify?.remainingSeconds ?? 0;\n"
+              "  const assaultSeconds = game.combat.assault?.remainingSeconds ?? 0;"
           )
+          view, count = pattern.subn(replacement, view, count=1)
+          if count != 1:
+              raise SystemExit(f'view-model canonical-seconds matcher count was {count}, expected 1')
+          view_path.write_text(view, encoding='utf-8')
+
+          test_path = Path('games/hanzi-generals/v2/tests/view-model.test.js')
+          test = test_path.read_text(encoding='utf-8')
+          replacements = [
+              (
+                  "focus: { enemyId: 'enemy-1', remainingFriendlyTurns: 2 },",
+                  "focus: { enemyId: 'enemy-1', remainingSeconds: 2, damageBonus: 0.2 },",
+              ),
+              (
+                  "fortify: { lane: 0, remainingEnemyTurns: 1 },",
+                  "fortify: { lane: 0, remainingSeconds: 1, damageReduction: 0.35 },\n      assault: null,",
+              ),
+          ]
+          for old, new in replacements:
+              if test.count(old) != 1:
+                  raise SystemExit(f'view-model test field matcher count was {test.count(old)}, expected 1: {old}')
+              test = test.replace(old, new, 1)
+          test_path.write_text(test, encoding='utf-8')
           PY
 
           node --test \
