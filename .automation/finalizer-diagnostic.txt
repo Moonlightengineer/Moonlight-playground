@@ -1,7 +1,7 @@
 FINALIZER_FAILED
 exit_status=1
-line=225
-command=sha256sum -c -
+line=223
+command=gzip -t .automation/slice6.patch.gz
 
 --- git status ---
  M .automation/finalize-hanzi-v2.sh
@@ -14,7 +14,7 @@ TAP version 13
 # Subtest: sixth battle victory skips a sixth reward and continues directly to expedition victory
 not ok 1 - sixth battle victory skips a sixth reward and continues directly to expedition victory
   ---
-  duration_ms: 14.772614
+  duration_ms: 15.332924
   location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/final-battle-reward-boundary.test.js:17:1'
   failureType: 'testCodeFailure'
   error: |-
@@ -46,14 +46,14 @@ not ok 1 - sixth battle victory skips a sixth reward and continues directly to e
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 92.459327
+# duration_ms 91.184183
 
 --- /tmp/result-summary-red.log ---
 TAP version 13
 # Subtest: result summary derives starting recipes and reward labels from canonical data
 not ok 1 - result summary derives starting recipes and reward labels from canonical data
   ---
-  duration_ms: 5.765668
+  duration_ms: 5.906551
   location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/result-summary-v2.test.js:34:1'
   failureType: 'testCodeFailure'
   error: |-
@@ -80,7 +80,7 @@ not ok 1 - result summary derives starting recipes and reward labels from canoni
 # Subtest: reward history preserves the concrete player-facing reward name
 ok 2 - reward history preserves the concrete player-facing reward name # SKIP test name does not match pattern
   ---
-  duration_ms: 0.186537
+  duration_ms: 0.163246
   ...
 1..2
 # tests 2
@@ -90,19 +90,19 @@ ok 2 - reward history preserves the concrete player-facing reward name # SKIP te
 # cancelled 0
 # skipped 1
 # todo 0
-# duration_ms 78.799927
+# duration_ms 81.436737
 
 --- /tmp/reward-history-red.log ---
 TAP version 13
 # Subtest: result summary derives starting recipes and reward labels from canonical data
 ok 1 - result summary derives starting recipes and reward labels from canonical data # SKIP test name does not match pattern
   ---
-  duration_ms: 1.213263
+  duration_ms: 1.653997
   ...
 # Subtest: reward history preserves the concrete player-facing reward name
 not ok 2 - reward history preserves the concrete player-facing reward name
   ---
-  duration_ms: 2.322923
+  duration_ms: 2.376401
   location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/result-summary-v2.test.js:63:1'
   failureType: 'testCodeFailure'
   error: |-
@@ -132,4 +132,4 @@ not ok 2 - reward history preserves the concrete player-facing reward name
 # cancelled 0
 # skipped 1
 # todo 0
-# duration_ms 76.066305
+# duration_ms 84.01151
