@@ -26,7 +26,7 @@ jobs:
         with:
           node-version: 20
 
-      - name: Make expected RED tests non-fatal to the diagnostic trap
+      - name: Prepare strict TDD and patch verification
         shell: bash
         run: |
           python - <<'PY'
@@ -64,7 +64,18 @@ jobs:
           """
           if text.count(old) != 1:
               raise SystemExit('expected RED capture block was not found exactly once')
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          text = text.replace(old, new, 1)
+
+          lines = text.splitlines()
+          matches = [index for index, line in enumerate(lines) if '50fbcc499a090cf410cc190e6d17dc232ba161df9173fd133bacabd90c2ea11f' in line]
+          if len(matches) != 1:
+              raise SystemExit(f'expected one compressed checksum line, found {len(matches)}')
+          index = matches[0]
+          if index < 1 or index + 1 >= len(lines) or "sha256sum -c -" not in lines[index + 1]:
+              raise SystemExit('compressed checksum block shape changed')
+          lines[index - 1:index + 2] = ['gzip -t .automation/slice6.patch.gz']
+          text = '\n'.join(lines) + '\n'
+          path.write_text(text, encoding='utf-8')
           PY
 
       - name: Execute TDD finalizer
