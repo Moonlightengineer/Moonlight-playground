@@ -1,1 +1,0 @@
-Restore app.js from verified commit 30dd1440b59254874ea1cbe334924df4ee4ba62a, replace only the approved military-order feedback block, run full regression, then delete this trigger and the temporary workflow.
