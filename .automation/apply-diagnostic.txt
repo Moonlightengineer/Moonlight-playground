@@ -1,46 +1,7 @@
 HANZI_V2_APPLIER_FAILED
 exit_status=1
-line=63
-command=python - <<'PY'
-from pathlib import Path
-
-def replace_once(path, old, new):
-    target = Path(path)
-    text = target.read_text(encoding='utf-8')
-    count = text.count(old)
-    if count != 1:
-        raise SystemExit(f'{path}: expected one exact post-apply match, found {count}')
-    target.write_text(text.replace(old, new, 1), encoding='utf-8')
-
-replace_once(
-    'games/hanzi-generals/v2/src/ui/view-model.js',
-    """  const focusSeconds = game.combat.focus?.remainingSeconds
-  ?? Math.min(6, (game.combat.focus?.remainingFriendlyTurns ?? 0) * 2);
-const fortifySeconds = game.combat.fortify?.remainingSeconds
-  ?? Math.min(6, (game.combat.fortify?.remainingEnemyTurns ?? 0) * 3);
-const assaultSeconds = game.combat.assault?.remainingSeconds
-  ?? Math.min(6, (game.combat.assault?.remainingFriendlyTurns ?? 0) * 2);
-""",
-    """  const focusSeconds = game.combat.focus?.remainingSeconds ?? 0;
-const fortifySeconds = game.combat.fortify?.remainingSeconds ?? 0;
-const assaultSeconds = game.combat.assault?.remainingSeconds ?? 0;
-""",
-)
-
-replace_once(
-    'games/hanzi-generals/v2/tests/view-model.test.js',
-    """      focus: { enemyId: 'enemy-1', remainingFriendlyTurns: 2 },
-      fortify: { lane: 0, remainingEnemyTurns: 1 },
-      pendingOrders: [],
-""",
-    """      focus: { enemyId: 'enemy-1', remainingSeconds: 2, damageBonus: 0.2 },
-      fortify: { lane: 0, remainingSeconds: 1, damageReduction: 0.35 },
-      assault: null,
-      pendingOrders: [],
-""",
-)
-PY
-
+line=115
+command=tee /tmp/hanzi-focused.log
 
 --- git status ---
  M .automation/apply-diagnostic.txt
@@ -59,7 +20,291 @@ PY
  M games/hanzi-generals/v2/tests/orders.test.js
  M games/hanzi-generals/v2/tests/selectors.test.js
  M games/hanzi-generals/v2/tests/ui-contract.test.js
+ M games/hanzi-generals/v2/tests/view-model.test.js
  M scripts/hanzi_v2_browser_ui_regressions.mjs
 
 --- /tmp/hanzi-apply.log ---
 HANZI_V2_APPROVED_GAPS_APPLIED
+
+--- /tmp/hanzi-focused.log ---
+TAP version 13
+# Subtest: app entry is dependency wiring around AppController rather than a second orchestrator
+ok 1 - app entry is dependency wiring around AppController rather than a second orchestrator
+  ---
+  duration_ms: 7.028333
+  ...
+# Subtest: interaction targeting consumes ViewModel targets without reintroducing combat movement
+ok 2 - interaction targeting consumes ViewModel targets without reintroducing combat movement
+  ---
+  duration_ms: 2.361329
+  ...
+# Subtest: same-lane ranged unit selects the nearest reachable enemy
+ok 3 - same-lane ranged unit selects the nearest reachable enemy
+  ---
+  duration_ms: 1.859543
+  ...
+# Subtest: focus changes priority only within the original same-lane pattern
+ok 4 - focus changes priority only within the original same-lane pattern
+  ---
+  duration_ms: 0.324343
+  ...
+# Subtest: friendly hit event identifies attacker, target, and damage
+ok 5 - friendly hit event identifies attacker, target, and damage
+  ---
+  duration_ms: 1.21433
+  ...
+# Subtest: enemy damage event identifies attacker, friendly target, and damage
+ok 6 - enemy damage event identifies attacker, friendly target, and damage
+  ---
+  duration_ms: 0.611337
+  ...
+# Subtest: wall damage event identifies attacker, lane, and damage
+ok 7 - wall damage event identifies attacker, lane, and damage
+  ---
+  duration_ms: 0.296585
+  ...
+# Subtest: enemy defeat event identifies defeated enemy and final attacker
+ok 8 - enemy defeat event identifies defeated enemy and final attacker
+  ---
+  duration_ms: 1.072103
+  ...
+# Subtest: friendly defeat event identifies defeated unit and final attacker
+ok 9 - friendly defeat event identifies defeated unit and final attacker
+  ---
+  duration_ms: 0.349308
+  ...
+# Subtest: enemy at distance zero damages wall when the lane is empty
+ok 10 - enemy at distance zero damages wall when the lane is empty
+  ---
+  duration_ms: 0.274142
+  ...
+# Subtest: frontline unit blocks melee enemy before the wall is damaged
+ok 11 - frontline unit blocks melee enemy before the wall is damaged
+  ---
+  duration_ms: 0.428525
+  ...
+# Subtest: heavy cavalry charge reaches the lane and causes impact damage
+ok 12 - heavy cavalry charge reaches the lane and causes impact damage
+  ---
+  duration_ms: 0.447676
+  ...
+# Subtest: same combat input produces the same state and event payloads
+ok 13 - same combat input produces the same state and event payloads
+  ---
+  duration_ms: 0.784754
+  ...
+# Subtest: crossbow attacks the rear unit and shield troop reduces direct damage
+ok 14 - crossbow attacks the rear unit and shield troop reduces direct damage
+  ---
+  duration_ms: 0.43695
+  ...
+# Subtest: timed orders decrease once per simulated second
+ok 15 - timed orders decrease once per simulated second
+  ---
+  duration_ms: 0.324014
+  ...
+# Subtest: fortify, assault and focus share three points, coexist, and cannot refresh their own type
+ok 16 - fortify, assault and focus share three points, coexist, and cannot refresh their own type
+  ---
+  duration_ms: 6.0291
+  ...
+# Subtest: fortify reduces friendly damage by 35 percent and focus adds 20 percent damage
+ok 17 - fortify reduces friendly damage by 35 percent and focus adds 20 percent damage
+  ---
+  duration_ms: 0.972562
+  ...
+# Subtest: assault provides a measurable 30 percent attack-speed increase for six simulated seconds
+ok 18 - assault provides a measurable 30 percent attack-speed increase for six simulated seconds
+  ---
+  duration_ms: 2.96302
+  ...
+# Subtest: pause freezes order time and changing 1x or 2x speed does not alter six-step duration
+not ok 19 - pause freezes order time and changing 1x or 2x speed does not alter six-step duration
+  ---
+  duration_ms: 1.992472
+  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/combat-orders-v2.test.js:149:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'range')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/combat/targeting.js:6:69
+    Array.filter (<anonymous>)
+    reachableEnemies (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/combat/targeting.js:6:6)
+    patternCandidates (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/combat/targeting.js:15:21)
+    findTargets (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/combat/targeting.js:49:22)
+    stepCombat (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/combat/combat-engine.js:211:21)
+    stepBattleCombat (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/battle/battle-lifecycle.js:293:18)
+    canonicalBattlePolicyResult (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/core/state-machine.js:173:45)
+    reduceGame (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/core/state-machine.js:267:15)
+    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/combat-orders-v2.test.js:177:14)
+  ...
+# Subtest: battle command points remain spent across all three phases
+ok 20 - battle command points remain spent across all three phases
+  ---
+  duration_ms: 1.649907
+  ...
+# Subtest: combat reconfiguration orders are rejected without spending points
+ok 21 - combat reconfiguration orders are rejected without spending points
+  ---
+  duration_ms: 0.318997
+  ...
+# Subtest: mobile command view exposes only the approved triad and remaining seconds
+ok 22 - mobile command view exposes only the approved triad and remaining seconds
+  ---
+  duration_ms: 4.513113
+  ...
+# Subtest: sixth battle victory skips a sixth reward and continues directly to expedition victory
+ok 23 - sixth battle victory skips a sixth reward and continues directly to expedition victory
+  ---
+  duration_ms: 5.612181
+  ...
+# Subtest: focus rejects targets outside every friendly legal attack route without spending a point
+ok 24 - focus rejects targets outside every friendly legal attack route without spending a point
+  ---
+  duration_ms: 1.492369
+  ...
+# Subtest: focus accepts a reachable same-lane target and spends one shared point
+ok 25 - focus accepts a reachable same-lane target and spends one shared point
+  ---
+  duration_ms: 0.257456
+  ...
+# Subtest: invalid fortify and assault lanes never spend command points
+ok 26 - invalid fortify and assault lanes never spend command points
+  ---
+  duration_ms: 0.191797
+  ...
+# Subtest: legacy swap and reinforce inputs are blocked during combat
+ok 27 - legacy swap and reinforce inputs are blocked during combat
+  ---
+  duration_ms: 0.213861
+  ...
+# Subtest: legacy tactics remain load-compatible but are not part of the new command-point triad
+ok 28 - legacy tactics remain load-compatible but are not part of the new command-point triad
+  ---
+  duration_ms: 0.297641
+  ...
+# Subtest: result summary derives starting recipes and reward labels from canonical data
+ok 29 - result summary derives starting recipes and reward labels from canonical data
+  ---
+  duration_ms: 4.176845
+  ...
+# Subtest: reward history preserves the concrete player-facing reward name
+ok 30 - reward history preserves the concrete player-facing reward name
+  ---
+  duration_ms: 0.555755
+  ...
+# Subtest: selectLifecycle exposes stable screen and human battle/phase numbers
+ok 31 - selectLifecycle exposes stable screen and human battle/phase numbers
+  ---
+  duration_ms: 5.926917
+  ...
+# Subtest: selectActiveBoard uses the combat board only during combat
+ok 32 - selectActiveBoard uses the combat board only during combat
+  ---
+  duration_ms: 0.332323
+  ...
+# Subtest: selectCardZoneIndex records canonical owner zones in deterministic order
+ok 33 - selectCardZoneIndex records canonical owner zones in deterministic order
+  ---
+  duration_ms: 0.868391
+  ...
+# Subtest: selectCampState and selectRerollState derive UI-ready values
+ok 34 - selectCampState and selectRerollState derive UI-ready values
+  ---
+  duration_ms: 0.281017
+  ...
+# Subtest: selectAssemblyTargets ignores stale legalCells and returns only empty board cells
+ok 35 - selectAssemblyTargets ignores stale legalCells and returns only empty board cells
+  ---
+  duration_ms: 0.278855
+  ...
+# Subtest: selectOrderTargets returns deterministic focus, fortify and assault targets only
+ok 36 - selectOrderTargets returns deterministic focus, fortify and assault targets only
+  ---
+  duration_ms: 0.546546
+  ...
+# Subtest: selectLegalCommands derives legality instead of copying stale legalActions
+ok 37 - selectLegalCommands derives legality instead of copying stale legalActions
+  ---
+  duration_ms: 0.691696
+  ...
+# Subtest: selectors remain pure and do not mutate game state
+ok 38 - selectors remain pure and do not mutate game state
+  ---
+  duration_ms: 0.541356
+  ...
+# Subtest: real reducer states are supported without fixture-only fields
+ok 39 - real reducer states are supported without fixture-only fields
+  ---
+  duration_ms: 1.88839
+  ...
+# Subtest: v2 shell exposes the hidden game root, module entry and semantic regions
+ok 40 - v2 shell exposes the hidden game root, module entry and semantic regions
+  ---
+  duration_ms: 5.06982
+  ...
+# Subtest: mobile CSS preserves accessibility, vertical enemy movement and order feedback
+ok 41 - mobile CSS preserves accessibility, vertical enemy movement and order feedback
+  ---
+  duration_ms: 1.454865
+  ...
+# Subtest: interaction layer translates intents and consumes canonical ViewModel targets
+ok 42 - interaction layer translates intents and consumes canonical ViewModel targets
+  ---
+  duration_ms: 2.080814
+  ...
+# Subtest: ViewModel and panel owners render spatial battle, timed-order and reward contracts
+ok 43 - ViewModel and panel owners render spatial battle, timed-order and reward contracts
+  ---
+  duration_ms: 2.356248
+  ...
+# Subtest: combat feedback remains non-blocking, identifiable and reduced-motion safe
+ok 44 - combat feedback remains non-blocking, identifiable and reduced-motion safe
+  ---
+  duration_ms: 4.405419
+  ...
+# Subtest: full-screen Help exposes all rule sections and preserves combat resume wiring
+ok 45 - full-screen Help exposes all rule sections and preserves combat resume wiring
+  ---
+  duration_ms: 2.608613
+  ...
+# Subtest: restart controls isolate expedition reset and complete v2 data clearing
+ok 46 - restart controls isolate expedition reset and complete v2 data clearing
+  ---
+  duration_ms: 1.291107
+  ...
+# Subtest: buildAppViewModel returns panel-specific data without exposing the full game object
+ok 47 - buildAppViewModel returns panel-specific data without exposing the full game object
+  ---
+  duration_ms: 4.584703
+  ...
+# Subtest: ViewModel derives enabled state from canonical selectors rather than stale legal actions
+ok 48 - ViewModel derives enabled state from canonical selectors rather than stale legal actions
+  ---
+  duration_ms: 0.830359
+  ...
+# Subtest: combat ViewModel exposes order targets and status without renderer-side legality calculation
+ok 49 - combat ViewModel exposes order targets and status without renderer-side legality calculation
+  ---
+  duration_ms: 1.6382
+  ...
+# Subtest: reward ViewModel carries player-facing summary, effect and tactical use case
+ok 50 - reward ViewModel carries player-facing summary, effect and tactical use case
+  ---
+  duration_ms: 0.573163
+  ...
+# Subtest: buildAppViewModel is pure
+ok 51 - buildAppViewModel is pure
+  ---
+  duration_ms: 0.439163
+  ...
+1..51
+# tests 51
+# suites 0
+# pass 50
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 275.403572
