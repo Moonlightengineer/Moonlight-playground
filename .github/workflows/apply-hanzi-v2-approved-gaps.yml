@@ -50,7 +50,7 @@ jobs:
               echo
               echo '--- git status ---'
               git status --short
-              for log in /tmp/hanzi-focused.log /tmp/hanzi-full.log /tmp/hanzi-build.log; do
+              for log in /tmp/hanzi-apply.log /tmp/hanzi-focused.log /tmp/hanzi-full.log /tmp/hanzi-build.log; do
                 if [[ -f "$log" ]]; then
                   echo
                   echo "--- ${log} ---"
@@ -67,7 +67,7 @@ jobs:
           }
           trap capture_failure ERR
 
-          python .automation/apply-hanzi-v2-approved-gaps.py
+          python -u .automation/apply-hanzi-v2-approved-gaps.py 2>&1 | tee /tmp/hanzi-apply.log
 
           # Keep the runtime ViewModel on the canonical seconds fields; migration
           # remains in the state normalizer rather than leaking legacy counters
