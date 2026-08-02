@@ -31,3 +31,13 @@ test('interaction targeting consumes ViewModel targets without reintroducing com
   assert.doesNotMatch(interactions, /function distance\(/);
   assert.doesNotMatch(interactions, /canFocusEnemy/);
 });
+
+test('player-facing order feedback uses the approved triad and simulated seconds', async () => {
+  const app = await source('src/app.js');
+  assert.match(app, /FOCUS_ORDERED:[^\n]+durationSeconds[^\n]+6[^\n]+秒/);
+  assert.match(app, /FORTIFY_ORDERED:[^\n]+durationSeconds[^\n]+6[^\n]+秒/);
+  assert.match(app, /ASSAULT_ORDERED:[^\n]+durationSeconds[^\n]+6[^\n]+秒/);
+  assert.doesNotMatch(app, /ORDER_QUEUED/);
+  assert.doesNotMatch(app, /UNITS_SWAPPED/);
+  assert.doesNotMatch(app, /持續[^\n]+輪/);
+});
