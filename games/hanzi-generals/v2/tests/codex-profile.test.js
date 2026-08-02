@@ -34,6 +34,18 @@ test('recipe discoveries round-trip independently and survive expedition reset',
   assert.deepEqual(loadRecipeDiscoveries(storage), ['zhang-fei', 'guan-yu']);
 });
 
+test('invalid or unsupported codex snapshots recover as an empty discovery profile', () => {
+  const storage = memoryStorage();
+  storage.setItem(STORAGE_KEYS.codex, '{broken');
+  assert.deepEqual(loadRecipeDiscoveries(storage), []);
+
+  storage.setItem(STORAGE_KEYS.codex, JSON.stringify({
+    schemaVersion: 99,
+    discoveredRecipeIds: ['zhang-fei'],
+  }));
+  assert.deepEqual(loadRecipeDiscoveries(storage), []);
+});
+
 test('complete reset removes recipe discoveries with other v2-owned data', () => {
   const storage = memoryStorage();
   saveRecipeDiscoveries(['zhang-fei'], storage);
