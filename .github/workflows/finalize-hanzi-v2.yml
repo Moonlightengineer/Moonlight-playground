@@ -1,0 +1,31 @@
+name: Finalize Hanzi v2 First Playable
+
+on:
+  push:
+    branches:
+      - feature/hanzi-v2-gameplay-economy-clarity
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hanzi-v2-first-playable-finalizer
+  cancel-in-progress: false
+
+jobs:
+  finalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feature/hanzi-v2-gameplay-economy-clarity
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Execute TDD finalizer
+        shell: bash
+        run: bash .automation/finalize-hanzi-v2.sh
