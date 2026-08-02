@@ -147,7 +147,11 @@ test('assault provides a measurable 30 percent attack-speed increase for six sim
 });
 
 test('pause freezes order time and changing 1x or 2x speed does not alter six-step duration', () => {
-  const ordered = applyOrder(fixtureCombat(), { type: 'fortify', lane: 0 }, context);
+  const canonicalCombat = fixtureCombat();
+  canonicalCombat.board.units.u1.definitionId = 'zhang-fei';
+  canonicalCombat.board.units.u1.kind = 'general';
+  canonicalCombat.enemies[0].definitionId = 'soldier';
+  const ordered = applyOrder(canonicalCombat, { type: 'fortify', lane: 0 }, context);
   const base = createExpedition('order-duration');
   const game = {
     ...base,
