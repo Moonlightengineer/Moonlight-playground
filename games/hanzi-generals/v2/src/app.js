@@ -15,11 +15,13 @@ import {
   buildLatestVersionUrl,
   clearAllV2Data,
   isApprovedSaveBoundary,
+  loadRecipeDiscoveries,
   loadSettings,
   loadSnapshot,
   loadTutorial,
   maybeSave,
   resetExpedition,
+  saveRecipeDiscoveries,
   saveSettings,
   saveTutorial,
 } from './storage/storage.js';
@@ -28,6 +30,7 @@ import { createHelpPanel } from './ui/help-panel.js';
 import { bindInteractions } from './ui/interactions.js';
 import { renderApp } from './ui/render-app.js';
 import { buildAppViewModel } from './ui/runtime-view-model.js';
+import { recordRecipeDiscoveries } from './ui/recipe-codex.js';
 import { buildUnitPlayerDetail } from './ui/unit-copy.js';
 import {
   advanceTutorial,
@@ -60,6 +63,7 @@ function initialRuntimeState() {
     profile: {
       settings: { ...(base.settings ?? {}), ...storedSettings },
       tutorial: storedTutorial ?? base.tutorial ?? createTutorial(),
+      discoveredRecipeIds: loadRecipeDiscoveries(),
     },
     ui: {
       rangeUnitId: base.ui?.rangeUnitId ?? null,
@@ -112,6 +116,11 @@ function persistProfile(profile) {
     if (profile.tutorial) saveTutorial(profile.tutorial);
   } catch {
     // Tutorial persistence is best-effort; gameplay remains available.
+  }
+  try {
+    saveRecipeDiscoveries(profile.discoveredRecipeIds ?? []);
+  } catch {
+    // Codex persistence is best-effort; gameplay remains available.
   }
 }
 
@@ -304,6 +313,10 @@ function finalizeDomainRuntime({ runtime, intent, result }) {
   const profile = {
     settings: { ...runtime.profile.settings, ...(game.settings ?? {}) },
     tutorial: advanceTutorialForResult(runtime.profile.tutorial, intent.type, result.events ?? []),
+    discoveredRecipeIds: recordRecipeDiscoveries(
+      runtime.profile.discoveredRecipeIds,
+      result.events ?? [],
+    ),
   };
   const nextMessage = eventMessage(result.events ?? []) ?? runtime.ui.lastMessage;
   return createRuntimeState({

@@ -24,6 +24,7 @@ test('createRuntimeState separates legacy game, profile and transient UI without
   assert.deepEqual(runtime.profile, {
     settings: { reducedMotion: false, vibration: true, speed: 1 },
     tutorial: { index: 2, complete: false, skipped: false },
+    discoveredRecipeIds: [],
   });
   assert.deepEqual(runtime.ui, {
     selectedCardIds: ['card-1'],

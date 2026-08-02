@@ -16,6 +16,7 @@ import {
 } from '../core/selectors/index.js';
 import { enemyDistanceToProgress, MAX_VISIBLE_ENEMY_DISTANCE } from './enemy-field.js';
 import { tutorialText } from './tutorial.js';
+import { buildRecipeCodex } from './recipe-codex.js';
 import { buildUnitPlayerDetail } from './unit-copy.js';
 
 const ROUTE_STAGES = Object.freeze({
@@ -395,6 +396,7 @@ function buildDetails(game, profile, ui) {
       ['遠征種子', game.seed],
     ],
     rangeDetail: unitDetail?.text ?? null,
+    codex: buildRecipeCodex(game, profile),
     settings: [
       { label: profile.settings.reducedMotion ? '低動態：開' : '低動態：關', action: 'toggle-reduced-motion' },
       { label: profile.settings.vibration ? '震動：開' : '震動：關', action: 'toggle-vibration' },
@@ -410,6 +412,7 @@ function normalizeProfile(game, profile = {}) {
       speed: [1, 2].includes(profile.settings?.speed) ? profile.settings.speed : game.settings?.speed ?? 1,
     },
     tutorial: profile.tutorial ?? game.tutorial,
+    discoveredRecipeIds: [...(profile.discoveredRecipeIds ?? [])],
   };
 }
 

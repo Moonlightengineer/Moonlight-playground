@@ -585,3 +585,45 @@ h2 { margin: 0 0 6px; font-size: 0.85rem; }
   }
   .combat-projectile { display: none; }
 }
+
+.recipe-codex { margin-top: 10px; }
+.recipe-codex > summary {
+  color: var(--seal);
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+.recipe-codex-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 7px;
+}
+.recipe-codex-card {
+  min-width: 0;
+  padding: 7px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 249, 236, 0.68);
+}
+.recipe-codex-card.is-locked { filter: grayscale(1); opacity: 0.62; }
+.recipe-codex-card.is-discovered { border-color: rgba(76, 122, 87, 0.58); }
+.recipe-codex-name,
+.recipe-codex-symbols,
+.recipe-codex-state { display: block; }
+.recipe-codex-name { font-size: 0.75rem; }
+.recipe-codex-symbols { margin-top: 2px; color: var(--seal); font-size: 0.72rem; font-weight: 800; }
+.recipe-codex-state { margin-top: 2px; color: var(--muted); font-size: 0.58rem; }
+.recipe-codex-detail {
+  display: -webkit-box;
+  margin: 5px 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.62rem;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+}
+@media (min-width: 620px) {
+  .recipe-codex-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

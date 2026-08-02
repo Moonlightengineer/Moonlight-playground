@@ -1,3 +1,16 @@
+function normalizeDiscoveredRecipeIds(game, profile = {}) {
+  const explicit = Array.isArray(profile.discoveredRecipeIds) ? profile.discoveredRecipeIds : [];
+  const legacy = Array.isArray(game?.recruitedGeneralIds) ? game.recruitedGeneralIds : [];
+  const result = [];
+  const seen = new Set();
+  for (const recipeId of [...explicit, ...legacy]) {
+    if (typeof recipeId !== 'string' || !recipeId || seen.has(recipeId)) continue;
+    seen.add(recipeId);
+    result.push(recipeId);
+  }
+  return result;
+}
+
 function normalizeSettings(game, profile = {}) {
   const legacy = game?.settings ?? {};
   const explicit = profile.settings ?? {};
@@ -27,6 +40,7 @@ export function createRuntimeState({ game, profile = {}, ui = {} }) {
     profile: {
       settings: normalizeSettings(game, profile),
       tutorial: cloneTutorial(profile.tutorial ?? game.tutorial),
+      discoveredRecipeIds: normalizeDiscoveredRecipeIds(game, profile),
     },
     ui: {
       selectedCardIds: [...(explicitSelected ?? legacySelected)],
