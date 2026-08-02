@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   apply:
-    if: ${{ hashFiles('.automation/deck-zone-counts.patch') != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -26,6 +25,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test -f .automation/deck-zone-counts.patch
           git apply --check .automation/deck-zone-counts.patch
           git apply .automation/deck-zone-counts.patch
           rm -rf .automation
