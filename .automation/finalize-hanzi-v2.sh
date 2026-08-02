@@ -1,0 +1,393 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+BRANCH='feature/hanzi-v2-gameplay-economy-clarity'
+DIAGNOSTIC='.automation/finalizer-diagnostic.txt'
+
+capture_failure() {
+  local status=$?
+  local failed_command=${BASH_COMMAND:-unknown}
+  local failed_line=${BASH_LINENO[0]:-unknown}
+  trap - ERR
+  set +e
+  mkdir -p .automation
+  {
+    echo 'FINALIZER_FAILED'
+    echo "exit_status=${status}"
+    echo "line=${failed_line}"
+    echo "command=${failed_command}"
+    echo
+    echo '--- git status ---'
+    git status --short
+    for log in /tmp/final-boundary-red.log /tmp/result-summary-red.log /tmp/reward-history-red.log /tmp/hanzi-build.log; do
+      if [[ -f "$log" ]]; then
+        echo
+        echo "--- ${log} ---"
+        cat "$log"
+      fi
+    done
+  } > "$DIAGNOSTIC"
+  git config user.name 'github-actions[bot]'
+  git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+  git add "$DIAGNOSTIC"
+  git commit -m 'chore(hanzi-v2): capture finalizer diagnostic' || true
+  git push origin "HEAD:${BRANCH}" || true
+  exit "$status"
+}
+trap capture_failure ERR
+
+cat > games/hanzi-generals/v2/tests/final-battle-reward-boundary.test.js <<'EOF'
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { finishBattle, startBattle } from '../src/battle/battle-lifecycle.js';
+import { assertCardOwnership } from '../src/core/card-invariants.js';
+import { reduceGame } from '../src/core/state-machine.js';
+import { createExpedition } from '../src/expedition/expedition.js';
+
+const FIRST_FIVE_STAGES = Object.freeze([
+  'tutorial',
+  'shield-line',
+  'route-safe',
+  'cavalry-warning',
+  'elite-mixed',
+]);
+
+test('sixth battle victory skips a sixth reward and continues directly to expedition victory', () => {
+  const started = startBattle(createExpedition('final-reward-boundary')).state;
+  const fiveRewards = Array.from({ length: 5 }, (_, index) => ({
+    rewardId: `copy-card:test-${index + 1}`,
+    baseId: 'copy-card',
+    battleIndex: index + 1,
+    payload: {},
+  }));
+  const fiveOffers = Array.from({ length: 5 }, (_, index) => ({
+    battleNumber: index + 1,
+    choiceIds: [],
+    baseIds: [],
+    categories: [],
+    rareOffered: index === 4,
+    pityTriggered: false,
+  }));
+  const game = {
+    ...started,
+    route: 'safe',
+    battleIndex: 5,
+    completedBattleIds: [...FIRST_FIVE_STAGES],
+    rewardHistory: fiveRewards,
+    rewardOfferHistory: fiveOffers,
+    currentBattle: {
+      ...started.currentBattle,
+      stageId: 'hua-xiong',
+      phaseIndex: 2,
+      phaseCount: 3,
+    },
+    battleMetrics: {
+      ...started.battleMetrics,
+      stageId: 'hua-xiong',
+      battleNumber: 6,
+    },
+  };
+
+  const result = finishBattle(game, { turn: 12, ordersRemaining: 0 }, []);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.state.status, 'battle-report');
+  assert.equal(result.state.battleReport.nextStatus, 'victory');
+  assert.deepEqual(result.state.rewardChoices, []);
+  assert.equal(result.state.rewardHistory.length, 5);
+  assert.equal(result.state.rewardOfferHistory.length, 5);
+  assert.equal(result.state.completedBattleIds.length, 6);
+  assert.equal(result.state.completedBattleIds.at(-1), 'hua-xiong');
+  assertCardOwnership(result.state);
+
+  const continued = reduceGame(result.state, { type: 'CONTINUE_AFTER_REPORT' });
+  assert.equal(continued.ok, true);
+  assert.equal(continued.state.status, 'victory');
+  assert.equal(continued.state.battleReport, null);
+  assert.equal(continued.state.lastBattleReport.result, 'victory');
+  assert.equal(continued.state.rewardHistory.length, 5);
+  assertCardOwnership(continued.state);
+});
+EOF
+
+cat > games/hanzi-generals/v2/tests/result-summary-v2.test.js <<'EOF'
+import test from 'node:test';
+import assert from 'node:assert/strict';
+
+import { REWARD_BY_ID } from '../data/rewards.js';
+import { STARTING_RECIPE_IDS } from '../data/recipes.js';
+import { createExpedition } from '../src/expedition/expedition.js';
+import { applyReward } from '../src/expedition/rewards.js';
+import { buildAppViewModel } from '../src/ui/view-model.js';
+
+const COMPLETED_STAGES = Object.freeze([
+  'tutorial',
+  'shield-line',
+  'route-safe',
+  'cavalry-warning',
+  'elite-mixed',
+  'hua-xiong',
+]);
+
+function victoryState(seed, overrides = {}) {
+  return {
+    ...createExpedition(seed),
+    status: 'victory',
+    route: 'safe',
+    battleIndex: 6,
+    completedBattleIds: [...COMPLETED_STAGES],
+    currentBattle: null,
+    currentBattleResult: null,
+    nextStageId: null,
+    legalActions: ['START_NEW_RUN'],
+    ...overrides,
+  };
+}
+
+test('result summary derives starting recipes and reward labels from canonical data', () => {
+  const fresh = buildAppViewModel(victoryState('result-fresh')).primary.result;
+  assert.equal(fresh.unlockedText, '本局未新增配方。');
+
+  const result = buildAppViewModel(victoryState('result-earned', {
+    unlockedRecipes: [...STARTING_RECIPE_IDS, 'huang-zhong', 'lu-bu'],
+    rewardHistory: [
+      {
+        rewardId: 'copy-card:5f35',
+        baseId: 'copy-card',
+        displayName: '臨摹「張」',
+        battleIndex: 1,
+        payload: { symbol: '張', amount: 2 },
+      },
+      {
+        rewardId: 'specialize-troop:shield-wall',
+        baseId: 'specialize-troop',
+        battleIndex: 2,
+        payload: { specializationId: 'shield-wall' },
+      },
+    ],
+  })).primary.result;
+
+  assert.match(result.unlockedText, /黃忠/);
+  assert.match(result.unlockedText, /呂布/);
+  assert.equal(result.rewardsText, '臨摹「張」、兵種專精');
+  assert.equal(result.rewardsText.includes(':'), false);
+});
+
+test('reward history preserves the concrete player-facing reward name', () => {
+  const game = createExpedition('reward-display-name');
+  const reward = {
+    ...REWARD_BY_ID['copy-card'],
+    id: 'copy-card:5f35',
+    baseId: 'copy-card',
+    concrete: true,
+    name: '臨摹「張」',
+    payload: { symbol: '張', amount: 2 },
+  };
+
+  const rewarded = applyReward(game, reward, reward.payload);
+  assert.equal(rewarded.rewardHistory.at(-1).displayName, '臨摹「張」');
+});
+EOF
+
+set +e
+node --test games/hanzi-generals/v2/tests/final-battle-reward-boundary.test.js > /tmp/final-boundary-red.log 2>&1
+final_red=$?
+node --test --test-name-pattern='result summary derives' games/hanzi-generals/v2/tests/result-summary-v2.test.js > /tmp/result-summary-red.log 2>&1
+result_red=$?
+node --test --test-name-pattern='reward history preserves' games/hanzi-generals/v2/tests/result-summary-v2.test.js > /tmp/reward-history-red.log 2>&1
+history_red=$?
+set -e
+cat /tmp/final-boundary-red.log
+cat /tmp/result-summary-red.log
+cat /tmp/reward-history-red.log
+test "$final_red" -ne 0
+test "$result_red" -ne 0
+test "$history_red" -ne 0
+grep -Fq 'sixth battle victory skips a sixth reward' /tmp/final-boundary-red.log
+grep -Fq 'result summary derives starting recipes' /tmp/result-summary-red.log
+grep -Fq 'reward history preserves the concrete player-facing reward name' /tmp/reward-history-red.log
+echo 'TDD_RED_CONFIRMED'
+
+test -f .automation/slice6.patch.gz
+printf '%s  %s\n' \
+  '50fbcc499a090cf410cc190e6d17dc232ba161df9173fd133bacabd90c2ea11f' \
+  '.automation/slice6.patch.gz' | sha256sum -c -
+gzip -dc .automation/slice6.patch.gz > /tmp/slice6.patch
+printf '%s  %s\n' \
+  '1fd42d46a628884fe4ff93c7295cc08ffa4accea726a1c4cb7add780d15819f3' \
+  '/tmp/slice6.patch' | sha256sum -c -
+git apply --check /tmp/slice6.patch
+git apply /tmp/slice6.patch
+
+python - <<'PY'
+from pathlib import Path
+import re
+
+
+def replace_once(path, old, new):
+    target = Path(path)
+    text = target.read_text(encoding='utf-8')
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f'{path}: expected one exact match, found {count}')
+    target.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+
+battle_path = Path('games/hanzi-generals/v2/src/battle/battle-lifecycle.js')
+battle_text = battle_path.read_text(encoding='utf-8')
+expedition_import = "import { advanceExpedition } from '../expedition/expedition.js';\n"
+if expedition_import not in battle_text:
+    marker = "import { prepareBattleDeck } from '../deck/deck.js';\n"
+    if marker not in battle_text:
+        raise SystemExit('battle-lifecycle: deck import marker missing')
+    battle_text = battle_text.replace(marker, marker + expedition_import, 1)
+
+finish_pattern = re.compile(
+    r"export function finishBattle\(game, combat, events = \[\]\) \{.*?\n\}\n\nexport function stepBattleCombat",
+    re.DOTALL,
+)
+finish_replacement = """export function finishBattle(game, combat, events = []) {
+  const battleEvent = gameEvent('BATTLE_COMPLETED', { stageId: game.currentBattle.stageId });
+  const combinedEvents = [...events, battleEvent];
+  const metrics = recordLifecycleEvents(game, combinedEvents, combat);
+  const settled = settleAfterBattle({
+    ...game,
+    combat: null,
+    currentBattleResult: 'victory',
+    battleMetrics: metrics,
+  });
+
+  const isFinalBattle = (settled.completedBattleIds?.length ?? 0) >= 5;
+  if (isFinalBattle) {
+    const battleReport = finalizeBattleReport(settled, 'victory', 'victory');
+    const completed = advanceExpedition(settled);
+    return success({
+      ...completed,
+      status: 'battle-report',
+      battleMetrics: null,
+      battleReport,
+      legalActions: ['CONTINUE_AFTER_REPORT', 'RESET_RUN'],
+    }, combinedEvents);
+  }
+
+  const generated = generateRewardOffer(settled);
+  const withRewards = {
+    ...settled,
+    rng: generated.rng,
+    rewardChoices: generated.choices,
+    rewardOfferHistory: [...(settled.rewardOfferHistory ?? []), generated.record],
+  };
+  const battleReport = finalizeBattleReport(withRewards, 'victory', 'reward');
+  return success({
+    ...withRewards,
+    status: 'battle-report',
+    battleMetrics: null,
+    battleReport,
+    legalActions: ['CONTINUE_AFTER_REPORT', 'RESET_RUN'],
+  }, combinedEvents);
+}
+
+export function stepBattleCombat"""
+battle_text, count = finish_pattern.subn(finish_replacement, battle_text, count=1)
+if count != 1:
+    raise SystemExit(f'battle-lifecycle: finishBattle replacement count {count}')
+battle_path.write_text(battle_text, encoding='utf-8')
+
+state_path = 'games/hanzi-generals/v2/src/core/state-machine.js'
+defeat_marker = "  if (report.nextStatus === 'defeat') {\n"
+victory_branch = """  if (report.nextStatus === 'victory') {
+    return success({
+      ...game,
+      status: 'victory',
+      combat: null,
+      currentBattle: null,
+      currentBattleResult: null,
+      nextStageId: null,
+      rewardChoices: [],
+      battleReport: null,
+      lastBattleReport: report,
+      legalActions: ['START_NEW_RUN'],
+    });
+  }
+  if (report.nextStatus === 'defeat') {
+"""
+replace_once(state_path, defeat_marker, victory_branch)
+
+rewards_path = 'games/hanzi-generals/v2/src/expedition/rewards.js'
+replace_once(
+    rewards_path,
+    "        baseId,\n        battleIndex: before.completedBattleIds.length + 1,\n",
+    "        baseId,\n        displayName: reward.name ?? null,\n        battleIndex: before.completedBattleIds.length + 1,\n",
+)
+
+view_path = Path('games/hanzi-generals/v2/src/ui/view-model.js')
+view_text = view_path.read_text(encoding='utf-8')
+recipe_import = "import { STARTING_RECIPE_IDS } from '../../data/recipes.js';\n"
+if recipe_import not in view_text:
+    reward_import = "import { REWARDS } from '../../data/rewards.js';\n"
+    if reward_import not in view_text:
+        raise SystemExit('view-model: rewards import marker missing')
+    view_text = view_text.replace(reward_import, reward_import + recipe_import, 1)
+view_text, count = re.subn(
+    r"const STARTING_RECIPES = new Set\([^\n]+\);",
+    'const STARTING_RECIPES = new Set(STARTING_RECIPE_IDS);',
+    view_text,
+    count=1,
+)
+if count != 1:
+    raise SystemExit(f'view-model: starting recipe replacement count {count}')
+helper = """function rewardHistoryName(entry) {
+  const savedName = entry?.displayName ?? entry?.name;
+  if (typeof savedName === 'string' && savedName.trim()) return savedName;
+  const baseId = entry?.baseId ?? entry?.rewardId;
+  return REWARDS.find(({ id }) => id === baseId)?.name ?? '已取得獎勵';
+}
+
+"""
+marker = 'function buildResult(game) {\n'
+if helper not in view_text:
+    if marker not in view_text:
+        raise SystemExit('view-model: buildResult marker missing')
+    view_text = view_text.replace(marker, helper + marker, 1)
+old_rewards_line = "    rewardsText: rewards.length ? rewards.map(({ rewardId }) => REWARDS.find(({ id }) => id === rewardId)?.name ?? rewardId).join('、') : '未有可記錄獎勵。',"
+new_rewards_line = "    rewardsText: rewards.length ? rewards.map(rewardHistoryName).join('、') : '未有可記錄獎勵。',"
+if old_rewards_line not in view_text:
+    raise SystemExit('view-model: result rewards line missing')
+view_text = view_text.replace(old_rewards_line, new_rewards_line, 1)
+view_path.write_text(view_text, encoding='utf-8')
+PY
+
+node --test \
+  games/hanzi-generals/v2/tests/final-battle-reward-boundary.test.js \
+  games/hanzi-generals/v2/tests/result-summary-v2.test.js
+node --test \
+  games/hanzi-generals/v2/tests/combat-orders-v2.test.js \
+  games/hanzi-generals/v2/tests/orders.test.js \
+  games/hanzi-generals/v2/tests/combat-engine.test.js \
+  games/hanzi-generals/v2/tests/selectors.test.js \
+  games/hanzi-generals/v2/tests/view-model.test.js \
+  games/hanzi-generals/v2/tests/app-boundary.test.js \
+  games/hanzi-generals/v2/tests/ui-contract.test.js \
+  games/hanzi-generals/v2/tests/data-validator.test.js
+node --check scripts/hanzi_v2_browser_playtest.mjs
+node --check scripts/hanzi_v2_browser_ui_regressions.mjs
+npm test
+python scripts/build_site.py | tee /tmp/hanzi-build.log
+grep -Fq 'SITE_VERIFY_OK' /tmp/hanzi-build.log
+
+rm -rf .automation
+rm -f .github/workflows/finalize-hanzi-v2.yml
+rm -f .github/workflows/apply-hanzi-military-orders.yml
+test ! -e .automation
+test ! -e .github/workflows/finalize-hanzi-v2.yml
+test ! -e .github/workflows/apply-hanzi-military-orders.yml
+git diff --check
+
+trap - ERR
+git config user.name 'github-actions[bot]'
+git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+git add -A
+git diff --cached --check
+git commit -m 'feat(hanzi-v2): complete First Playable reward and orders gates'
+git push origin "HEAD:${BRANCH}"
