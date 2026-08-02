@@ -104,6 +104,36 @@ h2 { margin: 0 0 6px; font-size: 0.85rem; }
 .run-title { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
 .run-title strong { margin-right: auto; font-size: 0.88rem; }
 .run-title span { color: var(--muted); font-size: 0.72rem; }
+.card-zone-counts {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 4px;
+  margin: 6px 0 0;
+}
+.card-zone-count {
+  min-width: 0;
+  padding: 3px 2px;
+  text-align: center;
+  border: 1px solid rgba(75, 55, 39, 0.13);
+  border-radius: 7px;
+  background: rgba(239, 227, 200, 0.46);
+}
+.card-zone-count dt {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.55rem;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.card-zone-count dd {
+  margin: 1px 0 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.card-zone-counts.is-unreconciled { outline: 2px solid var(--danger); outline-offset: 2px; }
+
 .run-progress { display: flex; gap: 5px; margin: 6px 0 0; padding: 0; list-style: none; }
 .run-progress li {
   display: grid;

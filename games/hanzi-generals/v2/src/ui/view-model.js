@@ -8,6 +8,7 @@ import {
   selectActiveBoard,
   selectAssemblyTargets,
   selectCampState,
+  selectDeckZoneCounts,
   selectLegalCommands,
   selectLifecycle,
   selectOrderTargets,
@@ -38,10 +39,20 @@ function stageTitle(game, lifecycle) {
 
 function buildRunStatus(game, profile, lifecycle) {
   const stages = ROUTE_STAGES[game.route] ?? ROUTE_STAGES.safe;
+  const counts = selectDeckZoneCounts(game);
   return {
     title: stageTitle(game, lifecycle),
     wallLabel: `城牆 ${game.wallHp}/${game.wallMaxHp}`,
     orderLabel: game.status === 'combat' ? `軍令 ${game.combat.ordersRemaining}` : null,
+    cardCounts: [
+      { key: 'drawPile', label: '抽牌', count: counts.drawPile },
+      { key: 'discardPile', label: '棄牌', count: counts.discardPile },
+      { key: 'hand', label: '手牌', count: counts.hand },
+      { key: 'camp', label: '軍營', count: counts.camp },
+      { key: 'deployed', label: '戰場', count: counts.deployed },
+      { key: 'total', label: '總數', count: counts.total },
+    ],
+    cardCountsReconciled: counts.reconciled,
     progress: stages.map((stageId, index) => ({
       stageId,
       label: String(index + 1),
