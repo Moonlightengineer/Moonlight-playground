@@ -222,41 +222,72 @@ function handleExternalUiIntent(runtime, intent) {
     };
   }
 
-  if (intent.type === 'UI_RESTART_RUN') {
-    const reset = resetExpedition();
-    if (!reset.ok) {
+  if (intent.type === 'UI_RESTART_EXPEDITION') {
+    if (!window.confirm('清除目前遠征進度並重新開始？教學完成紀錄及玩家設定會保留。')) {
+      return { runtime };
+    }
+    const cleared = resetExpedition();
+    if (!cleared.ok) {
       return {
-        runtime: cloneRuntime(runtime, { ui: { ...runtime.ui, lastMessage: '重新開始失敗，請重試。' } }),
+        error: {
+          code: 'RESET_EXPEDITION_FAILED',
+          message: `未能重新開始：${cleared.error?.message ?? '本機存檔無法清除。'}`,
+        },
       };
     }
+    const game = createExpedition(`moonlight-${Date.now()}`);
+    const nextRuntime = createRuntimeState({
+      game,
+      profile: runtime.profile,
+      ui: {
+        selectedCardIds: [],
+        rangeUnitId: null,
+        lastMessage: '已重新開始遠征；教學紀錄及設定已保留。',
+        overlay: null,
+        orderDraft: null,
+      },
+    });
+    resumeAfterHelp = false;
     return {
-      runtime: createRuntimeState({
-        game: createExpedition(seedFromUrl()),
-        profile: runtime.profile,
-        ui: { rangeUnitId: null, lastMessage: '已重新開始遠征。', overlay: null, orderDraft: null },
-      }),
+      runtime: nextRuntime,
+      effects: [
+        { type: 'CLEAR_FEEDBACK' },
+        { type: 'CLOSE_HELP' },
+        { type: 'SAVE_GAME', game },
+      ],
     };
   }
 
-  if (intent.type === 'UI_RESET_LATEST') {
-    const reset = clearAllV2Data();
-    if (!reset.ok) {
+  if (intent.type === 'UI_CLEAR_ALL_V2_DATA') {
+    if (!window.confirm(
+      '確認完全清除？將刪除遠征、教學、設定及所有舊 v2 資料；其他 Playground 項目及經典版資料不受影響。',
+    )) return { runtime };
+    const cleared = clearAllV2Data();
+    if (!cleared.ok) {
       return {
-        runtime: cloneRuntime(runtime, { ui: { ...runtime.ui, lastMessage: '清除資料失敗，請重試。' } }),
+        error: {
+          code: 'CLEAR_ALL_DATA_FAILED',
+          message: `未能完全清除：${cleared.error?.message ?? '本機資料無法清除。'}`,
+        },
       };
     }
     return {
       runtime,
-      effects: [{ type: 'NAVIGATE', href: buildLatestVersionUrl(window.location) }],
+      effects: [
+        { type: 'CLEAR_FEEDBACK' },
+        { type: 'RELOAD_LATEST' },
+      ],
     };
   }
 
-  if (intent.type === 'UI_NEW_RUN') {
+  if (intent.type === 'UI_SKIP_TUTORIAL') {
+    if (!runtime.profile.tutorial?.complete && !window.confirm('確認略過首次教學？')) {
+      return { runtime };
+    }
     return {
-      runtime: createRuntimeState({
-        game: createExpedition(`${seedFromUrl()}-${Date.now()}`),
-        profile: runtime.profile,
-        ui: { rangeUnitId: null, lastMessage: '新遠征已建立。', overlay: null, orderDraft: null },
+      runtime: cloneRuntime(runtime, {
+        profile: { ...runtime.profile, tutorial: skipTutorial(runtime.profile.tutorial) },
+        ui: { ...runtime.ui, lastMessage: '教學已略過。' },
       }),
     };
   }
@@ -264,58 +295,105 @@ function handleExternalUiIntent(runtime, intent) {
   return null;
 }
 
-function tutorialForResult(runtime, intent, result) {
-  let tutorial = runtime.profile.tutorial;
-  if (intent.type === 'RETAIN_CARDS') tutorial = advanceTutorial(tutorial, 'RETAIN_CARDS');
-  if (intent.type === 'START_PHASE') tutorial = advanceTutorial(tutorial, 'START_PHASE');
-  return advanceTutorialForResult(tutorial, result);
+function emitEffects(effects) {
+  for (const effect of effects) {
+    if (effect.type === 'OPEN_HELP') helpPanel.open(effect.trigger);
+    if (effect.type === 'CLOSE_HELP') helpPanel.close();
+    if (effect.type === 'CLEAR_FEEDBACK') feedback.clear();
+    if (effect.type === 'SAVE_GAME') maybeSave(effect.game);
+    if (effect.type === 'RELOAD_LATEST') {
+      window.location.href = buildLatestVersionUrl(window.location);
+    }
+  }
 }
 
-function persistGameAtBoundary(game, intent, previousGame) {
-  if (!isApprovedSaveBoundary(intent, game, previousGame)) return;
-  maybeSave(game, intent, previousGame);
+function finalizeDomainRuntime({ runtime, intent, result }) {
+  const game = result.state;
+  const profile = {
+    settings: { ...runtime.profile.settings, ...(game.settings ?? {}) },
+    tutorial: advanceTutorialForResult(runtime.profile.tutorial, intent.type, result.events ?? []),
+    discoveredRecipeIds: recordRecipeDiscoveries(
+      runtime.profile.discoveredRecipeIds,
+      result.events ?? [],
+    ),
+  };
+  const nextMessage = eventMessage(result.events ?? []) ?? runtime.ui.lastMessage;
+  return createRuntimeState({
+    game,
+    profile,
+    ui: {
+      ...runtime.ui,
+      selectedCardIds: game.selection?.cardIds ?? runtime.ui.selectedCardIds,
+      lastMessage: nextMessage,
+    },
+  });
 }
 
-function appDependencies() {
-  return {
+function renderViewModel(viewModel) {
+  lastViewModel = viewModel;
+  renderApp(root, viewModel);
+  message.textContent = viewModel.feedback.lastMessage ?? '';
+}
+
+function renderFatalDataError(errors) {
+  feedback.clear();
+  root.dataset.status = 'error';
+  root.replaceChildren();
+  const title = document.createElement('h1');
+  title.textContent = '字陣無雙 v2 無法啟動';
+  const detail = document.createElement('p');
+  detail.textContent = `資料版本 ${TUNING.schemaVersion} 驗證失敗：${errors[0]}`;
+  root.append(title, detail);
+}
+
+if (!validation.ok) {
+  renderFatalDataError(validation.errors);
+} else {
+  controller = createAppController({
     initialRuntime,
     reduceGame,
     buildViewModel: buildAppViewModel,
-    render: (viewModel, runtime) => {
-      lastViewModel = viewModel;
-      renderApp(root, viewModel, runtime.ui);
-      message.textContent = runtime.ui.lastMessage || '';
-      root.hidden = false;
-      if (runtime.ui.overlay === 'help') helpPanel.open();
-      else if (helpPanel.isOpen()) helpPanel.close();
-      persistProfile(runtime.profile);
-    },
-    persistGame: persistGameAtBoundary,
+    renderViewModel,
+    persistGame: maybeSave,
+    shouldPersistGame: isApprovedSaveBoundary,
+    persistProfile,
     presentEvents,
-    eventMessage,
-    tutorialForResult,
-    recordDiscoveries: (profile, events) => {
-      const discoveredRecipeIds = recordRecipeDiscoveries(profile.discoveredRecipeIds, events);
-      return { ...profile, discoveredRecipeIds };
-    },
+    emitEffects,
     handleExternalUiIntent,
-    schedule: (callback, delay) => window.setTimeout(callback, delay),
-    cancelSchedule: (timerId) => window.clearTimeout(timerId),
-    combatDelay: (runtime) => 900 / (runtime.profile.settings.speed ?? 1),
-    notifyEffects: (effects) => {
-      for (const effect of effects) {
-        if (effect.type === 'OPEN_HELP') helpPanel.open(effect.trigger);
-        if (effect.type === 'CLOSE_HELP') helpPanel.close();
-        if (effect.type === 'NAVIGATE') window.location.assign(effect.href);
-      }
-    },
-  };
-}
+    finalizeDomainRuntime,
+    setTimer: (callback, delay) => window.setTimeout(callback, delay),
+    clearTimer: (timerId) => window.clearTimeout(timerId),
+    combatDelay: (runtime) => (runtime.profile.settings.speed === 2 ? 350 : 700),
+    waitUntilIdle: () => feedback.whenIdle(),
+  });
 
-controller = createAppController(appDependencies());
-controller.render();
-bindInteractions(root, {
-  dispatch: (intent) => controller.dispatchIntent(intent),
-  getViewModel: () => lastViewModel,
-  helpPanel,
-});
+  bindInteractions(
+    root,
+    (intent) => controller.dispatchIntent(intent),
+    () => lastViewModel,
+  );
+  persistProfile(initialRuntime.profile);
+  controller.render();
+
+  document.addEventListener('keydown', (event) => {
+    const interactive = ['BUTTON', 'INPUT', 'TEXTAREA', 'SELECT', 'SUMMARY']
+      .includes(document.activeElement?.tagName);
+    const runtime = controller.getRuntime();
+    if (event.key === 'Escape') {
+      if (helpPanel.isOpen()) {
+        controller.dispatchIntent({ type: 'UI_CLOSE_HELP' });
+        return;
+      }
+      const details = root.querySelector('#details-panel');
+      if (details?.open) details.open = false;
+      if (runtime.ui.rangeUnitId) controller.dispatchIntent({ type: 'UI_CLOSE_RANGE' });
+    }
+    if (event.code === 'Space'
+      && runtime.game.status === 'combat'
+      && !interactive
+      && !helpPanel.isOpen()) {
+      event.preventDefault();
+      controller.dispatchIntent({ type: runtime.game.combat.paused ? 'RESUME' : 'PAUSE' });
+    }
+  });
+}
