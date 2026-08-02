@@ -50,7 +50,7 @@ jobs:
               echo
               echo '--- git status ---'
               git status --short
-              for log in /tmp/hanzi-apply.log /tmp/hanzi-focused.log /tmp/hanzi-full.log /tmp/hanzi-build.log; do
+              for log in /tmp/hanzi-apply.log /tmp/hanzi-followup.log /tmp/hanzi-focused.log /tmp/hanzi-full.log /tmp/hanzi-build.log; do
                 if [[ -f "$log" ]]; then
                   echo
                   echo "--- ${log} ---"
@@ -88,6 +88,7 @@ jobs:
           PY
 
           python -u .automation/apply-hanzi-v2-approved-gaps.py 2>&1 | tee /tmp/hanzi-apply.log
+          python -u .automation/apply-hanzi-v2-followup.py 2>&1 | tee /tmp/hanzi-followup.log
 
           # Keep rendering on canonical simulated seconds. Legacy counters are
           # converted once by normalizeGameState, never interpreted by the UI.
