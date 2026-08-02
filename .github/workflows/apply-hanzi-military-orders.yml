@@ -1,0 +1,56 @@
+name: Apply Hanzi military orders slice
+
+on:
+  push:
+    branches:
+      - feature/hanzi-v2-gameplay-economy-clarity
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feature/hanzi-v2-gameplay-economy-clarity
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Apply verified orders patch and test
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .automation/slice6.patch.gz
+          printf '%s  %s\n' \
+            '50fbcc499a090cf410cc190e6d17dc232ba161df9173fd133bacabd90c2ea11f' \
+            '.automation/slice6.patch.gz' | sha256sum -c -
+          gzip -dc .automation/slice6.patch.gz > /tmp/slice6.patch
+          printf '%s  %s\n' \
+            '1fd42d46a628884fe4ff93c7295cc08ffa4accea726a1c4cb7add780d15819f3' \
+            '/tmp/slice6.patch' | sha256sum -c -
+          git apply --check /tmp/slice6.patch
+          git apply /tmp/slice6.patch
+          rm -rf .automation
+          rm -f .github/workflows/apply-hanzi-military-orders.yml
+          node --test \
+            games/hanzi-generals/v2/tests/combat-orders-v2.test.js \
+            games/hanzi-generals/v2/tests/orders.test.js \
+            games/hanzi-generals/v2/tests/combat-engine.test.js \
+            games/hanzi-generals/v2/tests/selectors.test.js \
+            games/hanzi-generals/v2/tests/view-model.test.js \
+            games/hanzi-generals/v2/tests/app-boundary.test.js \
+            games/hanzi-generals/v2/tests/ui-contract.test.js \
+            games/hanzi-generals/v2/tests/data-validator.test.js
+          node --check scripts/hanzi_v2_browser_playtest.mjs
+          node --check scripts/hanzi_v2_browser_ui_regressions.mjs
+          npm test
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(hanzi-v2): replace combat orders with approved triad"
+          git push origin HEAD:feature/hanzi-v2-gameplay-economy-clarity
