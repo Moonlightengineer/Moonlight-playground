@@ -1,0 +1,54 @@
+name: Apply Hanzi permanent reward economy
+
+on:
+  push:
+    branches:
+      - feature/hanzi-v2-gameplay-economy-clarity
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feature/hanzi-v2-gameplay-economy-clarity
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Apply verified reward patch and test
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .automation/reward-v2.patch.gz
+          printf '%s  %s\n' \
+            '49870e26eb8fd258767edce71f49a17a618585d89f07a2459515b729639ff294' \
+            '.automation/reward-v2.patch.gz' | sha256sum -c -
+          gzip -dc .automation/reward-v2.patch.gz > /tmp/reward-v2.patch
+          printf '%s  %s\n' \
+            '60f4ff6d4c93f0039f52a7678129a6942ee21ffd4c532eaa3ad7bae8b5e6bd85' \
+            '/tmp/reward-v2.patch' | sha256sum -c -
+          git apply --check /tmp/reward-v2.patch
+          git apply /tmp/reward-v2.patch
+          rm -rf .automation
+          rm -f .github/workflows/apply-hanzi-reward-v2.yml
+          node --test \
+            games/hanzi-generals/v2/tests/reward-economy-v2.test.js \
+            games/hanzi-generals/v2/tests/reward-flow.test.js \
+            games/hanzi-generals/v2/tests/reward-offer-edge.test.js \
+            games/hanzi-generals/v2/tests/reward-repair-availability.test.js \
+            games/hanzi-generals/v2/tests/review-fixes.test.js \
+            games/hanzi-generals/v2/tests/canonical-state-machine.test.js \
+            games/hanzi-generals/v2/tests/expedition.test.js \
+            games/hanzi-generals/v2/tests/storage-migration-review.test.js
+          npm test
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(hanzi-v2): rebuild permanent reward economy"
+          git push origin HEAD:feature/hanzi-v2-gameplay-economy-clarity
