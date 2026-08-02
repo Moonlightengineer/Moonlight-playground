@@ -1,7 +1,7 @@
 HANZI_V2_APPLIER_FAILED
 exit_status=1
-line=115
-command=tee /tmp/hanzi-focused.log
+line=117
+command=tee /tmp/hanzi-full.log
 
 --- git status ---
  M .automation/apply-diagnostic.txt
@@ -31,280 +31,2026 @@ TAP version 13
 # Subtest: app entry is dependency wiring around AppController rather than a second orchestrator
 ok 1 - app entry is dependency wiring around AppController rather than a second orchestrator
   ---
-  duration_ms: 7.028333
+  duration_ms: 9.646987
   ...
 # Subtest: interaction targeting consumes ViewModel targets without reintroducing combat movement
 ok 2 - interaction targeting consumes ViewModel targets without reintroducing combat movement
   ---
-  duration_ms: 2.361329
+  duration_ms: 4.568693
   ...
 # Subtest: same-lane ranged unit selects the nearest reachable enemy
 ok 3 - same-lane ranged unit selects the nearest reachable enemy
   ---
-  duration_ms: 1.859543
+  duration_ms: 3.132951
   ...
 # Subtest: focus changes priority only within the original same-lane pattern
 ok 4 - focus changes priority only within the original same-lane pattern
   ---
-  duration_ms: 0.324343
+  duration_ms: 0.472092
   ...
 # Subtest: friendly hit event identifies attacker, target, and damage
 ok 5 - friendly hit event identifies attacker, target, and damage
   ---
-  duration_ms: 1.21433
+  duration_ms: 2.139877
   ...
 # Subtest: enemy damage event identifies attacker, friendly target, and damage
 ok 6 - enemy damage event identifies attacker, friendly target, and damage
   ---
-  duration_ms: 0.611337
+  duration_ms: 0.785768
   ...
 # Subtest: wall damage event identifies attacker, lane, and damage
 ok 7 - wall damage event identifies attacker, lane, and damage
   ---
-  duration_ms: 0.296585
+  duration_ms: 0.379899
   ...
 # Subtest: enemy defeat event identifies defeated enemy and final attacker
 ok 8 - enemy defeat event identifies defeated enemy and final attacker
   ---
-  duration_ms: 1.072103
+  duration_ms: 2.042405
   ...
 # Subtest: friendly defeat event identifies defeated unit and final attacker
 ok 9 - friendly defeat event identifies defeated unit and final attacker
   ---
-  duration_ms: 0.349308
+  duration_ms: 0.400378
   ...
 # Subtest: enemy at distance zero damages wall when the lane is empty
 ok 10 - enemy at distance zero damages wall when the lane is empty
   ---
-  duration_ms: 0.274142
+  duration_ms: 0.457374
   ...
 # Subtest: frontline unit blocks melee enemy before the wall is damaged
 ok 11 - frontline unit blocks melee enemy before the wall is damaged
   ---
-  duration_ms: 0.428525
+  duration_ms: 0.543084
   ...
 # Subtest: heavy cavalry charge reaches the lane and causes impact damage
 ok 12 - heavy cavalry charge reaches the lane and causes impact damage
   ---
-  duration_ms: 0.447676
+  duration_ms: 0.593178
   ...
 # Subtest: same combat input produces the same state and event payloads
 ok 13 - same combat input produces the same state and event payloads
   ---
-  duration_ms: 0.784754
+  duration_ms: 0.810764
   ...
 # Subtest: crossbow attacks the rear unit and shield troop reduces direct damage
 ok 14 - crossbow attacks the rear unit and shield troop reduces direct damage
   ---
-  duration_ms: 0.43695
+  duration_ms: 0.534318
   ...
 # Subtest: timed orders decrease once per simulated second
 ok 15 - timed orders decrease once per simulated second
   ---
-  duration_ms: 0.324014
+  duration_ms: 0.43358
   ...
 # Subtest: fortify, assault and focus share three points, coexist, and cannot refresh their own type
 ok 16 - fortify, assault and focus share three points, coexist, and cannot refresh their own type
   ---
-  duration_ms: 6.0291
+  duration_ms: 4.324417
   ...
 # Subtest: fortify reduces friendly damage by 35 percent and focus adds 20 percent damage
 ok 17 - fortify reduces friendly damage by 35 percent and focus adds 20 percent damage
   ---
-  duration_ms: 0.972562
+  duration_ms: 1.865424
   ...
 # Subtest: assault provides a measurable 30 percent attack-speed increase for six simulated seconds
 ok 18 - assault provides a measurable 30 percent attack-speed increase for six simulated seconds
   ---
-  duration_ms: 2.96302
+  duration_ms: 1.303855
   ...
 # Subtest: pause freezes order time and changing 1x or 2x speed does not alter six-step duration
-not ok 19 - pause freezes order time and changing 1x or 2x speed does not alter six-step duration
+ok 19 - pause freezes order time and changing 1x or 2x speed does not alter six-step duration
   ---
-  duration_ms: 1.992472
-  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/combat-orders-v2.test.js:149:1'
-  failureType: 'testCodeFailure'
-  error: "Cannot read properties of undefined (reading 'range')"
-  code: 'ERR_TEST_FAILURE'
-  name: 'TypeError'
-  stack: |-
-    file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/combat/targeting.js:6:69
-    Array.filter (<anonymous>)
-    reachableEnemies (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/combat/targeting.js:6:6)
-    patternCandidates (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/combat/targeting.js:15:21)
-    findTargets (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/combat/targeting.js:49:22)
-    stepCombat (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/combat/combat-engine.js:211:21)
-    stepBattleCombat (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/battle/battle-lifecycle.js:293:18)
-    canonicalBattlePolicyResult (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/core/state-machine.js:173:45)
-    reduceGame (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/core/state-machine.js:267:15)
-    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/combat-orders-v2.test.js:177:14)
+  duration_ms: 5.468183
   ...
 # Subtest: battle command points remain spent across all three phases
 ok 20 - battle command points remain spent across all three phases
   ---
-  duration_ms: 1.649907
+  duration_ms: 1.798379
   ...
 # Subtest: combat reconfiguration orders are rejected without spending points
 ok 21 - combat reconfiguration orders are rejected without spending points
   ---
-  duration_ms: 0.318997
+  duration_ms: 0.318145
   ...
 # Subtest: mobile command view exposes only the approved triad and remaining seconds
 ok 22 - mobile command view exposes only the approved triad and remaining seconds
   ---
-  duration_ms: 4.513113
+  duration_ms: 8.425153
   ...
 # Subtest: sixth battle victory skips a sixth reward and continues directly to expedition victory
 ok 23 - sixth battle victory skips a sixth reward and continues directly to expedition victory
   ---
-  duration_ms: 5.612181
+  duration_ms: 9.544115
   ...
 # Subtest: focus rejects targets outside every friendly legal attack route without spending a point
 ok 24 - focus rejects targets outside every friendly legal attack route without spending a point
   ---
-  duration_ms: 1.492369
+  duration_ms: 1.987642
   ...
 # Subtest: focus accepts a reachable same-lane target and spends one shared point
 ok 25 - focus accepts a reachable same-lane target and spends one shared point
   ---
-  duration_ms: 0.257456
+  duration_ms: 0.335156
   ...
 # Subtest: invalid fortify and assault lanes never spend command points
 ok 26 - invalid fortify and assault lanes never spend command points
   ---
-  duration_ms: 0.191797
+  duration_ms: 0.286455
   ...
 # Subtest: legacy swap and reinforce inputs are blocked during combat
 ok 27 - legacy swap and reinforce inputs are blocked during combat
   ---
-  duration_ms: 0.213861
+  duration_ms: 0.263812
   ...
 # Subtest: legacy tactics remain load-compatible but are not part of the new command-point triad
 ok 28 - legacy tactics remain load-compatible but are not part of the new command-point triad
   ---
-  duration_ms: 0.297641
+  duration_ms: 0.420986
   ...
 # Subtest: result summary derives starting recipes and reward labels from canonical data
 ok 29 - result summary derives starting recipes and reward labels from canonical data
   ---
-  duration_ms: 4.176845
+  duration_ms: 6.637157
   ...
 # Subtest: reward history preserves the concrete player-facing reward name
 ok 30 - reward history preserves the concrete player-facing reward name
   ---
-  duration_ms: 0.555755
+  duration_ms: 1.146402
   ...
 # Subtest: selectLifecycle exposes stable screen and human battle/phase numbers
 ok 31 - selectLifecycle exposes stable screen and human battle/phase numbers
   ---
-  duration_ms: 5.926917
+  duration_ms: 4.816196
   ...
 # Subtest: selectActiveBoard uses the combat board only during combat
 ok 32 - selectActiveBoard uses the combat board only during combat
   ---
-  duration_ms: 0.332323
+  duration_ms: 0.461482
   ...
 # Subtest: selectCardZoneIndex records canonical owner zones in deterministic order
 ok 33 - selectCardZoneIndex records canonical owner zones in deterministic order
   ---
-  duration_ms: 0.868391
+  duration_ms: 1.683584
   ...
 # Subtest: selectCampState and selectRerollState derive UI-ready values
 ok 34 - selectCampState and selectRerollState derive UI-ready values
   ---
-  duration_ms: 0.281017
+  duration_ms: 0.515854
   ...
 # Subtest: selectAssemblyTargets ignores stale legalCells and returns only empty board cells
 ok 35 - selectAssemblyTargets ignores stale legalCells and returns only empty board cells
   ---
-  duration_ms: 0.278855
+  duration_ms: 0.677014
   ...
 # Subtest: selectOrderTargets returns deterministic focus, fortify and assault targets only
 ok 36 - selectOrderTargets returns deterministic focus, fortify and assault targets only
   ---
-  duration_ms: 0.546546
+  duration_ms: 0.964501
   ...
 # Subtest: selectLegalCommands derives legality instead of copying stale legalActions
 ok 37 - selectLegalCommands derives legality instead of copying stale legalActions
   ---
-  duration_ms: 0.691696
+  duration_ms: 0.866158
   ...
 # Subtest: selectors remain pure and do not mutate game state
 ok 38 - selectors remain pure and do not mutate game state
   ---
-  duration_ms: 0.541356
+  duration_ms: 0.721006
   ...
 # Subtest: real reducer states are supported without fixture-only fields
 ok 39 - real reducer states are supported without fixture-only fields
   ---
-  duration_ms: 1.88839
+  duration_ms: 2.571924
   ...
 # Subtest: v2 shell exposes the hidden game root, module entry and semantic regions
 ok 40 - v2 shell exposes the hidden game root, module entry and semantic regions
   ---
-  duration_ms: 5.06982
+  duration_ms: 9.913355
   ...
 # Subtest: mobile CSS preserves accessibility, vertical enemy movement and order feedback
 ok 41 - mobile CSS preserves accessibility, vertical enemy movement and order feedback
   ---
-  duration_ms: 1.454865
+  duration_ms: 3.063932
   ...
 # Subtest: interaction layer translates intents and consumes canonical ViewModel targets
 ok 42 - interaction layer translates intents and consumes canonical ViewModel targets
   ---
-  duration_ms: 2.080814
+  duration_ms: 3.826036
   ...
 # Subtest: ViewModel and panel owners render spatial battle, timed-order and reward contracts
 ok 43 - ViewModel and panel owners render spatial battle, timed-order and reward contracts
   ---
-  duration_ms: 2.356248
+  duration_ms: 5.732297
   ...
 # Subtest: combat feedback remains non-blocking, identifiable and reduced-motion safe
 ok 44 - combat feedback remains non-blocking, identifiable and reduced-motion safe
   ---
-  duration_ms: 4.405419
+  duration_ms: 9.122759
   ...
 # Subtest: full-screen Help exposes all rule sections and preserves combat resume wiring
 ok 45 - full-screen Help exposes all rule sections and preserves combat resume wiring
   ---
-  duration_ms: 2.608613
+  duration_ms: 8.972458
   ...
 # Subtest: restart controls isolate expedition reset and complete v2 data clearing
 ok 46 - restart controls isolate expedition reset and complete v2 data clearing
   ---
-  duration_ms: 1.291107
+  duration_ms: 2.61798
   ...
 # Subtest: buildAppViewModel returns panel-specific data without exposing the full game object
 ok 47 - buildAppViewModel returns panel-specific data without exposing the full game object
   ---
-  duration_ms: 4.584703
+  duration_ms: 6.31775
   ...
 # Subtest: ViewModel derives enabled state from canonical selectors rather than stale legal actions
 ok 48 - ViewModel derives enabled state from canonical selectors rather than stale legal actions
   ---
-  duration_ms: 0.830359
+  duration_ms: 0.987253
   ...
 # Subtest: combat ViewModel exposes order targets and status without renderer-side legality calculation
 ok 49 - combat ViewModel exposes order targets and status without renderer-side legality calculation
   ---
-  duration_ms: 1.6382
+  duration_ms: 2.14149
   ...
 # Subtest: reward ViewModel carries player-facing summary, effect and tactical use case
 ok 50 - reward ViewModel carries player-facing summary, effect and tactical use case
   ---
-  duration_ms: 0.573163
+  duration_ms: 0.684939
   ...
 # Subtest: buildAppViewModel is pure
 ok 51 - buildAppViewModel is pure
   ---
-  duration_ms: 0.439163
+  duration_ms: 0.543114
   ...
 1..51
 # tests 51
 # suites 0
-# pass 50
-# fail 1
+# pass 51
+# fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 275.403572
+# duration_ms 401.123388
+
+--- /tmp/hanzi-full.log ---
+
+> test
+> node --test
+
+TAP version 13
+# Subtest: app entry is dependency wiring around AppController rather than a second orchestrator
+ok 1 - app entry is dependency wiring around AppController rather than a second orchestrator
+  ---
+  duration_ms: 8.715488
+  ...
+# Subtest: interaction targeting consumes ViewModel targets without reintroducing combat movement
+ok 2 - interaction targeting consumes ViewModel targets without reintroducing combat movement
+  ---
+  duration_ms: 3.869417
+  ...
+# Subtest: createRuntimeState separates legacy game, profile and transient UI without mutating input
+ok 3 - createRuntimeState separates legacy game, profile and transient UI without mutating input
+  ---
+  duration_ms: 3.8709
+  ...
+# Subtest: explicit profile and UI values override legacy adapters
+ok 4 - explicit profile and UI values override legacy adapters
+  ---
+  duration_ms: 0.323674
+  ...
+# Subtest: UI-only selection intent updates transient state without calling reducer
+ok 5 - UI-only selection intent updates transient state without calling reducer
+  ---
+  duration_ms: 1.142574
+  ...
+# Subtest: next domain command receives transient selection instead of stale legacy selection
+ok 6 - next domain command receives transient selection instead of stale legacy selection
+  ---
+  duration_ms: 0.77101
+  ...
+# Subtest: profile intent persists profile only and keeps game identity
+ok 7 - profile intent persists profile only and keeps game identity
+  ---
+  duration_ms: 0.321751
+  ...
+# Subtest: successful domain command updates game, syncs legacy selection, persists and presents events
+ok 8 - successful domain command updates game, syncs legacy selection, persists and presents events
+  ---
+  duration_ms: 0.537945
+  ...
+# Subtest: failed domain command preserves exact game identity and does not persist or present events
+ok 9 - failed domain command preserves exact game identity and does not persist or present events
+  ---
+  duration_ms: 0.456773
+  ...
+# Subtest: controller owns one combat timer and clears it on reschedule and destroy
+ok 10 - controller owns one combat timer and clears it on reschedule and destroy
+  ---
+  duration_ms: 0.652238
+  ...
+# Subtest: external UI handler may return effects without routing through reducer
+ok 11 - external UI handler may return effects without routing through reducer
+  ---
+  duration_ms: 0.64736
+  ...
+# Subtest: battle report uses its canonical continue intent without START_NEW_RUN alias
+ok 12 - battle report uses its canonical continue intent without START_NEW_RUN alias
+  ---
+  duration_ms: 7.740415
+  ...
+# Subtest: battle report rejects START_NEW_RUN and accepts CONTINUE_AFTER_REPORT
+ok 13 - battle report rejects START_NEW_RUN and accepts CONTINUE_AFTER_REPORT
+  ---
+  duration_ms: 15.080879
+  ...
+# Subtest: base reducer contains no duplicate reroll, battle, or reward implementations
+ok 14 - base reducer contains no duplicate reroll, battle, or reward implementations
+  ---
+  duration_ms: 4.276417
+  ...
+# Subtest: deck module no longer exports legacy reroll policy functions
+ok 15 - deck module no longer exports legacy reroll policy functions
+  ---
+  duration_ms: 2.44173
+  ...
+# Subtest: battle completion feedback points to the report instead of skipping to rewards
+ok 16 - battle completion feedback points to the report instead of skipping to rewards
+  ---
+  duration_ms: 1.451672
+  ...
+# Subtest: canonical battle lifecycle remains functional after base cleanup
+ok 17 - canonical battle lifecycle remains functional after base cleanup
+  ---
+  duration_ms: 5.393301
+  ...
+# Subtest: recipe matching is order independent and respects duplicate symbols
+ok 18 - recipe matching is order independent and respects duplicate symbols
+  ---
+  duration_ms: 21.361498
+  ...
+# Subtest: adjacent board characters automatically assemble a named general
+ok 19 - adjacent board characters automatically assemble a named general
+  ---
+  duration_ms: 2.938718
+  ...
+# Subtest: unmatched board character occupies a cell and can return to hand
+ok 20 - unmatched board character occupies a cell and can return to hand
+  ---
+  duration_ms: 0.47621
+  ...
+# Subtest: camp assembly requires an immediate legal deployment cell
+ok 21 - camp assembly requires an immediate legal deployment cell
+  ---
+  duration_ms: 0.564564
+  ...
+# Subtest: named general cannot be assembled while the same general survives
+ok 22 - named general cannot be assembled while the same general survives
+  ---
+  duration_ms: 0.495175
+  ...
+# Subtest: illegal deployment leaves hand and camp unchanged
+ok 23 - illegal deployment leaves hand and camp unchanged
+  ---
+  duration_ms: 0.364401
+  ...
+# Subtest: camp capacity and unit death return cards to discard
+ok 24 - camp capacity and unit death return cards to discard
+  ---
+  duration_ms: 0.896374
+  ...
+# Subtest: new expedition owns the approved 40 unique cards and content version
+ok 25 - new expedition owns the approved 40 unique cards and content version
+  ---
+  duration_ms: 6.304295
+  ...
+# Subtest: startBattle reshuffles every loose card while preserving camp ownership
+ok 26 - startBattle reshuffles every loose card while preserving camp ownership
+  ---
+  duration_ms: 14.74019
+  ...
+# Subtest: tutorial opening guarantees Zhang Fei and a legal second hand after reroll
+ok 27 - tutorial opening guarantees Zhang Fei and a legal second hand after reroll
+  ---
+  duration_ms: 3.345188
+  ...
+# Subtest: reward-pack cards enter the next battle draw pool
+ok 28 - reward-pack cards enter the next battle draw pool
+  ---
+  duration_ms: 1.304366
+  ...
+# Subtest: battle lifecycle module exposes explicit finish boundaries
+ok 29 - battle lifecycle module exposes explicit finish boundaries
+  ---
+  duration_ms: 2.099622
+  ...
+# Subtest: startBattle preserves expedition camp while resetting battle-local state
+ok 30 - startBattle preserves expedition camp while resetting battle-local state
+  ---
+  duration_ms: 5.057105
+  ...
+# Subtest: startBattle and startPhase return structured failures for invalid lifecycle input
+ok 31 - startBattle and startPhase return structured failures for invalid lifecycle input
+  ---
+  duration_ms: 0.649032
+  ...
+# Subtest: startPhase creates combat without mutating configured gameplay state
+ok 32 - startPhase creates combat without mutating configured gameplay state
+  ---
+  duration_ms: 11.448283
+  ...
+# Subtest: stepBattleCombat keeps a running combat in combat status
+ok 33 - stepBattleCombat keeps a running combat in combat status
+  ---
+  duration_ms: 3.129375
+  ...
+# Subtest: phase victory returns to configuration and preserves expedition camp
+ok 34 - phase victory returns to configuration and preserves expedition camp
+  ---
+  duration_ms: 2.45248
+  ...
+# Subtest: final phase victory enters battle report before reward
+ok 35 - final phase victory enters battle report before reward
+  ---
+  duration_ms: 8.086053
+  ...
+# Subtest: wall defeat enters battle report before defeat and releases cards
+ok 36 - wall defeat enters battle report before defeat and releases cards
+  ---
+  duration_ms: 2.824335
+  ...
+# Subtest: battle metrics aggregate stable event counts and unique actors
+ok 37 - battle metrics aggregate stable event counts and unique actors
+  ---
+  duration_ms: 2.595047
+  ...
+# Subtest: finalized report contains stable summary and no raw event history
+ok 38 - finalized report contains stable summary and no raw event history
+  ---
+  duration_ms: 0.486609
+  ...
+# Subtest: final battle victory enters battle-report before reward
+ok 39 - final battle victory enters battle-report before reward
+  ---
+  duration_ms: 23.694135
+  ...
+# Subtest: defeat enters battle-report before defeat screen
+ok 40 - defeat enters battle-report before defeat screen
+  ---
+  duration_ms: 1.82073
+  ...
+# Subtest: battle-report is a save boundary and reloads without losing continuation state
+ok 41 - battle-report is a save boundary and reloads without losing continuation state
+  ---
+  duration_ms: 8.537826
+  ...
+# Subtest: battle report ViewModel exposes summary stats and one semantic continue action
+not ok 42 - battle report ViewModel exposes summary stats and one semantic continue action
+  ---
+  duration_ms: 8.858484
+  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/battle-report.test.js:172:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'map')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    buildAppViewModel (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/ui/runtime-view-model.js:41:36)
+    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/battle-report.test.js:175:21)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    Test.postRun (node:internal/test_runner/test:889:19)
+    Test.run (node:internal/test_runner/test:835:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: board supports only approved sizes
+ok 43 - board supports only approved sizes
+  ---
+  duration_ms: 2.274649
+  ...
+# Subtest: placement rejects occupied cells and movement preserves unit identity
+ok 44 - placement rejects occupied cells and movement preserves unit identity
+  ---
+  duration_ms: 0.602856
+  ...
+# Subtest: listCells returns every legal cell exactly once
+ok 45 - listCells returns every legal cell exactly once
+  ---
+  duration_ms: 0.301723
+  ...
+# Subtest: hand and camp transfers keep exactly one owner zone
+ok 46 - hand and camp transfers keep exactly one owner zone
+  ---
+  duration_ms: 10.193248
+  ...
+# Subtest: camp rejects overflow and missing card transfers without mutating the input
+ok 47 - camp rejects overflow and missing card transfers without mutating the input
+  ---
+  duration_ms: 1.139779
+  ...
+# Subtest: camp capacity helpers are pure and permanent
+ok 48 - camp capacity helpers are pure and permanent
+  ---
+  duration_ms: 0.554085
+  ...
+# Subtest: preserveCampAcrossTransition removes duplicate discard ownership and restores camp
+ok 49 - preserveCampAcrossTransition removes duplicate discard ownership and restores camp
+  ---
+  duration_ms: 0.829499
+  ...
+# Subtest: START_BATTLE preserves expedition camp cards and capacity
+ok 50 - START_BATTLE preserves expedition camp cards and capacity
+  ---
+  duration_ms: 1.213606
+  ...
+# Subtest: camp survives a between-phase settlement without entering discard
+ok 51 - camp survives a between-phase settlement without entering discard
+  ---
+  duration_ms: 18.535879
+  ...
+# Subtest: camp survives final battle settlement through report into reward
+ok 52 - camp survives final battle settlement through report into reward
+  ---
+  duration_ms: 9.418502
+  ...
+# Subtest: extra-camp reward permanently increases expedition capacity and clears legacy pending bonus
+not ok 53 - extra-camp reward permanently increases expedition capacity and clears legacy pending bonus
+  ---
+  duration_ms: 5.612432
+  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/camp-lifecycle.test.js:184:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/camp-lifecycle.test.js:200:10)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    Test.postRun (node:internal/test_runner/test:889:19)
+    Test.run (node:internal/test_runner/test:835:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: starting a new run disposes the previous expedition camp through fresh state
+ok 54 - starting a new run disposes the previous expedition camp through fresh state
+  ---
+  duration_ms: 0.947189
+  ...
+# Subtest: state-machine.js is the single canonical reducer and migration entry
+not ok 55 - state-machine.js is the single canonical reducer and migration entry
+  ---
+  duration_ms: 4.293429
+  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/canonical-state-machine.test.js:12:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'state')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    nextFloat (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/core/rng.js:15:15)
+    shuffle (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/core/rng.js:27:20)
+    makeSpecializationChoice (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/reward/reward-flow.js:326:20)
+    concretize (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/reward/reward-flow.js:374:50)
+    generateRewardOffer (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/reward/reward-flow.js:422:19)
+    normalizeRewardChoices (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/core/state-machine.js:88:21)
+    Module.normalizeGameState (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/core/state-machine.js:116:10)
+    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/canonical-state-machine.test.js:27:35)
+    async Test.run (node:internal/test_runner/test:797:9)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: browser and storage use the canonical entry without import-map or reviewed wrapper
+ok 56 - browser and storage use the canonical entry without import-map or reviewed wrapper
+  ---
+  duration_ms: 8.833077
+  ...
+# Subtest: canonical reducer carries board assembly through battle report and fifth-battle pity choice
+ok 57 - canonical reducer carries board assembly through battle report and fifth-battle pity choice
+  ---
+  duration_ms: 27.787449
+  ...
+# Subtest: collectCardZones normalizes every owner zone into stable, ordered records
+ok 58 - collectCardZones normalizes every owner zone into stable, ordered records
+  ---
+  duration_ms: 4.734684
+  ...
+# Subtest: collectCardZones includes deployed cards sealed into board units
+ok 59 - collectCardZones includes deployed cards sealed into board units
+  ---
+  duration_ms: 0.552022
+  ...
+# Subtest: valid complete state with every zone populated reports no errors
+ok 60 - valid complete state with every zone populated reports no errors
+  ---
+  duration_ms: 1.095056
+  ...
+# Subtest: valid empty and default zones do not produce false positives
+ok 61 - valid empty and default zones do not produce false positives
+  ---
+  duration_ms: 1.907482
+  ...
+# Subtest: detects a duplicate card id within a single zone
+ok 62 - detects a duplicate card id within a single zone
+  ---
+  duration_ms: 0.418491
+  ...
+# Subtest: detects duplicate ownership of the same card across two zones
+ok 63 - detects duplicate ownership of the same card across two zones
+  ---
+  duration_ms: 0.537694
+  ...
+# Subtest: detects camp versus hand ownership conflict
+ok 64 - detects camp versus hand ownership conflict
+  ---
+  duration_ms: 0.560737
+  ...
+# Subtest: detects deployed versus draw/discard ownership conflict
+ok 65 - detects deployed versus draw/discard ownership conflict
+  ---
+  duration_ms: 1.932189
+  ...
+# Subtest: detects board ownership conflict against hand
+ok 66 - detects board ownership conflict against hand
+  ---
+  duration_ms: 0.479966
+  ...
+# Subtest: board and deployed are distinct owner zones, not references to the same ownership
+ok 67 - board and deployed are distinct owner zones, not references to the same ownership
+  ---
+  duration_ms: 0.650374
+  ...
+# Subtest: detects unknown card id referenced by a zone
+ok 68 - detects unknown card id referenced by a zone
+  ---
+  duration_ms: 0.34299
+  ...
+# Subtest: detects a malformed zone container without throwing a TypeError
+ok 69 - detects a malformed zone container without throwing a TypeError
+  ---
+  duration_ms: 0.489685
+  ...
+# Subtest: detects a malformed card entry inside an otherwise valid zone
+ok 70 - detects a malformed card entry inside an otherwise valid zone
+  ---
+  duration_ms: 0.520833
+  ...
+# Subtest: detects a malformed top-level state without throwing
+ok 71 - detects a malformed top-level state without throwing
+  ---
+  duration_ms: 0.323765
+  ...
+# Subtest: detects a malformed card registry defensively
+ok 72 - detects a malformed card registry defensively
+  ---
+  duration_ms: 0.341939
+  ...
+# Subtest: flags a retained reference that no longer points into the hand
+ok 73 - flags a retained reference that no longer points into the hand
+  ---
+  duration_ms: 0.448047
+  ...
+# Subtest: flags a selection reference that is not available in hand or camp
+ok 74 - flags a selection reference that is not available in hand or camp
+  ---
+  duration_ms: 0.371153
+  ...
+# Subtest: a legitimate retained reference into the hand produces no error
+ok 75 - a legitimate retained reference into the hand produces no error
+  ---
+  duration_ms: 0.545328
+  ...
+# Subtest: detects a registry card that has been dropped from every owner zone
+ok 76 - detects a registry card that has been dropped from every owner zone
+  ---
+  duration_ms: 0.336929
+  ...
+# Subtest: a real reducer flow never produces an unowned registry card
+ok 77 - a real reducer flow never produces an unowned registry card
+  ---
+  duration_ms: 0.657167
+  ...
+# Subtest: detects a registry entry with a null value
+ok 78 - detects a registry entry with a null value
+  ---
+  duration_ms: 0.372596
+  ...
+# Subtest: detects a registry entry whose id does not match its own key
+ok 79 - detects a registry entry whose id does not match its own key
+  ---
+  duration_ms: 0.39093
+  ...
+# Subtest: detects a registry entry missing a valid symbol
+ok 80 - detects a registry entry missing a valid symbol
+  ---
+  duration_ms: 0.327532
+  ...
+# Subtest: detects an unparseable board cell key
+ok 81 - detects an unparseable board cell key
+  ---
+  duration_ms: 0.392814
+  ...
+# Subtest: detects a board cell outside the current board bounds
+ok 82 - detects a board cell outside the current board bounds
+  ---
+  duration_ms: 0.312233
+  ...
+# Subtest: detects a deployed record with a missing unitId
+ok 83 - detects a deployed record with a missing unitId
+  ---
+  duration_ms: 0.295361
+  ...
+# Subtest: detects duplicate unitId across deployed records
+ok 84 - detects duplicate unitId across deployed records
+  ---
+  duration_ms: 0.37998
+  ...
+# Subtest: detects a deployed unit that does not exist on the board
+ok 85 - detects a deployed unit that does not exist on the board
+  ---
+  duration_ms: 0.274974
+  ...
+# Subtest: detects duplicate ids within the retained reference zone
+ok 86 - detects duplicate ids within the retained reference zone
+  ---
+  duration_ms: 0.276377
+  ...
+# Subtest: detects duplicate ids within the selection reference zone
+ok 87 - detects duplicate ids within the selection reference zone
+  ---
+  duration_ms: 0.264454
+  ...
+# Subtest: detects a missing deck.retained field, since cloneDeck spreads it unconditionally
+ok 88 - detects a missing deck.retained field, since cloneDeck spreads it unconditionally
+  ---
+  duration_ms: 0.32638
+  ...
+# Subtest: a real reducer flow never has a state that passes validation but throws on drawToHand
+ok 89 - a real reducer flow never has a state that passes validation but throws on drawToHand
+  ---
+  duration_ms: 2.671099
+  ...
+# Subtest: selection may be legitimately absent or null, matching the engine defensive access pattern
+ok 90 - selection may be legitimately absent or null, matching the engine defensive access pattern
+  ---
+  duration_ms: 0.439891
+  ...
+# Subtest: a non-object, non-null selection is still rejected as malformed
+ok 91 - a non-object, non-null selection is still rejected as malformed
+  ---
+  duration_ms: 0.307425
+  ...
+# Subtest: detects a deployed unit whose board entry is null
+ok 92 - detects a deployed unit whose board entry is null
+  ---
+  duration_ms: 0.392863
+  ...
+# Subtest: detects a board unit whose id does not match its own key
+ok 93 - detects a board unit whose id does not match its own key
+  ---
+  duration_ms: 0.298237
+  ...
+# Subtest: detects a board unit with a missing or out-of-range cell
+ok 94 - detects a board unit with a missing or out-of-range cell
+  ---
+  duration_ms: 0.309037
+  ...
+# Subtest: detects a board unit placed outside the board bounds
+ok 95 - detects a board unit placed outside the board bounds
+  ---
+  duration_ms: 0.256569
+  ...
+# Subtest: detects two board units occupying the same cell
+ok 96 - detects two board units occupying the same cell
+  ---
+  duration_ms: 0.381092
+  ...
+# Subtest: a well-formed board unit referenced by a deployed record produces no board-unit error
+ok 97 - a well-formed board unit referenced by a deployed record produces no board-unit error
+  ---
+  duration_ms: 0.434101
+  ...
+# Subtest: rejects a non-canonical board cell key that aliases an existing cell
+ok 98 - rejects a non-canonical board cell key that aliases an existing cell
+  ---
+  duration_ms: 4.670653
+  ...
+# Subtest: detects a card and a unit occupying the same board cell
+ok 99 - detects a card and a unit occupying the same board cell
+  ---
+  duration_ms: 0.418202
+  ...
+# Subtest: a card and a unit on different cells produce no occupancy conflict
+ok 100 - a card and a unit on different cells produce no occupancy conflict
+  ---
+  duration_ms: 0.258523
+  ...
+# Subtest: detects a board unit with no matching deployed record
+ok 101 - detects a board unit with no matching deployed record
+  ---
+  duration_ms: 0.289591
+  ...
+# Subtest: detects a deployed record with no cards
+ok 102 - detects a deployed record with no cards
+  ---
+  duration_ms: 0.251018
+  ...
+# Subtest: a real one-to-one assembly and release cycle never trips board-unit/deployed-record checks
+ok 103 - a real one-to-one assembly and release cycle never trips board-unit/deployed-record checks
+  ---
+  duration_ms: 14.890932
+  ...
+# Subtest: a minimal but structurally empty game state is rejected, not silently valid
+ok 104 - a minimal but structurally empty game state is rejected, not silently valid
+  ---
+  duration_ms: 0.28928
+  ...
+# Subtest: detects a missing deck field as a malformed zone rather than an empty default
+ok 105 - detects a missing deck field as a malformed zone rather than an empty default
+  ---
+  duration_ms: 0.263933
+  ...
+# Subtest: detects a missing camp.cardIds field
+ok 106 - detects a missing camp.cardIds field
+  ---
+  duration_ms: 0.256829
+  ...
+# Subtest: detects a missing boardCards field
+ok 107 - detects a missing boardCards field
+  ---
+  duration_ms: 0.237012
+  ...
+# Subtest: detects a missing deployed field
+ok 108 - detects a missing deployed field
+  ---
+  duration_ms: 0.287647
+  ...
+# Subtest: detects a null board without treating cells or deployed units as valid by default
+ok 109 - detects a null board without treating cells or deployed units as valid by default
+  ---
+  duration_ms: 0.280344
+  ...
+# Subtest: detects an invalid board.size
+ok 110 - detects an invalid board.size
+  ---
+  duration_ms: 0.253414
+  ...
+# Subtest: detects an invalid board.units
+ok 111 - detects an invalid board.units
+  ---
+  duration_ms: 0.275495
+  ...
+# Subtest: detects a hand card whose symbol does not match the canonical registry entry
+ok 112 - detects a hand card whose symbol does not match the canonical registry entry
+  ---
+  duration_ms: 0.274041
+  ...
+# Subtest: detects a draw pile card whose symbol does not match the canonical registry entry
+ok 113 - detects a draw pile card whose symbol does not match the canonical registry entry
+  ---
+  duration_ms: 1.578479
+  ...
+# Subtest: detects a zone-held card object missing a valid symbol
+ok 114 - detects a zone-held card object missing a valid symbol
+  ---
+  duration_ms: 0.26254
+  ...
+# Subtest: a matching symbol between a zone card and the registry produces no identity error
+ok 115 - a matching symbol between a zone card and the registry produces no identity error
+  ---
+  duration_ms: 0.221483
+  ...
+# Subtest: validateCardOwnership does not mutate the input state
+ok 116 - validateCardOwnership does not mutate the input state
+  ---
+  duration_ms: 1.024754
+  ...
+# Subtest: assertCardOwnership is a no-op for a valid state
+ok 117 - assertCardOwnership is a no-op for a valid state
+  ---
+  duration_ms: 0.533145
+  ...
+# Subtest: assertCardOwnership throws a readable, structured error for an invalid state
+ok 118 - assertCardOwnership throws a readable, structured error for an invalid state
+  ---
+  duration_ms: 0.535821
+  ...
+# Subtest: card ownership stays valid across a full board-assembly life cycle through the real engine
+ok 119 - card ownership stays valid across a full board-assembly life cycle through the real engine
+  ---
+  duration_ms: 3.785851
+  ...
+# Subtest: confirmAssembly through camp keeps ownership invariants intact
+ok 120 - confirmAssembly through camp keeps ownership invariants intact
+  ---
+  duration_ms: 0.51396
+  ...
+# Subtest: placeBoardCard keeps ownership invariants intact for an unmatched board card
+ok 121 - placeBoardCard keeps ownership invariants intact for an unmatched board card
+  ---
+  duration_ms: 2.761217
+  ...
+# Subtest: recipe discoveries round-trip independently and survive expedition reset
+ok 122 - recipe discoveries round-trip independently and survive expedition reset
+  ---
+  duration_ms: 6.519286
+  ...
+# Subtest: invalid or unsupported codex snapshots recover as an empty discovery profile
+ok 123 - invalid or unsupported codex snapshots recover as an empty discovery profile
+  ---
+  duration_ms: 0.332701
+  ...
+# Subtest: complete reset removes recipe discoveries with other v2-owned data
+ok 124 - complete reset removes recipe discoveries with other v2-owned data
+  ---
+  duration_ms: 0.43937
+  ...
+# Subtest: runtime profile unions stored discoveries with generals already assembled in an older save
+ok 125 - runtime profile unions stored discoveries with generals already assembled in an older save
+  ---
+  duration_ms: 0.698565
+  ...
+# Subtest: same-lane ranged unit selects the nearest reachable enemy
+ok 126 - same-lane ranged unit selects the nearest reachable enemy
+  ---
+  duration_ms: 3.363722
+  ...
+# Subtest: focus changes priority only within the original same-lane pattern
+ok 127 - focus changes priority only within the original same-lane pattern
+  ---
+  duration_ms: 0.424863
+  ...
+# Subtest: friendly hit event identifies attacker, target, and damage
+ok 128 - friendly hit event identifies attacker, target, and damage
+  ---
+  duration_ms: 1.91176
+  ...
+# Subtest: enemy damage event identifies attacker, friendly target, and damage
+ok 129 - enemy damage event identifies attacker, friendly target, and damage
+  ---
+  duration_ms: 0.882949
+  ...
+# Subtest: wall damage event identifies attacker, lane, and damage
+ok 130 - wall damage event identifies attacker, lane, and damage
+  ---
+  duration_ms: 0.381663
+  ...
+# Subtest: enemy defeat event identifies defeated enemy and final attacker
+ok 131 - enemy defeat event identifies defeated enemy and final attacker
+  ---
+  duration_ms: 1.780987
+  ...
+# Subtest: friendly defeat event identifies defeated unit and final attacker
+ok 132 - friendly defeat event identifies defeated unit and final attacker
+  ---
+  duration_ms: 0.426506
+  ...
+# Subtest: enemy at distance zero damages wall when the lane is empty
+ok 133 - enemy at distance zero damages wall when the lane is empty
+  ---
+  duration_ms: 0.430053
+  ...
+# Subtest: frontline unit blocks melee enemy before the wall is damaged
+ok 134 - frontline unit blocks melee enemy before the wall is damaged
+  ---
+  duration_ms: 0.55145
+  ...
+# Subtest: heavy cavalry charge reaches the lane and causes impact damage
+ok 135 - heavy cavalry charge reaches the lane and causes impact damage
+  ---
+  duration_ms: 0.617013
+  ...
+# Subtest: same combat input produces the same state and event payloads
+ok 136 - same combat input produces the same state and event payloads
+  ---
+  duration_ms: 0.828648
+  ...
+# Subtest: crossbow attacks the rear unit and shield troop reduces direct damage
+ok 137 - crossbow attacks the rear unit and shield troop reduces direct damage
+  ---
+  duration_ms: 0.583049
+  ...
+# Subtest: timed orders decrease once per simulated second
+ok 138 - timed orders decrease once per simulated second
+  ---
+  duration_ms: 0.473314
+  ...
+# Subtest: fortify, assault and focus share three points, coexist, and cannot refresh their own type
+ok 139 - fortify, assault and focus share three points, coexist, and cannot refresh their own type
+  ---
+  duration_ms: 3.82863
+  ...
+# Subtest: fortify reduces friendly damage by 35 percent and focus adds 20 percent damage
+ok 140 - fortify reduces friendly damage by 35 percent and focus adds 20 percent damage
+  ---
+  duration_ms: 1.657877
+  ...
+# Subtest: assault provides a measurable 30 percent attack-speed increase for six simulated seconds
+ok 141 - assault provides a measurable 30 percent attack-speed increase for six simulated seconds
+  ---
+  duration_ms: 1.321869
+  ...
+# Subtest: pause freezes order time and changing 1x or 2x speed does not alter six-step duration
+ok 142 - pause freezes order time and changing 1x or 2x speed does not alter six-step duration
+  ---
+  duration_ms: 3.543458
+  ...
+# Subtest: battle command points remain spent across all three phases
+ok 143 - battle command points remain spent across all three phases
+  ---
+  duration_ms: 1.658407
+  ...
+# Subtest: combat reconfiguration orders are rejected without spending points
+ok 144 - combat reconfiguration orders are rejected without spending points
+  ---
+  duration_ms: 0.289701
+  ...
+# Subtest: mobile command view exposes only the approved triad and remaining seconds
+ok 145 - mobile command view exposes only the approved triad and remaining seconds
+  ---
+  duration_ms: 5.788431
+  ...
+# Subtest: combat feedback exposes an awaitable per-turn presentation sequence
+ok 146 - combat feedback exposes an awaitable per-turn presentation sequence
+  ---
+  duration_ms: 8.133802
+  ...
+# Subtest: AppController waits for feedback idle and invalidates stale battle ticks
+ok 147 - AppController waits for feedback idle and invalidates stale battle ticks
+  ---
+  duration_ms: 2.569039
+  ...
+# Subtest: starting deck is the approved fixed 40-card shared-character network
+ok 148 - starting deck is the approved fixed 40-card shared-character network
+  ---
+  duration_ms: 3.179779
+  ...
+# Subtest: all sixteen approved starting recipes exist with the correct visibility
+ok 149 - all sixteen approved starting recipes exist with the correct visibility
+  ---
+  duration_ms: 15.658085
+  ...
+# Subtest: the starting network has no unusable symbol and every output has playable metadata
+ok 150 - the starting network has no unusable symbol and every output has playable metadata
+  ---
+  duration_ms: 0.718943
+  ...
+# Subtest: legacy famous generals are reward-pack content, not starting-deck leakage
+ok 151 - legacy famous generals are reward-pack content, not starting-deck leakage
+  ---
+  duration_ms: 0.414544
+  ...
+# Subtest: approved vertical slice data is internally consistent
+ok 152 - approved vertical slice data is internally consistent
+  ---
+  duration_ms: 6.172655
+  ...
+# Subtest: every selectable reward has a complete player-facing explanation
+ok 153 - every selectable reward has a complete player-facing explanation
+  ---
+  duration_ms: 0.470378
+  ...
+# Subtest: validator rejects a reward with an incomplete explanation
+ok 154 - validator rejects a reward with an incomplete explanation
+  ---
+  duration_ms: 1.045453
+  ...
+# Subtest: validator rejects a recipe pointing to a missing unit
+ok 155 - validator rejects a recipe pointing to a missing unit
+  ---
+  duration_ms: 1.916158
+  ...
+# Subtest: validator rejects missing scripted stage and reward ids
+ok 156 - validator rejects missing scripted stage and reward ids
+  ---
+  duration_ms: 0.558142
+  ...
+# Subtest: selectDeckZoneCounts reconciles every owner zone with the canonical registry
+ok 157 - selectDeckZoneCounts reconciles every owner zone with the canonical registry
+  ---
+  duration_ms: 5.117518
+  ...
+# Subtest: selectDeckZoneCounts exposes registry and ownership mismatch without hiding it
+ok 158 - selectDeckZoneCounts exposes registry and ownership mismatch without hiding it
+  ---
+  duration_ms: 0.621902
+  ...
+# Subtest: run status exposes six mobile-readable card counts from the canonical selector
+ok 159 - run status exposes six mobile-readable card counts from the canonical selector
+  ---
+  duration_ms: 6.410042
+  ...
+# Subtest: draws to five and retains at most two
+ok 160 - draws to five and retains at most two
+  ---
+  duration_ms: 2.896499
+  ...
+# Subtest: one free reroll moves non-retained cards to discard
+ok 161 - one free reroll moves non-retained cards to discard
+  ---
+  duration_ms: 0.573401
+  ...
+# Subtest: repeated rerolls decrement one use at a time and refill a complete hand
+ok 162 - repeated rerolls decrement one use at a time and refill a complete hand
+  ---
+  duration_ms: 0.885053
+  ...
+# Subtest: reroll reshuffles discard when draw pile cannot refill the hand
+ok 163 - reroll reshuffles discard when draw pile cannot refill the hand
+  ---
+  duration_ms: 0.43903
+  ...
+# Subtest: lock, unlock and discard preserve card identity but do not control reroll policy
+ok 164 - lock, unlock and discard preserve card identity but do not control reroll policy
+  ---
+  duration_ms: 0.402802
+  ...
+# Subtest: enemy distance maps from far edge to the city wall
+ok 165 - enemy distance maps from far edge to the city wall
+  ---
+  duration_ms: 2.132403
+  ...
+# Subtest: enemy distance progress is clamped to the visible battlefield
+ok 166 - enemy distance progress is clamped to the visible battlefield
+  ---
+  duration_ms: 0.221945
+  ...
+# Subtest: heavy cavalry exposes charge countdown and target lane
+ok 167 - heavy cavalry exposes charge countdown and target lane
+  ---
+  duration_ms: 2.898894
+  ...
+# Subtest: lane warnings surface safe charge and banner states
+ok 168 - lane warnings surface safe charge and banner states
+  ---
+  duration_ms: 0.546801
+  ...
+# Subtest: Hua Xiong phase two triggers once at half hp
+ok 169 - Hua Xiong phase two triggers once at half hp
+  ---
+  duration_ms: 1.114503
+  ...
+# Subtest: combat resolves an evolved unit definition and records evolution evidence
+ok 170 - combat resolves an evolved unit definition and records evolution evidence
+  ---
+  duration_ms: 3.456596
+  ...
+# Subtest: safe and danger branches both produce exactly six battles
+ok 171 - safe and danger branches both produce exactly six battles
+  ---
+  duration_ms: 4.759048
+  ...
+# Subtest: post battle heals 15 percent without exceeding max wall hp
+ok 172 - post battle heals 15 percent without exceeding max wall hp
+  ---
+  duration_ms: 0.429291
+  ...
+# Subtest: run waits for a route choice after the second battle
+ok 173 - run waits for a route choice after the second battle
+  ---
+  duration_ms: 0.463596
+  ...
+# Subtest: expansion and recipe packs modify future choices without permanent stat boosts
+ok 174 - expansion and recipe packs modify future choices without permanent stat boosts
+  ---
+  duration_ms: 1.1884
+  ...
+# Subtest: sixth battle victory skips a sixth reward and continues directly to expedition victory
+ok 175 - sixth battle victory skips a sixth reward and continues directly to expedition victory
+  ---
+  duration_ms: 8.305913
+  ...
+# Subtest: browser gate uses the current 40-card first playable flow
+ok 176 - browser gate uses the current 40-card first playable flow
+  ---
+  duration_ms: 6.81588
+  ...
+# Subtest: order status is rendered outside the horizontal action scroller
+ok 177 - order status is rendered outside the horizontal action scroller
+  ---
+  duration_ms: 5.480105
+  ...
+# Subtest: focus rejects targets outside every friendly legal attack route without spending a point
+ok 178 - focus rejects targets outside every friendly legal attack route without spending a point
+  ---
+  duration_ms: 2.763702
+  ...
+# Subtest: focus accepts a reachable same-lane target and spends one shared point
+ok 179 - focus accepts a reachable same-lane target and spends one shared point
+  ---
+  duration_ms: 0.475949
+  ...
+# Subtest: invalid fortify and assault lanes never spend command points
+ok 180 - invalid fortify and assault lanes never spend command points
+  ---
+  duration_ms: 0.389377
+  ...
+# Subtest: legacy swap and reinforce inputs are blocked during combat
+ok 181 - legacy swap and reinforce inputs are blocked during combat
+  ---
+  duration_ms: 0.395048
+  ...
+# Subtest: legacy tactics remain load-compatible but are not part of the new command-point triad
+ok 182 - legacy tactics remain load-compatible but are not part of the new command-point triad
+  ---
+  duration_ms: 0.568452
+  ...
+# Subtest: render-app is the only orchestration layer and invokes every panel owner once
+ok 183 - render-app is the only orchestration layer and invokes every panel owner once
+  ---
+  duration_ms: 6.404502
+  ...
+# Subtest: every fixed panel has one focused renderer module
+ok 184 - every fixed panel has one focused renderer module
+  ---
+  duration_ms: 5.275085
+  ...
+# Subtest: legacy layered renderers are compatibility adapters and no longer write panel DOM
+ok 185 - legacy layered renderers are compatibility adapters and no longer write panel DOM
+  ---
+  duration_ms: 2.053806
+  ...
+# Subtest: render-interactive builds one ViewModel then performs one render pass
+ok 186 - render-interactive builds one ViewModel then performs one render pass
+  ---
+  duration_ms: 1.249684
+  ...
+# Subtest: recipe codex applies public, clue, locked and discovered visibility states
+ok 187 - recipe codex applies public, clue, locked and discovered visibility states
+  ---
+  duration_ms: 4.231483
+  ...
+# Subtest: assembled unit events permanently add unique recipe discoveries
+ok 188 - assembled unit events permanently add unique recipe discoveries
+  ---
+  duration_ms: 1.532542
+  ...
+# Subtest: ViewModel exposes codex summary inside the existing details panel
+ok 189 - ViewModel exposes codex summary inside the existing details panel
+  ---
+  duration_ms: 3.435706
+  ...
+# Subtest: canonical interaction emits a payload-free REROLL command
+ok 190 - canonical interaction emits a payload-free REROLL command
+  ---
+  duration_ms: 9.120846
+  ...
+# Subtest: canonical state-machine wrapper never reads legacy reroll payload ids
+ok 191 - canonical state-machine wrapper never reads legacy reroll payload ids
+  ---
+  duration_ms: 2.116874
+  ...
+# Subtest: setRetainedCards accepts zero, one or two current hand cards
+ok 192 - setRetainedCards accepts zero, one or two current hand cards
+  ---
+  duration_ms: 1.910378
+  ...
+# Subtest: setRetainedCards rejects over-limit, duplicate and missing ids
+ok 193 - setRetainedCards rejects over-limit, duplicate and missing ids
+  ---
+  duration_ms: 0.573812
+  ...
+# Subtest: setRetainedCards is pure and normalizes legacy hand locks to false
+ok 194 - setRetainedCards is pure and normalizes legacy hand locks to false
+  ---
+  duration_ms: 0.239147
+  ...
+# Subtest: canReroll requires a hand and at least one remaining use
+ok 195 - canReroll requires a hand and at least one remaining use
+  ---
+  duration_ms: 0.183813
+  ...
+# Subtest: rerollRetainedHand keeps only deck.retained cards and preserves retained afterwards
+ok 196 - rerollRetainedHand keeps only deck.retained cards and preserves retained afterwards
+  ---
+  duration_ms: 0.56751
+  ...
+# Subtest: rerollRetainedHand discards non-retained cards before drawing
+ok 197 - rerollRetainedHand discards non-retained cards before drawing
+  ---
+  duration_ms: 0.252833
+  ...
+# Subtest: rerollRetainedHand recycles discard when the draw pile is insufficient
+ok 198 - rerollRetainedHand recycles discard when the draw pile is insufficient
+  ---
+  duration_ms: 0.462794
+  ...
+# Subtest: repeated rerolls consume exactly one use each
+ok 199 - repeated rerolls consume exactly one use each
+  ---
+  duration_ms: 0.652439
+  ...
+# Subtest: reducer REROLL uses deck.retained and ignores legacy lockedCardIds payload
+ok 200 - reducer REROLL uses deck.retained and ignores legacy lockedCardIds payload
+  ---
+  duration_ms: 1.9168
+  ...
+# Subtest: reroll policy never mutates the original deck
+ok 201 - reroll policy never mutates the original deck
+  ---
+  duration_ms: 0.382835
+  ...
+# Subtest: result summary derives starting recipes and reward labels from canonical data
+ok 202 - result summary derives starting recipes and reward labels from canonical data
+  ---
+  duration_ms: 8.601906
+  ...
+# Subtest: reward history preserves the concrete player-facing reward name
+ok 203 - reward history preserves the concrete player-facing reward name
+  ---
+  duration_ms: 0.999096
+  ...
+# Subtest: retained cards survive reroll and phase boundaries, then clear after battle
+ok 204 - retained cards survive reroll and phase boundaries, then clear after battle
+  ---
+  duration_ms: 24.830283
+  ...
+# Subtest: third battle reward is dynamic rather than route-hardcoded
+ok 205 - third battle reward is dynamic rather than route-hardcoded
+  ---
+  duration_ms: 18.660743
+  ...
+# Subtest: both Huang Zhong evolution branches are accepted when he was recruited
+not ok 206 - both Huang Zhong evolution branches are accepted when he was recruited
+  ---
+  duration_ms: 3.97786
+  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/review-fixes.test.js:87:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    false !== true
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/review-fixes.test.js:94:12)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    Test.postRun (node:internal/test_runner/test:889:19)
+    Test.run (node:internal/test_runner/test:835:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: evolution rejects missing choice, un-recruited generals, mismatch, and repeat
+not ok 207 - evolution rejects missing choice, un-recruited generals, mismatch, and repeat
+  ---
+  duration_ms: 3.484348
+  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/review-fixes.test.js:99:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'REWARD_NOT_OFFERED'
+    - 'EVOLUTION_SELECTION_REQUIRED'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'EVOLUTION_SELECTION_REQUIRED'
+  actual: 'REWARD_NOT_OFFERED'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/review-fixes.test.js:103:10)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    Test.postRun (node:internal/test_runner/test:889:19)
+    Test.run (node:internal/test_runner/test:835:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: all UNIT_ASSEMBLED events record recruited generals regardless of assembly path
+ok 208 - all UNIT_ASSEMBLED events record recruited generals regardless of assembly path
+  ---
+  duration_ms: 3.103457
+  ...
+# Subtest: reward state without an eligible recruit replaces unusable evolution and keeps three choices
+not ok 209 - reward state without an eligible recruit replaces unusable evolution and keeps three choices
+  ---
+  duration_ms: 2.352975
+  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/review-followup.test.js:30:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'state')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    nextFloat (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/core/rng.js:15:15)
+    shuffle (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/core/rng.js:27:20)
+    makeSpecializationChoice (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/reward/reward-flow.js:326:20)
+    concretize (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/reward/reward-flow.js:374:50)
+    generateRewardOffer (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/reward/reward-flow.js:422:19)
+    normalizeRewardChoices (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/core/state-machine.js:88:21)
+    normalizeGameState (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/core/state-machine.js:116:10)
+    finalizeGameResult (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/core/state-machine.js:122:30)
+    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/review-followup.test.js:31:18)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+  ...
+# Subtest: focus targeting accepts an enemy reached only by evolved range
+ok 210 - focus targeting accepts an enemy reached only by evolved range
+  ---
+  duration_ms: 0.583139
+  ...
+# Subtest: deck economy offer precomputes copy, trim and conversion with no second target step
+ok 211 - deck economy offer precomputes copy, trim and conversion with no second target step
+  ---
+  duration_ms: 19.527471
+  ...
+# Subtest: generated choices exclude temporary, consumable and immediate-heal rewards
+ok 212 - generated choices exclude temporary, consumable and immediate-heal rewards
+  ---
+  duration_ms: 3.965316
+  ...
+# Subtest: direct copy choice applies its offered payload with one click and adds two cards
+ok 213 - direct copy choice applies its offered payload with one click and adds two cards
+  ---
+  duration_ms: 2.86424
+  ...
+# Subtest: direct trim choice removes two exact owned cards and preserves ownership invariant
+ok 214 - direct trim choice removes two exact owned cards and preserves ownership invariant
+  ---
+  duration_ms: 1.677082
+  ...
+# Subtest: direct conversion choice removes two cards and adds two cards in one transaction
+ok 215 - direct conversion choice removes two cards and adds two cards in one transaction
+  ---
+  duration_ms: 2.8054
+  ...
+# Subtest: reward ViewModel renders every generated choice as one direct action
+not ok 216 - reward ViewModel renders every generated choice as one direct action
+  ---
+  duration_ms: 6.410806
+  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/reward-economy-v2.test.js:116:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'map')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    buildAppViewModel (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/ui/runtime-view-model.js:41:36)
+    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/reward-economy-v2.test.js:123:21)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    Test.postRun (node:internal/test_runner/test:889:19)
+    Test.run (node:internal/test_runner/test:835:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: rare offer starts at battle three and battle five pity guarantees one if none was seen
+ok 217 - rare offer starts at battle three and battle five pity guarantees one if none was seen
+  ---
+  duration_ms: 1.44552
+  ...
+# Subtest: a rare option previously offered counts as pity even when it was not chosen
+ok 218 - a rare option previously offered counts as pity even when it was not chosen
+  ---
+  duration_ms: 0.826944
+  ...
+# Subtest: generateRewardOffer is deterministic and returns three unique choices
+ok 219 - generateRewardOffer is deterministic and returns three unique choices
+  ---
+  duration_ms: 24.355311
+  ...
+# Subtest: generateRewardOffer removes route hardcode and excludes legacy repair
+ok 220 - generateRewardOffer removes route hardcode and excludes legacy repair
+  ---
+  duration_ms: 3.434104
+  ...
+# Subtest: copy targets are explicit and deduplicated by symbol across loose and camp zones
+ok 221 - copy targets are explicit and deduplicated by symbol across loose and camp zones
+  ---
+  duration_ms: 0.76562
+  ...
+# Subtest: copying an explicit camp target succeeds and keeps the camp card owned by camp
+ok 222 - copying an explicit camp target succeeds and keeps the camp card owned by camp
+  ---
+  duration_ms: 2.619983
+  ...
+# Subtest: remove targets identify exact undeployed card ids and keep a minimum six-card pool
+ok 223 - remove targets identify exact undeployed card ids and keep a minimum six-card pool
+  ---
+  duration_ms: 0.590683
+  ...
+# Subtest: removing an explicit camp target clears camp ownership and registry together
+ok 224 - removing an explicit camp target clears camp ownership and registry together
+  ---
+  duration_ms: 1.46208
+  ...
+# Subtest: evolution targets include every legal recruited general branch
+ok 225 - evolution targets include every legal recruited general branch
+  ---
+  duration_ms: 0.522276
+  ...
+# Subtest: validateRewardChoice rejects hidden, missing and invalid targets
+ok 226 - validateRewardChoice rejects hidden, missing and invalid targets
+  ---
+  duration_ms: 1.183982
+  ...
+# Subtest: applyRewardChoice requires an explicit target and advances only after valid application
+ok 227 - applyRewardChoice requires an explicit target and advances only after valid application
+  ---
+  duration_ms: 1.481848
+  ...
+# Subtest: targetless rewards validate and apply without fabricated payloads
+ok 228 - targetless rewards validate and apply without fabricated payloads
+  ---
+  duration_ms: 0.533386
+  ...
+# Subtest: canonical reducer refuses target-required rewards without an explicit target
+not ok 229 - canonical reducer refuses target-required rewards without an explicit target
+  ---
+  duration_ms: 3.551511
+  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/reward-flow.test.js:175:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'REWARD_NOT_OFFERED'
+    - 'REWARD_TARGET_REQUIRED'
+              ^
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'REWARD_TARGET_REQUIRED'
+  actual: 'REWARD_NOT_OFFERED'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/reward-flow.test.js:180:10)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    Test.postRun (node:internal/test_runner/test:889:19)
+    Test.run (node:internal/test_runner/test:835:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: reward ViewModel exposes explicit target choices without a guessed top-level card payload
+not ok 230 - reward ViewModel exposes explicit target choices without a guessed top-level card payload
+  ---
+  duration_ms: 2.737052
+  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/reward-flow.test.js:189:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'map')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    buildAppViewModel (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/ui/runtime-view-model.js:41:36)
+    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/reward-flow.test.js:191:21)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    Test.postRun (node:internal/test_runner/test:889:19)
+    Test.run (node:internal/test_runner/test:835:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: restricted reward catalogue remains a strict eligibility boundary
+ok 231 - restricted reward catalogue remains a strict eligibility boundary
+  ---
+  duration_ms: 19.532641
+  ...
+# Subtest: restricted catalogue still returns three concrete choices when all three are eligible
+ok 232 - restricted catalogue still returns three concrete choices when all three are eligible
+  ---
+  duration_ms: 1.144137
+  ...
+# Subtest: full-wall reward offers exclude repair and still provide three choices
+ok 233 - full-wall reward offers exclude repair and still provide three choices
+  ---
+  duration_ms: 25.276269
+  ...
+# Subtest: full-wall third-battle offer contains only permanent concrete growth
+ok 234 - full-wall third-battle offer contains only permanent concrete growth
+  ---
+  duration_ms: 3.792162
+  ...
+# Subtest: stale full-wall repair selection is rejected without advancing the expedition
+ok 235 - stale full-wall repair selection is rejected without advancing the expedition
+  ---
+  duration_ms: 0.495195
+  ...
+# Subtest: damaged wall can still validate and apply repair normally
+ok 236 - damaged wall can still validate and apply repair normally
+  ---
+  duration_ms: 0.927583
+  ...
+# Subtest: troop specialization catalogue resolves one permanent, non-stacking modifier
+ok 237 - troop specialization catalogue resolves one permanent, non-stacking modifier
+  ---
+  duration_ms: 2.096665
+  ...
+# Subtest: specialization reward applies to current run and future assembled troops
+ok 238 - specialization reward applies to current run and future assembled troops
+  ---
+  duration_ms: 18.847091
+  ...
+# Subtest: specialization immediately updates an existing matching troop without healing unrelated damage
+ok 239 - specialization immediately updates an existing matching troop without healing unrelated damage
+  ---
+  duration_ms: 0.649043
+  ...
+# Subtest: camp reinforcement offer adds a complete pair directly to camp and expands capacity
+ok 240 - camp reinforcement offer adds a complete pair directly to camp and expands capacity
+  ---
+  duration_ms: 2.574629
+  ...
+# Subtest: dynamic reward pool filters acquired specialization but keeps other specializations eligible
+ok 241 - dynamic reward pool filters acquired specialization but keeps other specializations eligible
+  ---
+  duration_ms: 0.803901
+  ...
+# Subtest: load normalizes mixed stale reward choices into three usable options
+not ok 242 - load normalizes mixed stale reward choices into three usable options
+  ---
+  duration_ms: 28.383011
+  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/reward-stale-snapshot.test.js:22:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'map')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    buildAppViewModel (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/ui/runtime-view-model.js:41:36)
+    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/reward-stale-snapshot.test.js:56:21)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    node:internal/test_runner/harness:255:12
+    node:internal/process/task_queues:140:7
+    AsyncResource.runInAsyncScope (node:async_hooks:206:9)
+    AsyncResource.runMicrotask (node:internal/process/task_queues:137:8)
+  ...
+# Subtest: ViewModel disables stale unavailable repair with the shared engine reason
+not ok 243 - ViewModel disables stale unavailable repair with the shared engine reason
+  ---
+  duration_ms: 1.149197
+  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/reward-stale-snapshot.test.js:65:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot read properties of undefined (reading 'map')"
+  code: 'ERR_TEST_FAILURE'
+  name: 'TypeError'
+  stack: |-
+    buildAppViewModel (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/src/ui/runtime-view-model.js:41:36)
+    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/reward-stale-snapshot.test.js:79:21)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    Test.postRun (node:internal/test_runner/test:889:19)
+    Test.run (node:internal/test_runner/test:835:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+# Subtest: same seed produces the same sequence and shuffle
+ok 244 - same seed produces the same sequence and shuffle
+  ---
+  duration_ms: 2.491393
+  ...
+# Subtest: different seeds diverge and picks stay inside the source array
+ok 245 - different seeds diverge and picks stay inside the source array
+  ---
+  duration_ms: 0.280184
+  ...
+# Subtest: between-phase configuration may draw or start with existing units
+ok 246 - between-phase configuration may draw or start with existing units
+  ---
+  duration_ms: 2.247378
+  ...
+# Subtest: selectLifecycle exposes stable screen and human battle/phase numbers
+ok 247 - selectLifecycle exposes stable screen and human battle/phase numbers
+  ---
+  duration_ms: 3.545582
+  ...
+# Subtest: selectActiveBoard uses the combat board only during combat
+ok 248 - selectActiveBoard uses the combat board only during combat
+  ---
+  duration_ms: 0.411068
+  ...
+# Subtest: selectCardZoneIndex records canonical owner zones in deterministic order
+ok 249 - selectCardZoneIndex records canonical owner zones in deterministic order
+  ---
+  duration_ms: 1.444708
+  ...
+# Subtest: selectCampState and selectRerollState derive UI-ready values
+ok 250 - selectCampState and selectRerollState derive UI-ready values
+  ---
+  duration_ms: 0.487391
+  ...
+# Subtest: selectAssemblyTargets ignores stale legalCells and returns only empty board cells
+ok 251 - selectAssemblyTargets ignores stale legalCells and returns only empty board cells
+  ---
+  duration_ms: 0.50859
+  ...
+# Subtest: selectOrderTargets returns deterministic focus, fortify and assault targets only
+ok 252 - selectOrderTargets returns deterministic focus, fortify and assault targets only
+  ---
+  duration_ms: 0.776861
+  ...
+# Subtest: selectLegalCommands derives legality instead of copying stale legalActions
+ok 253 - selectLegalCommands derives legality instead of copying stale legalActions
+  ---
+  duration_ms: 0.725555
+  ...
+# Subtest: selectors remain pure and do not mutate game state
+ok 254 - selectors remain pure and do not mutate game state
+  ---
+  duration_ms: 0.670402
+  ...
+# Subtest: real reducer states are supported without fixture-only fields
+ok 255 - real reducer states are supported without fixture-only fields
+  ---
+  duration_ms: 2.140498
+  ...
+# Subtest: legacy run without specialization field assembles normal troop safely
+ok 256 - legacy run without specialization field assembles normal troop safely
+  ---
+  duration_ms: 17.373689
+  ...
+# Subtest: legacy run remains eligible for its first troop specialization
+ok 257 - legacy run remains eligible for its first troop specialization
+  ---
+  duration_ms: 1.873489
+  ...
+# Subtest: illegal action returns a stable error result
+ok 258 - illegal action returns a stable error result
+  ---
+  duration_ms: 1.540568
+  ...
+# Subtest: new run enters hidden expedition map then starts configuration
+ok 259 - new run enters hidden expedition map then starts configuration
+  ---
+  duration_ms: 1.988914
+  ...
+# Subtest: tutorial opening guarantees direct 張飛 board assembly through public actions
+ok 260 - tutorial opening guarantees direct 張飛 board assembly through public actions
+  ---
+  duration_ms: 10.116295
+  ...
+# Subtest: configuration can draw cards and start the first combat phase
+ok 261 - configuration can draw cards and start the first combat phase
+  ---
+  duration_ms: 0.911122
+  ...
+# Subtest: route choice selects the correct third stage
+ok 262 - route choice selects the correct third stage
+  ---
+  duration_ms: 0.437497
+  ...
+# Subtest: migration is total for v1 null reward entry
+ok 263 - migration is total for v1 null reward entry
+  ---
+  duration_ms: 2.411013
+  ...
+# Subtest: loadSnapshot converts v1 null reward entry into recoverable CORRUPT_SAVE
+ok 264 - loadSnapshot converts v1 null reward entry into recoverable CORRUPT_SAVE
+  ---
+  duration_ms: 0.826704
+  ...
+# Subtest: migration is total for v2 null hand entry
+ok 265 - migration is total for v2 null hand entry
+  ---
+  duration_ms: 0.49755
+  ...
+# Subtest: loadSnapshot converts v2 null hand entry into recoverable CORRUPT_SAVE
+ok 266 - loadSnapshot converts v2 null hand entry into recoverable CORRUPT_SAVE
+  ---
+  duration_ms: 0.459899
+  ...
+# Subtest: migration is total for v3 non-array recruited ids
+ok 267 - migration is total for v3 non-array recruited ids
+  ---
+  duration_ms: 0.413091
+  ...
+# Subtest: loadSnapshot converts v3 non-array recruited ids into recoverable CORRUPT_SAVE
+ok 268 - loadSnapshot converts v3 non-array recruited ids into recoverable CORRUPT_SAVE
+  ---
+  duration_ms: 0.48196
+  ...
+# Subtest: legacy reward snapshot is sequentially normalized to three actionable choices on load
+ok 269 - legacy reward snapshot is sequentially normalized to three actionable choices on load
+  ---
+  duration_ms: 20.201952
+  ...
+# Subtest: v1 envelope migrates sequentially to v3 without mutating input
+ok 270 - v1 envelope migrates sequentially to v3 without mutating input
+  ---
+  duration_ms: 8.699669
+  ...
+# Subtest: v2 to v3 normalizes retained cards, legacy locks and permanent camp bonus
+ok 271 - v2 to v3 normalizes retained cards, legacy locks and permanent camp bonus
+  ---
+  duration_ms: 1.701798
+  ...
+# Subtest: migration rejects malformed envelopes and future versions
+ok 272 - migration rejects malformed envelopes and future versions
+  ---
+  duration_ms: 0.289591
+  ...
+# Subtest: prepareGameForSave removes profile and transient fields but keeps domain state
+ok 273 - prepareGameForSave removes profile and transient fields but keeps domain state
+  ---
+  duration_ms: 1.60084
+  ...
+# Subtest: storage writes v3, strips runtime fields and reloads a battle report
+ok 274 - storage writes v3, strips runtime fields and reloads a battle report
+  ---
+  duration_ms: 3.019409
+  ...
+# Subtest: loadSnapshot rejects v3 states that violate card ownership
+ok 275 - loadSnapshot rejects v3 states that violate card ownership
+  ---
+  duration_ms: 2.331906
+  ...
+# Subtest: v1 rejects present wrong-type recruitedGeneralIds without rewriting storage
+ok 276 - v1 rejects present wrong-type recruitedGeneralIds without rewriting storage
+  ---
+  duration_ms: 3.731289
+  ...
+# Subtest: v1 rejects present wrong-type rewardHistory without rewriting storage
+ok 277 - v1 rejects present wrong-type rewardHistory without rewriting storage
+  ---
+  duration_ms: 0.966285
+  ...
+# Subtest: v1 rejects present wrong-type evolutions without rewriting storage
+ok 278 - v1 rejects present wrong-type evolutions without rewriting storage
+  ---
+  duration_ms: 0.923334
+  ...
+# Subtest: v2 rejects present wrong-type recruitedGeneralIds without rewriting storage
+ok 279 - v2 rejects present wrong-type recruitedGeneralIds without rewriting storage
+  ---
+  duration_ms: 0.957097
+  ...
+# Subtest: v2 rejects present wrong-type rewardHistory without rewriting storage
+ok 280 - v2 rejects present wrong-type rewardHistory without rewriting storage
+  ---
+  duration_ms: 1.037487
+  ...
+# Subtest: v2 rejects present wrong-type evolutions without rewriting storage
+ok 281 - v2 rejects present wrong-type evolutions without rewriting storage
+  ---
+  duration_ms: 0.975553
+  ...
+# Subtest: missing legacy progress fields still receive safe defaults
+ok 282 - missing legacy progress fields still receive safe defaults
+  ---
+  duration_ms: 1.49397
+  ...
+# Subtest: prepareGameForSave removes transient selection
+ok 283 - prepareGameForSave removes transient selection
+  ---
+  duration_ms: 3.861121
+  ...
+# Subtest: v2 migration discards legacy selection instead of restoring it
+ok 284 - v2 migration discards legacy selection instead of restoring it
+  ---
+  duration_ms: 1.253722
+  ...
+# Subtest: phase-zero save and reload never restores a half-complete card selection
+ok 285 - phase-zero save and reload never restores a half-complete card selection
+  ---
+  duration_ms: 3.088047
+  ...
+# Subtest: save/load uses schema version and rejects corrupt JSON
+ok 286 - save/load uses schema version and rejects corrupt JSON
+  ---
+  duration_ms: 6.706426
+  ...
+# Subtest: unsupported save versions fail without removing user settings
+ok 287 - unsupported save versions fail without removing user settings
+  ---
+  duration_ms: 1.105515
+  ...
+# Subtest: tutorial completion is stored independently from expedition progress
+ok 288 - tutorial completion is stored independently from expedition progress
+  ---
+  duration_ms: 0.326469
+  ...
+# Subtest: expedition reset removes only the run and preserves tutorial, settings, and unrelated data
+ok 289 - expedition reset removes only the run and preserves tutorial, settings, and unrelated data
+  ---
+  duration_ms: 19.946764
+  ...
+# Subtest: complete reset removes every v2-owned key including legacy data and preserves other games
+ok 290 - complete reset removes every v2-owned key including legacy data and preserves other games
+  ---
+  duration_ms: 0.527946
+  ...
+# Subtest: reset operations report storage failures instead of claiming success
+ok 291 - reset operations report storage failures instead of claiming success
+  ---
+  duration_ms: 0.26734
+  ...
+# Subtest: latest-version URL preserves the page and adds a cache-busting value
+ok 292 - latest-version URL preserves the page and adds a cache-busting value
+  ---
+  duration_ms: 0.979039
+  ...
+# Subtest: snapshot is written only at approved boundaries
+ok 293 - snapshot is written only at approved boundaries
+  ---
+  duration_ms: 6.505368
+  ...
+# Subtest: approved save boundary helper is explicit and stable
+ok 294 - approved save boundary helper is explicit and stable
+  ---
+  duration_ms: 0.277729
+  ...
+# Subtest: direct camp assembly satisfies both place-card and assemble tutorial steps
+ok 295 - direct camp assembly satisfies both place-card and assemble tutorial steps
+  ---
+  duration_ms: 2.055019
+  ...
+# Subtest: board placement and later assembly advance one step at a time
+ok 296 - board placement and later assembly advance one step at a time
+  ---
+  duration_ms: 0.216595
+  ...
+# Subtest: v2 shell exposes the hidden game root, module entry and semantic regions
+ok 297 - v2 shell exposes the hidden game root, module entry and semantic regions
+  ---
+  duration_ms: 6.348136
+  ...
+# Subtest: mobile CSS preserves accessibility, vertical enemy movement and order feedback
+ok 298 - mobile CSS preserves accessibility, vertical enemy movement and order feedback
+  ---
+  duration_ms: 1.928172
+  ...
+# Subtest: interaction layer translates intents and consumes canonical ViewModel targets
+ok 299 - interaction layer translates intents and consumes canonical ViewModel targets
+  ---
+  duration_ms: 2.260602
+  ...
+# Subtest: ViewModel and panel owners render spatial battle, timed-order and reward contracts
+ok 300 - ViewModel and panel owners render spatial battle, timed-order and reward contracts
+  ---
+  duration_ms: 3.882572
+  ...
+# Subtest: combat feedback remains non-blocking, identifiable and reduced-motion safe
+ok 301 - combat feedback remains non-blocking, identifiable and reduced-motion safe
+  ---
+  duration_ms: 3.971103
+  ...
+# Subtest: full-screen Help exposes all rule sections and preserves combat resume wiring
+ok 302 - full-screen Help exposes all rule sections and preserves combat resume wiring
+  ---
+  duration_ms: 5.267751
+  ...
+# Subtest: restart controls isolate expedition reset and complete v2 data clearing
+ok 303 - restart controls isolate expedition reset and complete v2 data clearing
+  ---
+  duration_ms: 1.692922
+  ...
+# Subtest: base unit detail uses player-facing Chinese copy and real combat numbers
+ok 304 - base unit detail uses player-facing Chinese copy and real combat numbers
+  ---
+  duration_ms: 1.531049
+  ...
+# Subtest: evolved unit detail reports effective values and evolution effect
+ok 305 - evolved unit detail reports effective values and evolution effect
+  ---
+  duration_ms: 0.203611
+  ...
+# Subtest: unknown internal pattern falls back to player-facing copy
+ok 306 - unknown internal pattern falls back to player-facing copy
+  ---
+  duration_ms: 0.216745
+  ...
+# Subtest: unit cell ViewModel exposes localized actual detail without internal role or pattern values
+ok 307 - unit cell ViewModel exposes localized actual detail without internal role or pattern values
+  ---
+  duration_ms: 4.25135
+  ...
+# Subtest: buildAppViewModel returns panel-specific data without exposing the full game object
+ok 308 - buildAppViewModel returns panel-specific data without exposing the full game object
+  ---
+  duration_ms: 6.353927
+  ...
+# Subtest: ViewModel derives enabled state from canonical selectors rather than stale legal actions
+ok 309 - ViewModel derives enabled state from canonical selectors rather than stale legal actions
+  ---
+  duration_ms: 1.011018
+  ...
+# Subtest: combat ViewModel exposes order targets and status without renderer-side legality calculation
+ok 310 - combat ViewModel exposes order targets and status without renderer-side legality calculation
+  ---
+  duration_ms: 2.069385
+  ...
+# Subtest: reward ViewModel carries player-facing summary, effect and tactical use case
+ok 311 - reward ViewModel carries player-facing summary, effect and tactical use case
+  ---
+  duration_ms: 0.681132
+  ...
+# Subtest: buildAppViewModel is pure
+ok 312 - buildAppViewModel is pure
+  ---
+  duration_ms: 0.54105
+  ...
+1..312
+# tests 312
+# suites 0
+# pass 301
+# fail 11
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2127.868091
