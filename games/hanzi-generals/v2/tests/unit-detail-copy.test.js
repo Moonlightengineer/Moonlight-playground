@@ -56,6 +56,16 @@ test('evolved unit detail reports effective values and evolution effect', () => 
   assert.equal(detail.text.includes('pierce'), false);
 });
 
+test('unknown internal pattern falls back to player-facing copy', () => {
+  const detail = buildUnitPlayerDetail({
+    ...GENERAL_BY_ID.archer,
+    pattern: 'future-internal-pattern',
+  });
+
+  assert.equal(detail.attackMethodLabel, '按單位規則攻擊');
+  assert.equal(detail.text.includes('future-internal-pattern'), false);
+});
+
 test('unit cell ViewModel exposes localized actual detail without internal role or pattern values', () => {
   const game = combatGameWithUnit('zhao-yun', 'seven-charges');
   const viewModel = buildAppViewModel(game, {
