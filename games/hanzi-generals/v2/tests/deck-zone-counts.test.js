@@ -49,6 +49,22 @@ test('selectDeckZoneCounts reconciles every owner zone with the canonical regist
   });
 });
 
+test('selectDeckZoneCounts exposes registry and ownership mismatch without hiding it', () => {
+  const game = createExpedition('deck-zone-mismatch');
+  const missingOwner = game.deck.drawPile[0];
+  const counts = selectDeckZoneCounts({
+    ...game,
+    deck: {
+      ...game.deck,
+      drawPile: game.deck.drawPile.filter(({ id }) => id !== missingOwner.id),
+    },
+  });
+
+  assert.equal(counts.total, 40);
+  assert.equal(counts.ownedTotal, 39);
+  assert.equal(counts.reconciled, false);
+});
+
 test('run status exposes six mobile-readable card counts from the canonical selector', () => {
   let game = reduceGame(createExpedition('deck-zone-view-model'), { type: 'START_BATTLE' }).state;
   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
