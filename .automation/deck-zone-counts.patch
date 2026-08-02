@@ -1,0 +1,143 @@
+--- a/games/hanzi-generals/v2/src/core/selectors/cards.js
++++ b/games/hanzi-generals/v2/src/core/selectors/cards.js
+@@ -11,6 +11,30 @@
+   return index;
+ }
+ 
++export function selectDeckZoneCounts(game) {
++  const counts = {
++    drawPile: 0,
++    discardPile: 0,
++    hand: 0,
++    camp: 0,
++    deployed: 0,
++  };
++  for (const { zone } of collectCardZones(game)) {
++    if (zone === 'board' || zone === 'deployed') counts.deployed += 1;
++    else if (Object.prototype.hasOwnProperty.call(counts, zone)) counts[zone] += 1;
++  }
++  const total = game?.cardsById && typeof game.cardsById === 'object'
++    ? Object.keys(game.cardsById).length
++    : 0;
++  const ownedTotal = Object.values(counts).reduce((sum, count) => sum + count, 0);
++  return {
++    ...counts,
++    total,
++    ownedTotal,
++    reconciled: ownedTotal === total,
++  };
++}
++
+ export function selectCampState(game) {
+   const cardIds = Array.isArray(game?.camp?.cardIds) ? [...game.camp.cardIds] : [];
+   const capacity = Number.isInteger(game?.camp?.capacity) && game.camp.capacity >= 0
+--- a/games/hanzi-generals/v2/src/core/selectors/index.js
++++ b/games/hanzi-generals/v2/src/core/selectors/index.js
+@@ -3,6 +3,7 @@
+   selectAssemblyTargets,
+   selectCampState,
+   selectCardZoneIndex,
++  selectDeckZoneCounts,
+   selectRerollState,
+ } from './cards.js';
+ export { selectLegalCommands, selectOrderTargets } from './commands.js';
+--- a/games/hanzi-generals/v2/src/ui/view-model.js
++++ b/games/hanzi-generals/v2/src/ui/view-model.js
+@@ -8,6 +8,7 @@
+   selectActiveBoard,
+   selectAssemblyTargets,
+   selectCampState,
++  selectDeckZoneCounts,
+   selectLegalCommands,
+   selectLifecycle,
+   selectOrderTargets,
+@@ -38,10 +39,20 @@
+ 
+ function buildRunStatus(game, profile, lifecycle) {
+   const stages = ROUTE_STAGES[game.route] ?? ROUTE_STAGES.safe;
++  const counts = selectDeckZoneCounts(game);
+   return {
+     title: stageTitle(game, lifecycle),
+     wallLabel: `城牆 ${game.wallHp}/${game.wallMaxHp}`,
+     orderLabel: game.status === 'combat' ? `軍令 ${game.combat.ordersRemaining}` : null,
++    cardCounts: [
++      { key: 'drawPile', label: '抽牌', count: counts.drawPile },
++      { key: 'discardPile', label: '棄牌', count: counts.discardPile },
++      { key: 'hand', label: '手牌', count: counts.hand },
++      { key: 'camp', label: '軍營', count: counts.camp },
++      { key: 'deployed', label: '戰場', count: counts.deployed },
++      { key: 'total', label: '總數', count: counts.total },
++    ],
++    cardCountsReconciled: counts.reconciled,
+     progress: stages.map((stageId, index) => ({
+       stageId,
+       label: String(index + 1),
+--- a/games/hanzi-generals/v2/src/ui/panels/run-status-panel.js
++++ b/games/hanzi-generals/v2/src/ui/panels/run-status-panel.js
+@@ -7,6 +7,20 @@
+   title.append(node('span', '', model.wallLabel));
+   if (model.orderLabel) title.append(node('span', '', model.orderLabel));
+ 
++  const cardCounts = node('dl', 'card-zone-counts');
++  cardCounts.setAttribute('aria-label', model.cardCountsReconciled
++    ? '字牌分區數量'
++    : '字牌分區數量未能對數');
++  for (const item of model.cardCounts ?? []) {
++    const group = node('div', 'card-zone-count');
++    group.dataset.zone = item.key;
++    group.append(node('dt', '', item.label));
++    group.append(node('dd', '', item.count));
++    group.setAttribute('aria-label', `${item.label} ${item.count} 張`);
++    cardCounts.append(group);
++  }
++  if (!model.cardCountsReconciled) cardCounts.classList.add('is-unreconciled');
++
+   const progress = node('ol', 'run-progress');
+   for (const stage of model.progress) {
+     const item = node('li', stage.complete ? 'is-complete' : '', stage.label);
+@@ -17,5 +31,5 @@
+ 
+   const tutorial = node('p', 'tutorial-message', model.tutorialText);
+   tutorial.id = 'tutorial-message';
+-  container.replaceChildren(title, progress, tutorial);
++  container.replaceChildren(title, cardCounts, progress, tutorial);
+ }
+--- a/games/hanzi-generals/v2/styles/game.css
++++ b/games/hanzi-generals/v2/styles/game.css
+@@ -104,6 +104,36 @@
+ .run-title { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+ .run-title strong { margin-right: auto; font-size: 0.88rem; }
+ .run-title span { color: var(--muted); font-size: 0.72rem; }
++.card-zone-counts {
++  display: grid;
++  grid-template-columns: repeat(6, minmax(0, 1fr));
++  gap: 4px;
++  margin: 6px 0 0;
++}
++.card-zone-count {
++  min-width: 0;
++  padding: 3px 2px;
++  text-align: center;
++  border: 1px solid rgba(75, 55, 39, 0.13);
++  border-radius: 7px;
++  background: rgba(239, 227, 200, 0.46);
++}
++.card-zone-count dt {
++  overflow: hidden;
++  color: var(--muted);
++  font-size: 0.55rem;
++  line-height: 1.1;
++  text-overflow: ellipsis;
++  white-space: nowrap;
++}
++.card-zone-count dd {
++  margin: 1px 0 0;
++  font-size: 0.72rem;
++  font-weight: 800;
++  line-height: 1;
++}
++.card-zone-counts.is-unreconciled { outline: 2px solid var(--danger); outline-offset: 2px; }
++
+ .run-progress { display: flex; gap: 5px; margin: 6px 0 0; padding: 0; list-style: none; }
+ .run-progress li {
+   display: grid;
