@@ -26,6 +26,47 @@ jobs:
         with:
           node-version: 20
 
+      - name: Make expected RED tests non-fatal to the diagnostic trap
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('.automation/finalize-hanzi-v2.sh')
+          text = path.read_text(encoding='utf-8')
+          old = """set +e
+          node --test games/hanzi-generals/v2/tests/final-battle-reward-boundary.test.js > /tmp/final-boundary-red.log 2>&1
+          final_red=$?
+          node --test --test-name-pattern='result summary derives' games/hanzi-generals/v2/tests/result-summary-v2.test.js > /tmp/result-summary-red.log 2>&1
+          result_red=$?
+          node --test --test-name-pattern='reward history preserves' games/hanzi-generals/v2/tests/result-summary-v2.test.js > /tmp/reward-history-red.log 2>&1
+          history_red=$?
+          set -e
+          """
+          new = """final_red=0
+          if node --test games/hanzi-generals/v2/tests/final-battle-reward-boundary.test.js > /tmp/final-boundary-red.log 2>&1; then
+            final_red=0
+          else
+            final_red=$?
+          fi
+          result_red=0
+          if node --test --test-name-pattern='result summary derives' games/hanzi-generals/v2/tests/result-summary-v2.test.js > /tmp/result-summary-red.log 2>&1; then
+            result_red=0
+          else
+            result_red=$?
+          fi
+          history_red=0
+          if node --test --test-name-pattern='reward history preserves' games/hanzi-generals/v2/tests/result-summary-v2.test.js > /tmp/reward-history-red.log 2>&1; then
+            history_red=0
+          else
+            history_red=$?
+          fi
+          """
+          if text.count(old) != 1:
+              raise SystemExit('expected RED capture block was not found exactly once')
+          path.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+
       - name: Execute TDD finalizer
         shell: bash
         run: bash .automation/finalize-hanzi-v2.sh
