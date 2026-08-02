@@ -1,22 +1,65 @@
 HANZI_V2_APPLIER_FAILED
 exit_status=1
-line=38
-command=tee /tmp/hanzi-apply.log
+line=63
+command=python - <<'PY'
+from pathlib import Path
+
+def replace_once(path, old, new):
+    target = Path(path)
+    text = target.read_text(encoding='utf-8')
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f'{path}: expected one exact post-apply match, found {count}')
+    target.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+replace_once(
+    'games/hanzi-generals/v2/src/ui/view-model.js',
+    """  const focusSeconds = game.combat.focus?.remainingSeconds
+  ?? Math.min(6, (game.combat.focus?.remainingFriendlyTurns ?? 0) * 2);
+const fortifySeconds = game.combat.fortify?.remainingSeconds
+  ?? Math.min(6, (game.combat.fortify?.remainingEnemyTurns ?? 0) * 3);
+const assaultSeconds = game.combat.assault?.remainingSeconds
+  ?? Math.min(6, (game.combat.assault?.remainingFriendlyTurns ?? 0) * 2);
+""",
+    """  const focusSeconds = game.combat.focus?.remainingSeconds ?? 0;
+const fortifySeconds = game.combat.fortify?.remainingSeconds ?? 0;
+const assaultSeconds = game.combat.assault?.remainingSeconds ?? 0;
+""",
+)
+
+replace_once(
+    'games/hanzi-generals/v2/tests/view-model.test.js',
+    """      focus: { enemyId: 'enemy-1', remainingFriendlyTurns: 2 },
+      fortify: { lane: 0, remainingEnemyTurns: 1 },
+      pendingOrders: [],
+""",
+    """      focus: { enemyId: 'enemy-1', remainingSeconds: 2, damageBonus: 0.2 },
+      fortify: { lane: 0, remainingSeconds: 1, damageReduction: 0.35 },
+      assault: null,
+      pendingOrders: [],
+""",
+)
+PY
+
 
 --- git status ---
  M .automation/apply-diagnostic.txt
+ M .automation/apply-hanzi-v2-approved-gaps.py
  M games/hanzi-generals/v2/src/battle/battle-lifecycle.js
  M games/hanzi-generals/v2/src/combat/combat-engine.js
  M games/hanzi-generals/v2/src/combat/orders.js
  M games/hanzi-generals/v2/src/core/selectors/commands.js
  M games/hanzi-generals/v2/src/core/state-machine.js
+ M games/hanzi-generals/v2/src/expedition/rewards.js
  M games/hanzi-generals/v2/src/ui/help-content.js
+ M games/hanzi-generals/v2/src/ui/interactions.js
+ M games/hanzi-generals/v2/src/ui/view-model.js
+ M games/hanzi-generals/v2/tests/app-boundary.test.js
+ M games/hanzi-generals/v2/tests/combat-engine.test.js
  M games/hanzi-generals/v2/tests/orders.test.js
+ M games/hanzi-generals/v2/tests/selectors.test.js
+ M games/hanzi-generals/v2/tests/ui-contract.test.js
+ M scripts/hanzi_v2_browser_ui_regressions.mjs
 
 --- /tmp/hanzi-apply.log ---
-Traceback (most recent call last):
-  File "/home/runner/work/Moonlight-playground/Moonlight-playground/.automation/apply-hanzi-v2-approved-gaps.py", line 755, in <module>
-    replace_regex(
-  File "/home/runner/work/Moonlight-playground/Moonlight-playground/.automation/apply-hanzi-v2-approved-gaps.py", line 36, in replace_regex
-    raise RuntimeError(f"{relative}: expected one regex match, found {count}: {pattern}")
-RuntimeError: games/hanzi-generals/v2/src/core/state-machine.js: expected one regex match, found 0: import \{\n  eligibleEvolutionGenerals,\n\} from '../expedition/evolution-eligibility.js';\n
+HANZI_V2_APPROVED_GAPS_APPLIED
