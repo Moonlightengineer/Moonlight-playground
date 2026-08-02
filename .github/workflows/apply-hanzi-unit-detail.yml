@@ -1,0 +1,41 @@
+name: Apply Hanzi localized unit detail slice
+
+on:
+  push:
+    branches:
+      - feature/hanzi-v2-gameplay-economy-clarity
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feature/hanzi-v2-gameplay-economy-clarity
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Apply verified slice and test
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .automation/unit-detail.patch
+          git apply --check .automation/unit-detail.patch
+          git apply .automation/unit-detail.patch
+          rm -rf .automation
+          rm -f .github/workflows/apply-hanzi-unit-detail.yml
+          node --test \
+            games/hanzi-generals/v2/tests/unit-detail-copy.test.js \
+            games/hanzi-generals/v2/tests/view-model.test.js
+          npm test
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(hanzi-v2): localize unit combat details"
+          git push origin HEAD:feature/hanzi-v2-gameplay-economy-clarity
