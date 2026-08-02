@@ -1,10 +1,11 @@
 FINALIZER_FAILED
 exit_status=1
-line=194
-command=node --test games/hanzi-generals/v2/tests/final-battle-reward-boundary.test.js > /tmp/final-boundary-red.log 2>&1
+line=225
+command=sha256sum -c -
 
 --- git status ---
-?? .automation/finalizer-diagnostic.txt
+ M .automation/finalize-hanzi-v2.sh
+ M .automation/finalizer-diagnostic.txt
 ?? games/hanzi-generals/v2/tests/final-battle-reward-boundary.test.js
 ?? games/hanzi-generals/v2/tests/result-summary-v2.test.js
 
@@ -13,7 +14,7 @@ TAP version 13
 # Subtest: sixth battle victory skips a sixth reward and continues directly to expedition victory
 not ok 1 - sixth battle victory skips a sixth reward and continues directly to expedition victory
   ---
-  duration_ms: 14.720834
+  duration_ms: 14.772614
   location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/final-battle-reward-boundary.test.js:17:1'
   failureType: 'testCodeFailure'
   error: |-
@@ -45,4 +46,90 @@ not ok 1 - sixth battle victory skips a sixth reward and continues directly to e
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 94.426111
+# duration_ms 92.459327
+
+--- /tmp/result-summary-red.log ---
+TAP version 13
+# Subtest: result summary derives starting recipes and reward labels from canonical data
+not ok 1 - result summary derives starting recipes and reward labels from canonical data
+  ---
+  duration_ms: 5.765668
+  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/result-summary-v2.test.js:34:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + '槍兵、騎兵、軍醫、斥候、謀士、張飛、張任、任峻、關平、王平、趙統、凌統'
+    - '本局未新增配方。'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '本局未新增配方。'
+  actual: '槍兵、騎兵、軍醫、斥候、謀士、張飛、張任、任峻、關平、王平、趙統、凌統'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/result-summary-v2.test.js:36:10)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    node:internal/test_runner/harness:255:12
+    node:internal/process/task_queues:140:7
+    AsyncResource.runInAsyncScope (node:async_hooks:206:9)
+    AsyncResource.runMicrotask (node:internal/process/task_queues:137:8)
+  ...
+# Subtest: reward history preserves the concrete player-facing reward name
+ok 2 - reward history preserves the concrete player-facing reward name # SKIP test name does not match pattern
+  ---
+  duration_ms: 0.186537
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 78.799927
+
+--- /tmp/reward-history-red.log ---
+TAP version 13
+# Subtest: result summary derives starting recipes and reward labels from canonical data
+ok 1 - result summary derives starting recipes and reward labels from canonical data # SKIP test name does not match pattern
+  ---
+  duration_ms: 1.213263
+  ...
+# Subtest: reward history preserves the concrete player-facing reward name
+not ok 2 - reward history preserves the concrete player-facing reward name
+  ---
+  duration_ms: 2.322923
+  location: '/home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/result-summary-v2.test.js:63:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + undefined
+    - '臨摹「張」'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: '臨摹「張」'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///home/runner/work/Moonlight-playground/Moonlight-playground/games/hanzi-generals/v2/tests/result-summary-v2.test.js:75:10)
+    Test.runInAsyncScope (node:async_hooks:206:9)
+    Test.run (node:internal/test_runner/test:796:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:526:18)
+    Test.postRun (node:internal/test_runner/test:889:19)
+    Test.run (node:internal/test_runner/test:835:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:526:7)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 1
+# todo 0
+# duration_ms 76.066305
