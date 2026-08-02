@@ -1,0 +1,52 @@
+name: Apply Hanzi specialization and camp slice
+
+on:
+  push:
+    branches:
+      - feature/hanzi-v2-gameplay-economy-clarity
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: feature/hanzi-v2-gameplay-economy-clarity
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Apply verified slice and test
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .automation/slice5b.patch.gz
+          printf '%s  %s\n' \
+            '07f9fe137599e57e723649aec52055c0882a2d41f8e9caabffaa2fae06a3388e' \
+            '.automation/slice5b.patch.gz' | sha256sum -c -
+          gzip -dc .automation/slice5b.patch.gz > /tmp/slice5b.patch
+          printf '%s  %s\n' \
+            '5b92eb166f9c0533df694ebe3f6085864030ead4948ae565a2a581400614a7ad' \
+            '/tmp/slice5b.patch' | sha256sum -c -
+          git apply --check /tmp/slice5b.patch
+          git apply /tmp/slice5b.patch
+          rm -rf .automation
+          rm -f .github/workflows/apply-hanzi-specialization.yml
+          node --test \
+            games/hanzi-generals/v2/tests/reward-specialization-camp.test.js \
+            games/hanzi-generals/v2/tests/reward-economy-v2.test.js \
+            games/hanzi-generals/v2/tests/reward-flow.test.js \
+            games/hanzi-generals/v2/tests/card-invariants.test.js \
+            games/hanzi-generals/v2/tests/assembly.test.js \
+            games/hanzi-generals/v2/tests/view-model.test.js
+          npm test
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "feat(hanzi-v2): add troop specializations and camp reinforcements"
+          git push origin HEAD:feature/hanzi-v2-gameplay-economy-clarity
