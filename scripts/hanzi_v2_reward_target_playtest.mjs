@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
 
 const ARTIFACT_DIR = 'artifacts/hanzi-v2-playtest';
-const BASE_URL = 'http://127.0.0.1:8002/games/hanzi-generals/v2/?seed=reward-target-playtest';
+const BASE_URL = 'http://127.0.0.1:8002/games/hanzi-generals/v2/?seed=reward-direct-playtest';
 const bugs = [];
 const runtimeErrors = [];
 const observations = [];
@@ -22,7 +22,7 @@ async function waitForServer() {
     }
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
-  throw new Error('Reward target server did not start');
+  throw new Error('Direct reward server did not start');
 }
 
 async function run() {
@@ -47,14 +47,21 @@ async function run() {
     await page.goto(BASE_URL, { waitUntil: 'networkidle' });
 
     const result = await page.evaluate(async () => {
-      const [{ renderApp }, { bindInteractions }, { createExpedition }, { REWARD_BY_ID }] = await Promise.all([
+      const [
+        { renderApp },
+        { bindInteractions },
+        { createExpedition },
+        { REWARD_BY_ID },
+        { generateRewardOffer, applyRewardChoice },
+      ] = await Promise.all([
         import('./src/ui/render-interactive.js'),
         import('./src/ui/interactions.js'),
         import('./src/expedition/expedition.js'),
         import('./data/rewards.js'),
+        import('./src/reward/reward-flow.js'),
       ]);
       const root = document.createElement('main');
-      root.id = 'reward-target-fixture';
+      root.id = 'reward-direct-fixture';
       root.innerHTML = `
         <section id="run-status"></section>
         <section class="battle-stage">
@@ -70,21 +77,23 @@ async function run() {
         <section id="hand"></section>
         <details id="details-panel"><summary>詳情</summary></details>
       `;
+      root.style.width = 'min(100%, 390px)';
       document.body.append(root);
-      const base = createExpedition('reward-target-fixture');
-      const campCard = base.deck.drawPile[0];
+
+      const base = createExpedition('reward-direct-fixture');
+      const catalogue = [
+        REWARD_BY_ID['copy-card'],
+        REWARD_BY_ID['remove-card'],
+        REWARD_BY_ID['convert-cards'],
+      ];
+      const generated = generateRewardOffer(base, catalogue, base.rng);
       const game = {
         ...base,
         status: 'reward',
-        deck: { ...base.deck, drawPile: base.deck.drawPile.slice(1) },
-        camp: { ...base.camp, cardIds: [campCard.id] },
         currentBattle: { stageId: 'tutorial', phaseIndex: 2, phaseCount: 3, ordersRemaining: 0 },
         currentBattleResult: 'victory',
-        rewardChoices: [
-          REWARD_BY_ID['copy-card'],
-          REWARD_BY_ID['remove-card'],
-          REWARD_BY_ID['extra-reroll'],
-        ],
+        rewardChoices: generated.choices,
+        rewardOfferHistory: [generated.record],
         legalActions: ['CHOOSE_REWARD'],
       };
       const viewModel = renderApp(root, game);
@@ -94,57 +103,64 @@ async function run() {
         return { ok: true };
       }, () => viewModel);
 
-      const copyPanel = root.querySelector('[data-reward-id="copy-card"]');
-      copyPanel.open = true;
-      const copyTarget = copyPanel.querySelector(`.reward-target-choice[data-card-id="${campCard.id}"]`);
-      copyTarget?.click();
+      const buttons = [...root.querySelectorAll('#primary-actions > button.reward-button')];
+      for (const button of buttons) button.click();
 
-      const removePanel = root.querySelector('[data-reward-id="remove-card"]');
-      removePanel.open = true;
-      const removeTarget = removePanel.querySelector(`.reward-target-choice[data-card-id="${campCard.id}"]`);
-      removeTarget?.click();
-
-      const rerollButton = root.querySelector('[data-reward-id="extra-reroll"]');
-      rerollButton?.click();
+      const applications = game.rewardChoices.map((choice) => {
+        const applied = applyRewardChoice(game, choice.id);
+        return {
+          id: choice.id,
+          baseId: choice.baseId,
+          concrete: choice.concrete,
+          permanent: choice.permanent,
+          ok: applied.ok,
+          nextStatus: applied.state?.status,
+          beforeCount: Object.keys(game.cardsById).length,
+          afterCount: Object.keys(applied.state?.cardsById ?? {}).length,
+        };
+      });
 
       return {
-        campCardId: campCard.id,
-        offerCount: root.querySelectorAll('#primary-actions > .reward-button').length,
-        copyTopLevelCardId: copyPanel?.dataset.cardId ?? null,
-        copyTargetCount: copyPanel?.querySelectorAll('.reward-target-choice').length ?? 0,
-        copyTargetLabel: copyTarget?.textContent?.trim() ?? null,
-        removeTargetLabel: removeTarget?.textContent?.trim() ?? null,
+        offerCount: buttons.length,
+        offerIds: buttons.map((button) => button.dataset.rewardId),
+        names: buttons.map((button) => button.querySelector('.reward-name')?.textContent?.trim()),
+        effects: buttons.map((button) => button.querySelector('.reward-effect')?.textContent?.trim()),
+        targetPanelCount: root.querySelectorAll('.reward-target-panel').length,
+        targetChoiceCount: root.querySelectorAll('.reward-target-choice').length,
         dispatched,
+        applications,
         overflow: root.scrollWidth > root.clientWidth + 1,
       };
     });
 
     observations.push(result);
-    const [copyIntent, removeIntent, rerollIntent] = result.dispatched;
-    if (result.offerCount !== 3) bug('reward-offer-count', 'Reward screen does not expose exactly three top-level offers', result);
-    if (result.copyTopLevelCardId !== null) bug('reward-target-guessed', 'Copy reward still guesses a top-level card target', result);
-    if (result.copyTargetCount < 1) bug('reward-targets-missing', 'Copy reward does not expose explicit target choices', result);
-    if (!/軍營/.test(result.copyTargetLabel ?? '') || !/軍營/.test(result.removeTargetLabel ?? '')) {
-      bug('camp-reward-target-label-missing', 'Camp reward targets are not visibly identified as camp cards', result);
+    if (result.offerCount !== 3 || new Set(result.offerIds).size !== 3) {
+      bug('reward-offer-count', 'Reward screen does not expose exactly three unique concrete offers', result);
     }
-    if (copyIntent?.type !== 'CHOOSE_REWARD'
-      || copyIntent.rewardId !== 'copy-card'
-      || copyIntent.payload?.cardId !== result.campCardId) {
-      bug('reward-target-dispatch-invalid', 'Camp copy click did not dispatch the explicit camp card target', { copyIntent, result });
+    if (result.targetPanelCount !== 0 || result.targetChoiceCount !== 0) {
+      bug('reward-second-layer-visible', 'Concrete reward screen still exposes a second target-selection layer', result);
     }
-    if (removeIntent?.type !== 'CHOOSE_REWARD'
-      || removeIntent.rewardId !== 'remove-card'
-      || removeIntent.payload?.cardId !== result.campCardId) {
-      bug('remove-target-dispatch-invalid', 'Camp remove click did not dispatch the explicit camp card target', { removeIntent, result });
+    if (result.dispatched.length !== 3) {
+      bug('reward-direct-dispatch-count', 'Each concrete reward card must dispatch exactly one direct action', result);
     }
-    if (rerollIntent?.type !== 'CHOOSE_REWARD'
-      || rerollIntent.rewardId !== 'extra-reroll'
-      || rerollIntent.payload?.cardId !== undefined) {
-      bug('targetless-reward-payload', 'Targetless reward dispatch contains a fabricated card target', { rerollIntent });
+    for (let index = 0; index < result.dispatched.length; index += 1) {
+      const intent = result.dispatched[index];
+      if (intent?.type !== 'CHOOSE_REWARD' || intent.rewardId !== result.offerIds[index]) {
+        bug('reward-direct-dispatch-invalid', 'Concrete reward click dispatched the wrong intent', { index, intent, result });
+      }
+      if (intent?.payload?.cardId || intent?.payload?.generalId || intent?.payload?.evolutionId) {
+        bug('reward-direct-fabricated-target', 'Concrete reward dispatch fabricated a second-layer target', { index, intent });
+      }
     }
-    if (result.overflow) bug('reward-target-overflow', 'Reward target fixture overflows the mobile viewport', result);
-    if (runtimeErrors.length) bug('runtime-errors', 'Reward target fixture emitted runtime errors', { runtimeErrors });
-    await page.screenshot({ path: `${ARTIFACT_DIR}/09-reward-targets.png`, fullPage: true });
+    if (result.applications.some(({ concrete, permanent, ok, nextStatus }) => (
+      concrete !== true || permanent !== true || ok !== true || nextStatus === 'reward'
+    ))) {
+      bug('reward-direct-application-failed', 'A concrete permanent reward did not apply and advance in one action', result);
+    }
+    if (result.overflow) bug('reward-direct-overflow', 'Concrete reward fixture overflows the mobile viewport', result);
+    if (runtimeErrors.length) bug('runtime-errors', 'Concrete reward fixture emitted runtime errors', { runtimeErrors });
+    await page.screenshot({ path: `${ARTIFACT_DIR}/09-reward-direct.png`, fullPage: true });
+    await context.close();
   } finally {
     await browser?.close();
     server.kill('SIGTERM');
@@ -154,7 +170,7 @@ async function run() {
 try {
   await run();
 } catch (error) {
-  bug('reward-target-playtest-crashed', error.message, { stack: error.stack });
+  bug('reward-direct-playtest-crashed', error.message, { stack: error.stack });
 }
 
 const report = {
@@ -170,6 +186,6 @@ await writeFile(
   `${JSON.stringify(report, null, 2)}\n`,
   'utf8',
 );
-console.log('HANZI_V2_REWARD_TARGET_REPORT');
+console.log('HANZI_V2_REWARD_DIRECT_REPORT');
 console.log(JSON.stringify(report, null, 2));
 if (bugs.length) process.exitCode = 1;
