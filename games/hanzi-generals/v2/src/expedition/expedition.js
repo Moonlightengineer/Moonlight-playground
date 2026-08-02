@@ -47,6 +47,7 @@ export function createExpedition(seed) {
     currentBattleResult: null,
     nextStageId: 'tutorial',
     rewardChoices: [],
+    rewardOfferHistory: [],
     legalActions: ['START_BATTLE'],
     error: null,
     settings: { reducedMotion: false, vibration: true, speed: 1 },

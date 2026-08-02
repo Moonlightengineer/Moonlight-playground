@@ -44,7 +44,7 @@ test('browser and storage use the canonical entry without import-map or reviewed
   await assert.rejects(access(new URL('src/core/state-machine-reviewed.js', ROOT)));
 });
 
-test('canonical reducer carries board assembly through battle report and fifth-battle evolution choice', () => {
+test('canonical reducer carries board assembly through battle report and fifth-battle pity choice', () => {
   let game = reduceGame(createExpedition('canonical-evolution'), { type: 'START_BATTLE' }).state;
   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
 
@@ -65,6 +65,12 @@ test('canonical reducer carries board assembly through battle report and fifth-b
     status: 'combat',
     route: 'safe',
     completedBattleIds: ['tutorial', 'shield-line', 'route-safe', 'cavalry-warning'],
+    rewardOfferHistory: [
+      { battleNumber: 1, rareOffered: false },
+      { battleNumber: 2, rareOffered: false },
+      { battleNumber: 3, rareOffered: false },
+      { battleNumber: 4, rareOffered: false },
+    ],
     currentBattle: {
       stageId: 'elite-mixed',
       phaseIndex: 2,
@@ -86,17 +92,20 @@ test('canonical reducer carries board assembly through battle report and fifth-b
   assert.equal(report.ok, true);
   assert.equal(report.state.status, 'battle-report');
   assert.equal(report.state.battleReport.nextStatus, 'reward');
-  assert.equal(report.state.rewardChoices.some(({ id }) => id === 'evolve-general'), true);
+  assert.equal(report.state.rewardChoices.length, 3);
+  assert.equal(report.state.rewardChoices.every(({ concrete, permanent }) => concrete && permanent), true);
+  assert.equal(report.state.rewardOfferHistory.at(-1).pityTriggered, true);
+  assert.equal(report.state.rewardOfferHistory.at(-1).rareOffered, true);
 
   const reward = reduceGame(report.state, { type: 'CONTINUE_AFTER_REPORT' });
   assert.equal(reward.ok, true);
   assert.equal(reward.state.status, 'reward');
 
-  const evolved = reduceGame(reward.state, {
+  const selected = reward.state.rewardChoices[0];
+  const applied = reduceGame(reward.state, {
     type: 'CHOOSE_REWARD',
-    rewardId: 'evolve-general',
-    payload: { generalId: 'zhang-fei', evolutionId: 'roar' },
+    rewardId: selected.id,
   });
-  assert.equal(evolved.ok, true);
-  assert.equal(evolved.state.evolutions['zhang-fei'], 'roar');
+  assert.equal(applied.ok, true);
+  assert.equal(applied.state.rewardHistory.at(-1).rewardId, selected.id);
 });

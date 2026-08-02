@@ -40,18 +40,26 @@ function continueToReward(reportState) {
   return continued.state;
 }
 
-test('safe third battle offers Huang Zhong while danger offers Zhuge Liang', () => {
+test('third battle reward is dynamic rather than route-hardcoded', () => {
   const safeReport = reduceGame(thirdBattleCompletion('safe'), { type: 'STEP_COMBAT' });
   assert.equal(safeReport.ok, true);
   const safe = continueToReward(safeReport.state);
-  assert.equal(safe.rewardChoices.some(({ id }) => id === 'unlock-huang-zhong'), true);
-  assert.equal(safe.rewardChoices.some(({ id }) => id === 'unlock-zhuge-liang'), false);
 
   const dangerReport = reduceGame(thirdBattleCompletion('danger'), { type: 'STEP_COMBAT' });
   assert.equal(dangerReport.ok, true);
   const danger = continueToReward(dangerReport.state);
-  assert.equal(danger.rewardChoices.some(({ id }) => id === 'unlock-zhuge-liang'), true);
-  assert.equal(danger.rewardChoices.some(({ id }) => id === 'unlock-huang-zhong'), false);
+
+  for (const game of [safe, danger]) {
+    assert.equal(game.rewardChoices.length, 3);
+    assert.equal(game.rewardChoices.every(({ concrete, permanent }) => concrete && permanent), true);
+    assert.equal(game.rewardOfferHistory.at(-1).battleNumber, 3);
+    assert.equal(game.rewardOfferHistory.at(-1).pityTriggered, false);
+  }
+  assert.equal(
+    safe.rewardChoices.some(({ baseId }) => baseId === 'unlock-huang-zhong')
+      && danger.rewardChoices.some(({ baseId }) => baseId === 'unlock-zhuge-liang'),
+    false,
+  );
 });
 
 function evolutionRewardGame(overrides = {}) {

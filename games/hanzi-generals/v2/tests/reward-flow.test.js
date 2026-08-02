@@ -49,7 +49,7 @@ test('generateRewardOffer is deterministic and returns three unique choices', ()
   assert.equal(new Set(first.choices.map(({ id }) => id)).size, 3);
 });
 
-test('generateRewardOffer preserves route reward while replacing unavailable repair', () => {
+test('generateRewardOffer removes route hardcode and excludes legacy repair', () => {
   const game = {
     ...rewardState([]),
     route: 'safe',
@@ -60,9 +60,9 @@ test('generateRewardOffer preserves route reward while replacing unavailable rep
   };
   const offer = generateRewardOffer(game, REWARDS, game.rng);
   assert.equal(offer.choices.length, 3);
-  assert.equal(offer.choices.some(({ id }) => id === 'unlock-huang-zhong'), true);
-  assert.equal(offer.choices.some(({ id }) => id === 'remove-card'), true);
-  assert.equal(offer.choices.some(({ id }) => id === 'repair-wall'), false);
+  assert.equal(offer.choices.every(({ concrete, permanent }) => concrete && permanent), true);
+  assert.equal(offer.choices.some(({ baseId }) => baseId === 'repair-wall'), false);
+  assert.equal(offer.record.battleNumber, 3);
 });
 
 test('copy targets are explicit and deduplicated by symbol across loose and camp zones', () => {

@@ -260,6 +260,7 @@ export function finishBattle(game, combat, events = []) {
     ...settled,
     rng: generated.rng,
     rewardChoices: generated.choices,
+    rewardOfferHistory: [...(settled.rewardOfferHistory ?? []), generated.record],
   };
   const battleReport = finalizeBattleReport(withRewards, 'victory', 'reward');
   return success({
