@@ -4,6 +4,7 @@ line=38
 command=python .automation/apply-hanzi-v2-approved-gaps.py
 
 --- git status ---
+ M .automation/apply-diagnostic.txt
  M games/hanzi-generals/v2/src/battle/battle-lifecycle.js
  M games/hanzi-generals/v2/src/combat/combat-engine.js
  M games/hanzi-generals/v2/src/combat/orders.js
@@ -11,4 +12,3 @@ command=python .automation/apply-hanzi-v2-approved-gaps.py
  M games/hanzi-generals/v2/src/core/state-machine.js
  M games/hanzi-generals/v2/src/ui/help-content.js
  M games/hanzi-generals/v2/tests/orders.test.js
-?? .automation/apply-diagnostic.txt
