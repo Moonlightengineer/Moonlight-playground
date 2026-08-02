@@ -316,7 +316,7 @@ async function run() {
       const target = page.locator('#enemy-field .enemy-token.is-order-target').first();
       if (await target.count()) await target.click();
     }
-    await page.getByRole('button', { name: '守2路', exact: true }).click();
+    await page.getByRole('button', { name: '固守2路', exact: true }).click();
 
     const status = page.locator('#orders .order-status');
     const statusText = (await status.textContent())?.trim() ?? '';

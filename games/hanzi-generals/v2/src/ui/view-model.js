@@ -2,6 +2,7 @@ import { ENEMY_BY_ID } from '../../data/enemies.js';
 import { EVOLUTION_BY_ID } from '../../data/evolutions.js';
 import { GENERAL_BY_ID } from '../../data/generals.js';
 import { REWARDS } from '../../data/rewards.js';
+import { STARTING_RECIPE_IDS } from '../../data/recipes.js';
 import { deriveLaneWarnings } from '../combat/intents.js';
 import { eligibleEvolutionGenerals } from '../expedition/evolution-eligibility.js';
 import {
@@ -24,7 +25,7 @@ const ROUTE_STAGES = Object.freeze({
   danger: Object.freeze(['tutorial', 'shield-line', 'route-danger', 'cavalry-warning', 'elite-mixed', 'hua-xiong']),
 });
 
-const STARTING_RECIPES = new Set(['huang-zhong', 'zhao-yun', 'guan-yu', 'lu-bu', 'archer', 'shield-troop']);
+const STARTING_RECIPES = new Set(STARTING_RECIPE_IDS);
 
 function intent(type, payload = {}) {
   return { type, ...payload };
@@ -289,6 +290,13 @@ function buildEvolutionChoices(game) {
   };
 }
 
+function rewardHistoryName(entry) {
+  const savedName = entry?.displayName ?? entry?.name;
+  if (typeof savedName === 'string' && savedName.trim()) return savedName;
+  const baseId = entry?.baseId ?? entry?.rewardId;
+  return REWARDS.find(({ id }) => id === baseId)?.name ?? '已取得獎勵';
+}
+
 function buildResult(game) {
   if (!['victory', 'defeat'].includes(game.status)) return null;
   const route = game.route === 'danger' ? '危險路線' : game.route === 'safe' ? '安全路線' : '共同前線';
@@ -309,7 +317,7 @@ function buildResult(game) {
       ['獎勵數量', rewards.length],
     ],
     unlockedText: unlocked.length ? unlocked.map((id) => GENERAL_BY_ID[id]?.name ?? id).join('、') : '本局未新增配方。',
-    rewardsText: rewards.length ? rewards.map(({ rewardId }) => REWARDS.find(({ id }) => id === rewardId)?.name ?? rewardId).join('、') : '未有可記錄獎勵。',
+    rewardsText: rewards.length ? rewards.map(rewardHistoryName).join('、') : '未有可記錄獎勵。',
     evolvedText: evolved.length ? evolved.map(([generalId, evolutionId]) => `${GENERAL_BY_ID[generalId]?.name ?? generalId}・${EVOLUTION_BY_ID[evolutionId]?.name ?? evolutionId}`).join('、') : '本局未有武將進化。',
   };
 }
@@ -356,27 +364,61 @@ function buildPrimary(game, ui, legalCommands) {
 function buildOrders(game, profile, orderTargets) {
   if (game.status !== 'combat') return { visible: false, statuses: [], actions: [], focusEnemyIds: [] };
   const statuses = [];
-  if (game.combat.focus) statuses.push(`集火生效：剩餘 ${game.combat.focus.remainingFriendlyTurns} 輪`);
-  if (game.combat.fortify) statuses.push(`第 ${game.combat.fortify.lane + 1} 路堅守：剩餘 ${game.combat.fortify.remainingEnemyTurns} 輪`);
+  const focusSeconds = game.combat.focus?.remainingSeconds ?? 0;
+  const fortifySeconds = game.combat.fortify?.remainingSeconds ?? 0;
+  const assaultSeconds = game.combat.assault?.remainingSeconds ?? 0;
+  if (game.combat.focus) {
+    const target = game.combat.enemies.find(({ id }) => id === game.combat.focus.enemyId);
+    const targetName = ENEMY_BY_ID[target?.definitionId]?.name ?? '指定敵軍';
+    statuses.push(`集火生效：${targetName}，剩餘 ${focusSeconds} 秒`);
+  }
+  if (game.combat.fortify) {
+    statuses.push(`固守：第 ${game.combat.fortify.lane + 1} 路，剩餘 ${fortifySeconds} 秒`);
+  }
+  if (game.combat.assault) {
+    statuses.push(`急攻：第 ${game.combat.assault.lane + 1} 路，剩餘 ${assaultSeconds} 秒`);
+  }
+
   const noOrders = game.combat.ordersRemaining < 1;
   const paused = Boolean(game.combat.paused);
+  const fortifyActive = Boolean(game.combat.fortify);
+  const assaultActive = Boolean(game.combat.assault);
+  const focusActive = Boolean(game.combat.focus);
   const actions = [
     { label: paused ? '繼續' : '暫停', action: paused ? 'resume' : 'pause', data: {}, className: 'primary-button', disabled: false },
     { label: profile.settings.speed === 2 ? '速度 1×' : '速度 2×', action: 'set-speed', data: { speed: profile.settings.speed === 2 ? 1 : 2 }, className: '', disabled: false },
     { label: '玩法', action: 'open-help', data: {}, className: '', disabled: false },
-    { label: '變陣', action: 'begin-order', data: { orderType: 'swap' }, className: '', disabled: noOrders || !orderTargets.swapPairs.length },
-    { label: '援防', action: 'begin-order', data: { orderType: 'reinforce' }, className: '', disabled: noOrders || !orderTargets.reinforce.length, ariaLabel: '援防：消耗一個軍令，將一名友軍調往相鄰空路' },
-    { label: '集火', action: 'begin-order', data: { orderType: 'focus' }, className: '', disabled: noOrders || !orderTargets.focusEnemyIds.length },
-    ...orderTargets.fortifyLanes.map((lane) => ({ label: `守${lane + 1}路`, action: 'issue-order', data: { orderType: 'fortify', lane }, className: game.combat.fortify?.lane === lane ? 'is-active-order' : '', disabled: noOrders })),
+    ...orderTargets.fortifyLanes.map((lane) => ({
+      label: `固守${lane + 1}路`,
+      action: 'issue-lane-order',
+      data: { orderType: 'fortify', lane },
+      className: game.combat.fortify?.lane === lane ? 'is-active-order' : '',
+      disabled: noOrders || fortifyActive,
+      ariaLabel: `固守第 ${lane + 1} 路：消耗一點軍令，友軍受傷降低 35%，持續六秒`,
+    })),
+    ...orderTargets.assaultLanes.map((lane) => ({
+      label: `急攻${lane + 1}路`,
+      action: 'issue-lane-order',
+      data: { orderType: 'assault', lane },
+      className: game.combat.assault?.lane === lane ? 'is-active-order' : '',
+      disabled: noOrders || assaultActive,
+      ariaLabel: `急攻第 ${lane + 1} 路：消耗一點軍令，友軍攻速提高 30%，持續六秒`,
+    })),
+    {
+      label: '集火',
+      action: 'begin-order',
+      data: { orderType: 'focus' },
+      className: focusActive ? 'is-active-order' : '',
+      disabled: noOrders || focusActive || !orderTargets.focusEnemyIds.length,
+      ariaLabel: '集火：消耗一點軍令，合法目標優先並多受 20% 傷害，持續六秒',
+    },
   ];
-  for (const tacticId of game.combat.tactics ?? []) {
-    if (tacticId === 'fire-arrows') actions.push({ label: '火矢1路', action: 'issue-order', data: { orderType: 'tactic', tacticId, lane: 0 }, className: '', disabled: false });
-    if (tacticId === 'first-aid') {
-      const target = Object.values(game.combat.board.units).find(({ hp, maxHp }) => hp > 0 && hp < maxHp);
-      actions.push({ label: '急救', action: 'issue-order', data: { orderType: 'tactic', tacticId, unitId: target?.id }, className: '', disabled: !target });
-    }
-  }
-  return { visible: true, statuses, actions, focusEnemyIds: [...orderTargets.focusEnemyIds] };
+  return {
+    visible: true,
+    statuses,
+    actions,
+    focusEnemyIds: [...orderTargets.focusEnemyIds],
+  };
 }
 
 function buildDetails(game, profile, ui) {

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { REWARD_BY_ID, REWARDS } from '../data/rewards.js';
 import { assertCardOwnership } from '../src/core/card-invariants.js';
-import { reduceGame } from '../src/core/state-machine.js';
+import { normalizeGameState, reduceGame } from '../src/core/state-machine.js';
 import { createExpedition } from '../src/expedition/expedition.js';
 import {
   applyRewardChoice,
@@ -172,37 +172,36 @@ test('targetless rewards validate and apply without fabricated payloads', () => 
   assert.equal(applied.state.wallHp > 40, true);
 });
 
-test('canonical reducer refuses target-required rewards without an explicit target', () => {
-  const game = rewardState(['copy-card']);
-  const missing = reduceGame(game, { type: 'CHOOSE_REWARD', rewardId: 'copy-card' });
-  assert.equal(missing.ok, false);
-  assert.equal(missing.state, game);
-  assert.equal(missing.error.code, 'REWARD_TARGET_REQUIRED');
+test('canonical reducer replaces legacy target rewards with concrete one-click choices', () => {
+  const legacy = rewardState(['copy-card', 'remove-card', 'extra-reroll']);
+  const normalized = normalizeGameState(legacy);
+  assert.equal(normalized.rewardChoices.length, 3);
+  assert.equal(normalized.rewardChoices.every(({ concrete, permanent }) => concrete && permanent), true);
 
-  const target = selectRewardTargets(game, 'copy-card')[0];
-  const applied = reduceGame(game, {
-    type: 'CHOOSE_REWARD', rewardId: 'copy-card', payload: { cardId: target.cardId },
+  const stale = reduceGame(legacy, { type: 'CHOOSE_REWARD', rewardId: 'copy-card' });
+  assert.equal(stale.ok, false);
+  assert.equal(stale.state, legacy);
+  assert.equal(stale.error.code, 'REWARD_NOT_OFFERED');
+
+  const selected = normalized.rewardChoices[0];
+  const applied = reduceGame(normalized, {
+    type: 'CHOOSE_REWARD', rewardId: selected.id,
   });
   assert.equal(applied.ok, true);
 });
 
-test('reward ViewModel exposes explicit target choices without a guessed top-level card payload', () => {
-  const game = rewardState(['copy-card', 'remove-card', 'extra-reroll']);
+test('reward ViewModel exposes direct concrete actions without a second target layer', () => {
+  const base = rewardState(['copy-card', 'remove-card', 'extra-reroll']);
+  const offer = generateRewardOffer(base);
+  const game = { ...base, rng: offer.rng, rewardChoices: offer.choices };
   const viewModel = buildAppViewModel(game, { settings: game.settings, tutorial: game.tutorial }, {});
-  const copy = viewModel.primary.rewards.find(({ id }) => id === 'copy-card');
-  const remove = viewModel.primary.rewards.find(({ id }) => id === 'remove-card');
-  const reroll = viewModel.primary.rewards.find(({ id }) => id === 'extra-reroll');
 
-  assert.equal(copy.data.cardId, undefined);
-  assert.equal(copy.action, null);
-  assert.equal(copy.targetChoices.length > 0, true);
-  assert.equal(copy.targetChoices.every(({ data }) => data.rewardId === 'copy-card' && data.cardId), true);
-
-  assert.equal(remove.data.cardId, undefined);
-  assert.equal(remove.action, null);
-  assert.equal(remove.targetChoices.length, Object.keys(game.cardsById).length);
-
-  assert.equal(reroll.action, 'choose-reward');
-  assert.deepEqual(reroll.targetChoices, []);
+  assert.equal(viewModel.primary.rewards.length, 3);
+  for (const reward of viewModel.primary.rewards) {
+    assert.equal(reward.action, 'choose-reward');
+    assert.equal(reward.data.rewardId, reward.id);
+    assert.deepEqual(reward.targetChoices, []);
+    assert.equal(reward.disabled, false);
+  }
   assert.equal(viewModel.primary.evolution, null);
 });

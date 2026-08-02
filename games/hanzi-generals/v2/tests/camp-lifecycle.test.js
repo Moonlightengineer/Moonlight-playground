@@ -12,6 +12,7 @@ import {
 } from '../src/expedition/camp-lifecycle.js';
 import { createExpedition } from '../src/expedition/expedition.js';
 import { REWARDS } from '../data/rewards.js';
+import { generateRewardOffer } from '../src/reward/reward-flow.js';
 
 function moveRegistryCardToCamp(game, cardId) {
   const remove = (cards) => cards.filter(({ id }) => id !== cardId);
@@ -182,21 +183,29 @@ test('camp survives final battle settlement through report into reward', () => {
 });
 
 test('extra-camp reward permanently increases expedition capacity and clears legacy pending bonus', () => {
-  const reward = REWARDS.find(({ id }) => id === 'extra-camp');
+  const catalogue = REWARDS.filter(({ id }) => [
+    'copy-card', 'extra-camp', 'specialize-troop',
+  ].includes(id));
   let game = createExpedition('camp-reward');
   const cardId = game.deck.drawPile[0].id;
   game = moveRegistryCardToCamp(game, cardId);
+  const offer = generateRewardOffer(game, catalogue, game.rng);
+  const reward = offer.choices.find(({ baseId }) => baseId === 'extra-camp');
+  assert.ok(reward);
+  assert.equal(offer.choices.length, 3);
   game = {
     ...game,
+    rng: offer.rng,
     status: 'reward',
     currentBattle: { stageId: 'tutorial', phaseIndex: 2, phaseCount: 3, ordersRemaining: 0 },
     currentBattleResult: 'victory',
-    rewardChoices: [reward],
+    rewardChoices: offer.choices,
+    rewardOfferHistory: [offer.record],
     legalActions: ['CHOOSE_REWARD'],
   };
   const beforeCapacity = game.camp.capacity;
 
-  const chosen = reduceGame(game, { type: 'CHOOSE_REWARD', rewardId: 'extra-camp' });
+  const chosen = reduceGame(game, { type: 'CHOOSE_REWARD', rewardId: reward.id });
   assert.equal(chosen.ok, true);
   assert.equal(chosen.state.camp.capacity, beforeCapacity + 1);
   assert.deepEqual(chosen.state.camp.cardIds, [cardId]);

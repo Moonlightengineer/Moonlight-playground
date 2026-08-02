@@ -8,6 +8,7 @@ import { createBoard, listCells } from '../board/board.js';
 import { createCombatState, stepCombat } from '../combat/combat-engine.js';
 import { releaseUnitCards } from '../deck/assembly.js';
 import { prepareBattleDeck } from '../deck/deck.js';
+import { advanceExpedition } from '../expedition/expedition.js';
 import {
   createBattleMetrics,
   finalizeBattleReport,
@@ -233,7 +234,7 @@ export function finishPhase(game, combat, events = []) {
     ...prepared,
     status: 'configuration',
     combat: null,
-    currentBattle: { ...prepared.currentBattle, phaseIndex },
+    currentBattle: { ...prepared.currentBattle, phaseIndex, ordersRemaining: combat.ordersRemaining },
     legalCells: listCells(prepared.board).filter((cell) => {
       const key = `${cell.column},${cell.row}`;
       return !prepared.boardCards[key]
@@ -255,6 +256,20 @@ export function finishBattle(game, combat, events = []) {
     currentBattleResult: 'victory',
     battleMetrics: metrics,
   });
+
+  const isFinalBattle = (settled.completedBattleIds?.length ?? 0) >= 5;
+  if (isFinalBattle) {
+    const battleReport = finalizeBattleReport(settled, 'victory', 'victory');
+    const completed = advanceExpedition(settled);
+    return success({
+      ...completed,
+      status: 'battle-report',
+      battleMetrics: null,
+      battleReport,
+      legalActions: ['CONTINUE_AFTER_REPORT', 'RESET_RUN'],
+    }, combinedEvents);
+  }
+
   const generated = generateRewardOffer(settled);
   const withRewards = {
     ...settled,
@@ -274,6 +289,7 @@ export function finishBattle(game, combat, events = []) {
 
 export function stepBattleCombat(game) {
   if (!game.combat) return failure(game, 'NO_COMBAT_SESSION', '未有進行中戰鬥。');
+  if (game.combat.paused) return failure(game, 'COMBAT_PAUSED', '戰鬥暫停期間不會推進模擬時間。');
   const result = stepCombat(game.combat, combatContext(game));
   let next = syncDefeatedUnitCards(game, result.combat);
   next = {

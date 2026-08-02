@@ -20,14 +20,14 @@ test('app entry is dependency wiring around AppController rather than a second o
   assert.doesNotMatch(app, /reduceGame\(game,/);
 });
 
-test('interaction targeting consumes ViewModel targets instead of recalculating gameplay legality', async () => {
+test('interaction targeting consumes ViewModel targets without reintroducing combat movement', async () => {
   const interactions = await source('src/ui/interactions.js');
   assert.match(interactions, /getViewModel/);
-  assert.match(interactions, /swapPairs/);
-  assert.match(interactions, /reinforce/);
   assert.match(interactions, /focusEnemyIds/);
+  assert.match(interactions, /issue-lane-order/);
+  assert.doesNotMatch(interactions, /swapPairs/);
+  assert.doesNotMatch(interactions, /reinforce/);
+  assert.doesNotMatch(interactions, /order-swap-target/);
   assert.doesNotMatch(interactions, /function distance\(/);
-  assert.doesNotMatch(interactions, /adjacentUnitTargets/);
-  assert.doesNotMatch(interactions, /adjacentEmptyLaneTargets/);
   assert.doesNotMatch(interactions, /canFocusEnemy/);
 });

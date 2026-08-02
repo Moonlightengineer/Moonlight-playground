@@ -1,5 +1,4 @@
 import { GENERAL_BY_ID } from '../../data/generals.js';
-import { REWARDS } from '../../data/rewards.js';
 import { TUNING } from '../../data/tuning.js';
 import {
   startBattle,
@@ -12,19 +11,11 @@ import {
   normalizeLegacyCampBonus,
   returnCampCardToHand,
 } from '../expedition/camp-lifecycle.js';
-import { eligibleEvolutionGenerals } from '../expedition/evolution-eligibility.js';
 import { createExpedition } from '../expedition/expedition.js';
 import { recordBattleEvents } from '../report/battle-report.js';
-import { applyRewardChoice } from '../reward/reward-flow.js';
+import { assessRewardAvailability, applyRewardChoice, generateRewardOffer } from '../reward/reward-flow.js';
+import { createRng } from './rng.js';
 import { reduceGame as reduceBaseGame, ALLOWED } from './state-machine-base.js';
-
-const SAFE_REWARD_FALLBACKS = Object.freeze([
-  'extra-reroll',
-  'extra-camp',
-  'repair-wall',
-  'fire-arrows',
-  'first-aid',
-]);
 
 function success(state, events = []) {
   return { ok: true, state, events };
@@ -44,27 +35,81 @@ function recordAssembledGenerals(state, events) {
   return { ...state, recruitedGeneralIds: [...recruited] };
 }
 
-function normalizeEvolutionRewards(state) {
-  if (state.status !== 'reward') return state;
-  if (eligibleEvolutionGenerals(state).length) return state;
+function normalizeOrderDuration(order, legacyField, multiplier, canonical) {
+  if (!order || typeof order !== 'object') return null;
+  const direct = Number(order.remainingSeconds);
+  const legacy = Number(order[legacyField]);
+  const remainingSeconds = Number.isFinite(direct) && direct > 0
+    ? Math.min(6, Math.ceil(direct))
+    : Number.isFinite(legacy) && legacy > 0
+      ? Math.min(6, Math.ceil(legacy * multiplier))
+      : 6;
+  return { ...order, ...canonical, remainingSeconds };
+}
 
-  const choices = (state.rewardChoices ?? []).filter(({ id }) => id !== 'evolve-general');
-  const chosen = new Set(choices.map(({ id }) => id));
-  for (const rewardId of SAFE_REWARD_FALLBACKS) {
-    if (choices.length >= 3) break;
-    if (chosen.has(rewardId)) continue;
-    const reward = REWARDS.find(({ id }) => id === rewardId);
-    if (!reward) continue;
-    choices.push(reward);
-    chosen.add(rewardId);
+function normalizeCombatOrders(combat) {
+  if (!combat || typeof combat !== 'object') return combat;
+  return {
+    ...combat,
+    pendingOrders: [],
+    fortify: normalizeOrderDuration(
+      combat.fortify,
+      'remainingEnemyTurns',
+      3,
+      { damageReduction: 0.35 },
+    ),
+    assault: normalizeOrderDuration(
+      combat.assault,
+      'remainingFriendlyTurns',
+      2,
+      { attackSpeedBonus: 0.3 },
+    ),
+    focus: normalizeOrderDuration(
+      combat.focus,
+      'remainingFriendlyTurns',
+      2,
+      { damageBonus: 0.2 },
+    ),
+  };
+}
+
+function rewardChoicesAreCanonical(state) {
+  const choices = state.rewardChoices ?? [];
+  return choices.length === 3
+    && new Set(choices.map(({ id }) => id)).size === 3
+    && choices.every((choice) => (
+      choice?.concrete === true
+      && choice?.permanent === true
+      && assessRewardAvailability(state, choice).available
+    ));
+}
+
+function normalizeRewardChoices(state) {
+  if (state.status !== 'reward' || rewardChoicesAreCanonical(state)) return state;
+  const rng = Number.isInteger(state.rng?.state)
+    ? state.rng
+    : createRng(`reward-normalize:${state.seed ?? state.runId ?? state.completedBattleIds?.length ?? 0}`);
+  const generated = generateRewardOffer({ ...state, rng });
+  const history = [...(state.rewardOfferHistory ?? [])];
+  const lastIndex = history.length - 1;
+  if (lastIndex >= 0 && history[lastIndex]?.battleNumber === generated.record.battleNumber) {
+    history[lastIndex] = generated.record;
+  } else {
+    history.push(generated.record);
   }
-  return { ...state, rewardChoices: choices.slice(0, 3) };
+  return {
+    ...state,
+    rng: generated.rng,
+    rewardChoices: generated.choices,
+    rewardOfferHistory: history,
+  };
 }
 
 export function normalizeGameState(state) {
   if (!state || typeof state !== 'object') return state;
   const migrated = normalizeLegacyCampBonus({
     ...state,
+    combat: normalizeCombatOrders(state.combat),
     recruitedGeneralIds: [...new Set(state.recruitedGeneralIds ?? [])],
     rewardHistory: [...(state.rewardHistory ?? [])],
     evolutions: { ...(state.evolutions ?? {}) },
@@ -72,7 +117,7 @@ export function normalizeGameState(state) {
     lastBattleReport: state.lastBattleReport ?? null,
     battleMetrics: state.battleMetrics ?? null,
   });
-  return normalizeEvolutionRewards(migrated);
+  return normalizeRewardChoices(migrated);
 }
 
 export function finalizeGameResult(result) {
@@ -153,6 +198,20 @@ function continueAfterReport(game) {
       battleReport: null,
       lastBattleReport: report,
       legalActions: ['CHOOSE_REWARD'],
+    });
+  }
+  if (report.nextStatus === 'victory') {
+    return success({
+      ...game,
+      status: 'victory',
+      combat: null,
+      currentBattle: null,
+      currentBattleResult: null,
+      nextStageId: null,
+      rewardChoices: [],
+      battleReport: null,
+      lastBattleReport: report,
+      legalActions: ['START_NEW_RUN'],
     });
   }
   if (report.nextStatus === 'defeat') {

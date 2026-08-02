@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createBoard } from '../src/board/board.js';
 import { createCombatState } from '../src/combat/combat-engine.js';
+import { REWARD_BY_ID } from '../data/rewards.js';
 import { createExpedition } from '../src/expedition/expedition.js';
+import { validateEvolutionSelection } from '../src/expedition/evolution-eligibility.js';
 import { reduceGame } from '../src/core/state-machine.js';
 
 function thirdBattleCompletion(route) {
@@ -62,8 +64,24 @@ test('third battle reward is dynamic rather than route-hardcoded', () => {
   );
 });
 
-function evolutionRewardGame(overrides = {}) {
+function concreteReward(baseId, suffix = 'permanent', payload = {}) {
+  return {
+    ...REWARD_BY_ID[baseId],
+    id: `${baseId}:${suffix}`,
+    baseId,
+    concrete: true,
+    permanent: true,
+    payload,
+  };
+}
+
+function evolutionRewardGame(evolutionId = 'divine-shot', overrides = {}) {
   const game = createExpedition('evolution-review');
+  const evolution = concreteReward(
+    'evolve-general',
+    `huang-zhong-${evolutionId}`,
+    { generalId: 'huang-zhong', evolutionId },
+  );
   return {
     ...game,
     route: 'safe',
@@ -77,49 +95,56 @@ function evolutionRewardGame(overrides = {}) {
       ordersRemaining: 2,
     },
     currentBattleResult: 'victory',
-    rewardChoices: [{ id: 'evolve-general' }],
+    rewardChoices: [
+      evolution,
+      concreteReward('extra-camp'),
+      concreteReward('expand-depth'),
+    ],
     legalActions: ['CHOOSE_REWARD'],
     recruitedGeneralIds: ['huang-zhong'],
     ...overrides,
   };
 }
 
-test('both Huang Zhong evolution branches are accepted when he was recruited', () => {
+test('both Huang Zhong evolution branches are accepted as concrete one-click rewards', () => {
   for (const evolutionId of ['divine-shot', 'repeating-crossbow']) {
-    const result = reduceGame(evolutionRewardGame(), {
+    const game = evolutionRewardGame(evolutionId);
+    const reward = game.rewardChoices[0];
+    const result = reduceGame(game, {
       type: 'CHOOSE_REWARD',
-      rewardId: 'evolve-general',
-      payload: { generalId: 'huang-zhong', evolutionId },
+      rewardId: reward.id,
     });
     assert.equal(result.ok, true);
     assert.equal(result.state.evolutions['huang-zhong'], evolutionId);
   }
 });
 
-test('evolution rejects missing choice, un-recruited generals, mismatch, and repeat', () => {
-  const missing = reduceGame(evolutionRewardGame(), {
-    type: 'CHOOSE_REWARD', rewardId: 'evolve-general', payload: {},
-  });
-  assert.equal(missing.error.code, 'EVOLUTION_SELECTION_REQUIRED');
-
-  const notRecruited = reduceGame(evolutionRewardGame(), {
-    type: 'CHOOSE_REWARD', rewardId: 'evolve-general',
-    payload: { generalId: 'zhao-yun', evolutionId: 'seven-charges' },
-  });
-  assert.equal(notRecruited.error.code, 'GENERAL_NOT_RECRUITED');
-
-  const mismatch = reduceGame(evolutionRewardGame(), {
-    type: 'CHOOSE_REWARD', rewardId: 'evolve-general',
-    payload: { generalId: 'huang-zhong', evolutionId: 'seven-charges' },
-  });
-  assert.equal(mismatch.error.code, 'EVOLUTION_MISMATCH');
-
-  const repeated = reduceGame(evolutionRewardGame({
+test('evolution validation rejects missing choice, un-recruited generals, mismatch, and repeat', () => {
+  const game = evolutionRewardGame();
+  assert.equal(validateEvolutionSelection(game, {}).code, 'EVOLUTION_SELECTION_REQUIRED');
+  assert.equal(validateEvolutionSelection(game, {
+    generalId: 'zhao-yun', evolutionId: 'seven-charges',
+  }).code, 'GENERAL_NOT_RECRUITED');
+  assert.equal(validateEvolutionSelection(game, {
+    generalId: 'huang-zhong', evolutionId: 'seven-charges',
+  }).code, 'EVOLUTION_MISMATCH');
+  assert.equal(validateEvolutionSelection({
+    ...game,
     recruitedGeneralIds: ['huang-zhong', 'zhao-yun'],
     evolutions: { 'huang-zhong': 'divine-shot' },
-  }), {
-    type: 'CHOOSE_REWARD', rewardId: 'evolve-general',
-    payload: { generalId: 'huang-zhong', evolutionId: 'repeating-crossbow' },
+  }, {
+    generalId: 'huang-zhong', evolutionId: 'repeating-crossbow',
+  }).code, 'GENERAL_ALREADY_EVOLVED');
+
+  const stale = {
+    ...game,
+    rewardChoices: [{ id: 'evolve-general' }],
+  };
+  const rejected = reduceGame(stale, {
+    type: 'CHOOSE_REWARD',
+    rewardId: 'evolve-general',
+    payload: { generalId: 'huang-zhong', evolutionId: 'divine-shot' },
   });
-  assert.equal(repeated.error.code, 'GENERAL_ALREADY_EVOLVED');
+  assert.equal(rejected.ok, false);
+  assert.equal(rejected.error.code, 'REWARD_NOT_OFFERED');
 });

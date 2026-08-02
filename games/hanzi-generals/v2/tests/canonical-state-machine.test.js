@@ -16,7 +16,9 @@ test('state-machine.js is the single canonical reducer and migration entry', asy
   assert.equal(typeof stateMachine.finalizeGameResult, 'function');
 
   const legacyReward = {
+    ...createExpedition('canonical-legacy-reward'),
     status: 'reward',
+    rng: undefined,
     rewardChoices: [
       { id: 'evolve-general' },
       { id: 'copy-card' },

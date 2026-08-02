@@ -38,13 +38,9 @@ export function buildAppViewModel(game, profile, ui) {
     },
     orders: {
       ...viewModel.orders,
-      swapPairs: targets.swapPairs.map((pair) => [...pair]),
-      reinforce: targets.reinforce.map(({ unitId, targetCells }) => ({
-        unitId,
-        targetCells: targetCells.map((cell) => ({ ...cell })),
-      })),
       focusEnemyIds: [...targets.focusEnemyIds],
       fortifyLanes: [...targets.fortifyLanes],
+      assaultLanes: [...targets.assaultLanes],
     },
   };
 }

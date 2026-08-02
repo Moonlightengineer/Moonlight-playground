@@ -62,6 +62,7 @@ function recordReward(before, after, reward, payload) {
       {
         rewardId: reward.id,
         baseId,
+        displayName: reward.name ?? null,
         battleIndex: before.completedBattleIds.length + 1,
         generalId: payload.generalId ?? null,
         evolutionId: payload.evolutionId ?? null,

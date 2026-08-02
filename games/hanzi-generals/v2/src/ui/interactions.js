@@ -14,14 +14,11 @@ function escapeSelector(value) {
 }
 
 function orderFromDataset(dataset) {
-  if (dataset.orderType === 'swap') {
-    return { type: 'swap', unitIds: (dataset.unitIds ?? '').split(',').filter(Boolean) };
-  }
   if (dataset.orderType === 'focus') {
     return { type: 'focus', enemyId: dataset.enemyId };
   }
-  if (dataset.orderType === 'fortify') {
-    return { type: 'fortify', lane: number(dataset.lane) };
+  if (dataset.orderType === 'fortify' || dataset.orderType === 'assault') {
+    return { type: dataset.orderType, lane: number(dataset.lane) };
   }
   if (dataset.orderType === 'tactic') {
     return {
@@ -92,23 +89,6 @@ function addPrompt(root, text) {
   }
 }
 
-function cellFromElement(element) {
-  return {
-    column: number(element.dataset.column),
-    row: number(element.dataset.row),
-  };
-}
-
-function unitButton(root, unitId) {
-  return root.querySelector(`#battle-board [data-unit-id="${escapeSelector(unitId)}"]`);
-}
-
-function boardCell(root, cell) {
-  return root.querySelector(
-    `#battle-board [data-column="${cell.column}"][data-row="${cell.row}"]`,
-  );
-}
-
 function enemyToken(root, enemyId) {
   return root.querySelector(`#enemy-field [data-enemy-id="${escapeSelector(enemyId)}"]`);
 }
@@ -116,64 +96,16 @@ function enemyToken(root, enemyId) {
 function decorateOrderTargets(root, mode, getViewModel) {
   clearOrderDecorations(root);
   root.dataset.orderMode = mode.type;
-  const orders = getViewModel()?.orders ?? {};
-  const swapPairs = orders.swapPairs ?? [];
-  const reinforce = orders.reinforce ?? [];
-  const focusEnemyIds = orders.focusEnemyIds ?? [];
+  const focusEnemyIds = getViewModel()?.orders?.focusEnemyIds ?? [];
+  if (mode.type !== 'focus') return;
 
-  if (mode.type === 'swap' && !mode.unitId) {
-    const sourceIds = new Set(swapPairs.flat());
-    for (const unitId of sourceIds) markTarget(unitButton(root, unitId), 'order-select-unit');
-    addPrompt(root, '變陣：先揀一名有相鄰友軍嘅武將。');
-    return;
+  for (const enemyId of focusEnemyIds) {
+    const token = enemyToken(root, enemyId);
+    markTarget(token, 'order-focus-target', { enemyId });
+    token?.setAttribute('role', 'button');
+    if (token) token.tabIndex = 0;
   }
-
-  if (mode.type === 'swap' && mode.unitId) {
-    const source = unitButton(root, mode.unitId);
-    if (!source) return;
-    source.classList.add('is-order-source');
-    source.classList.remove('is-order-target');
-    const targets = swapPairs
-      .filter((pair) => pair.includes(mode.unitId))
-      .map((pair) => pair.find((unitId) => unitId !== mode.unitId))
-      .filter(Boolean);
-    for (const unitId of targets) {
-      markTarget(unitButton(root, unitId), 'order-swap-target', { sourceUnitId: mode.unitId });
-    }
-    addPrompt(root, '變陣：再揀一名相鄰武將交換位置。');
-    return;
-  }
-
-  if (mode.type === 'reinforce' && !mode.unitId) {
-    for (const option of reinforce) {
-      markTarget(unitButton(root, option.unitId), 'order-select-reinforce-unit');
-    }
-    addPrompt(root, '援防：先揀一名可調往相鄰空路嘅友軍。');
-    return;
-  }
-
-  if (mode.type === 'reinforce' && mode.unitId) {
-    const source = unitButton(root, mode.unitId);
-    if (!source) return;
-    source.classList.add('is-order-source');
-    source.classList.remove('is-order-target');
-    const option = reinforce.find(({ unitId }) => unitId === mode.unitId);
-    for (const cell of option?.targetCells ?? []) {
-      markTarget(boardCell(root, cell), 'order-reinforce-target', { sourceUnitId: mode.unitId });
-    }
-    addPrompt(root, '援防：再揀相鄰空路位置。移動後原路會失去呢名友軍。');
-    return;
-  }
-
-  if (mode.type === 'focus') {
-    for (const enemyId of focusEnemyIds) {
-      const token = enemyToken(root, enemyId);
-      markTarget(token, 'order-focus-target', { enemyId });
-      token?.setAttribute('role', 'button');
-      if (token) token.tabIndex = 0;
-    }
-    addPrompt(root, '集火：點選友軍原本可以攻擊嘅敵人。');
-  }
+  addPrompt(root, '集火：點選友軍原本可以攻擊嘅敵人。');
 }
 
 function selectedInCamp(viewModel) {
@@ -204,7 +136,7 @@ export function bindInteractions(
     orderMode = null;
     clearOrderDecorations(root);
     const result = dispatch(action);
-    if (didSucceed(result) && resumeAfter) dispatch({ type: 'RESUME' });
+    if (resumeAfter) dispatch({ type: 'RESUME' });
   }
 
   function cancelOrder() {
@@ -213,6 +145,15 @@ export function bindInteractions(
     clearOrderDecorations(root);
     if (resumeAfter) dispatch({ type: 'RESUME' });
   }
+
+function issueLaneOrder(dataset) {
+  const order = orderFromDataset(dataset);
+  if (!order) return;
+  const resumeAfter = Boolean(root.querySelector('#orders [data-action="pause"]'));
+  if (resumeAfter && !didSucceed(dispatch({ type: 'PAUSE' }))) return;
+  dispatch({ type: 'ISSUE_ORDER', order });
+  if (resumeAfter) dispatch({ type: 'RESUME' });
+}
 
   root.addEventListener('click', (event) => {
     const target = event.target.closest('[data-action]');
@@ -287,37 +228,6 @@ export function bindInteractions(
       case 'begin-order':
         beginOrder(target.dataset.orderType);
         break;
-      case 'order-select-unit':
-        if (orderMode?.type !== 'swap') break;
-        orderMode = { ...orderMode, unitId: target.dataset.unitId };
-        decorateOrderTargets(root, orderMode, getViewModel);
-        break;
-      case 'order-select-reinforce-unit':
-        if (orderMode?.type !== 'reinforce') break;
-        orderMode = { ...orderMode, unitId: target.dataset.unitId };
-        decorateOrderTargets(root, orderMode, getViewModel);
-        break;
-      case 'order-swap-target':
-        if (orderMode?.type !== 'swap' || !orderMode.unitId) break;
-        finishOrder({
-          type: 'ISSUE_ORDER',
-          order: {
-            type: 'swap',
-            unitIds: [orderMode.unitId, target.dataset.unitId],
-          },
-        });
-        break;
-      case 'order-reinforce-target':
-        if (orderMode?.type !== 'reinforce' || !orderMode.unitId) break;
-        finishOrder({
-          type: 'ISSUE_ORDER',
-          order: {
-            type: 'reinforce',
-            unitId: orderMode.unitId,
-            targetCell: cellFromElement(target),
-          },
-        });
-        break;
       case 'order-focus-target':
         if (orderMode?.type !== 'focus') break;
         finishOrder({
@@ -327,6 +237,9 @@ export function bindInteractions(
         break;
       case 'cancel-order':
         cancelOrder();
+        break;
+      case 'issue-lane-order':
+        issueLaneOrder(target.dataset);
         break;
       case 'issue-order': {
         const order = orderFromDataset(target.dataset);

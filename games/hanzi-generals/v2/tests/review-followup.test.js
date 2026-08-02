@@ -5,6 +5,7 @@ import { REWARDS } from '../data/rewards.js';
 import { canFocusEnemy } from '../src/combat/targeting.js';
 import { eligibleEvolutionGenerals } from '../src/expedition/evolution-eligibility.js';
 import { finalizeGameResult } from '../src/core/state-machine.js';
+import { createExpedition } from '../src/expedition/expedition.js';
 
 function reward(id) {
   return REWARDS.find((item) => item.id === id);
@@ -31,7 +32,9 @@ test('reward state without an eligible recruit replaces unusable evolution and k
   const result = finalizeGameResult({
     ok: true,
     state: {
+      ...createExpedition('review-followup-legacy-reward'),
       status: 'reward',
+      rng: undefined,
       recruitedGeneralIds: [],
       evolutions: {},
       rewardChoices: [reward('evolve-general'), reward('fire-arrows'), reward('first-aid')],

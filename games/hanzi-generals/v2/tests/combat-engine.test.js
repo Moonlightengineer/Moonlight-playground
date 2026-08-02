@@ -251,7 +251,7 @@ test('crossbow attacks the rear unit and shield troop reduces direct damage', ()
   assert.equal(result.combat.board.units.rear.hp, 16);
 });
 
-test('fortify duration decreases once per enemy action round', () => {
+test('timed orders decrease once per simulated second', () => {
   const combat = createCombatState({
     board: createBoard('base'),
     enemies: [enemyAtWall({ id: 'a' }), enemyAtWall({ id: 'b', lane: 2 })],
@@ -259,7 +259,7 @@ test('fortify duration decreases once per enemy action round', () => {
     phaseIndex: 0,
     ordersRemaining: 2,
   });
-  combat.fortify = { lane: 1, remainingEnemyTurns: 2, reduction: 0.4 };
+  combat.fortify = { lane: 1, remainingSeconds: 6, damageReduction: 0.35 };
   const result = stepCombat(combat, context);
-  assert.equal(result.combat.fortify.remainingEnemyTurns, 1);
+  assert.equal(result.combat.fortify.remainingSeconds, 5);
 });
