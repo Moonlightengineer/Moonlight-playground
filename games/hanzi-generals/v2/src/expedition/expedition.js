@@ -40,6 +40,7 @@ export function createExpedition(seed) {
     nextUnitId: 1,
     selection: { cardIds: [] },
     evolutions: {},
+    troopSpecializations: [],
     unlockedRecipes: [...STARTING_RECIPE_IDS],
     temporary: { extraRerolls: 0, extraCamp: 0 },
     tactics: [],

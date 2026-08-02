@@ -193,7 +193,7 @@ function handleExternalUiIntent(runtime, intent) {
     const board = runtime.game.status === 'combat' ? runtime.game.combat?.board : runtime.game.board;
     const unit = board?.units?.[intent.unitId];
     const definition = unit ? GENERAL_BY_ID[unit.definitionId] : null;
-    const detail = definition ? buildUnitPlayerDetail(definition, unit?.evolution) : null;
+    const detail = definition ? buildUnitPlayerDetail(definition, unit?.evolution, runtime.game.troopSpecializations ?? []) : null;
     return {
       runtime: cloneRuntime(runtime, {
         profile: {

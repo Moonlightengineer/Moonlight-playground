@@ -65,10 +65,10 @@ function buildRunStatus(game, profile, lifecycle) {
   };
 }
 
-function unitCellModel(unit, fortifiedLane) {
+function unitCellModel(unit, fortifiedLane, specializationIds) {
   const base = GENERAL_BY_ID[unit.definitionId];
   const evolution = EVOLUTION_BY_ID[unit.evolution];
-  const detail = buildUnitPlayerDetail(base, unit.evolution);
+  const detail = buildUnitPlayerDetail(base, unit.evolution, specializationIds);
   const evolutionLabel = evolution ? `進化・${evolution.name}` : null;
   const ariaLabel = detail
     ? `${detail.text}。目前生命 ${unit.hp}/${unit.maxHp}`
@@ -101,7 +101,7 @@ function buildBoardCells(game, board, assemblyTargets) {
       const key = `${column},${row}`;
       const unit = unitsByCell.get(key);
       if (unit) {
-        cells.push(unitCellModel(unit, fortifiedLane));
+        cells.push(unitCellModel(unit, fortifiedLane, game.troopSpecializations ?? []));
         continue;
       }
       const cardId = game.status === 'configuration' ? game.boardCards?.[key] : null;
@@ -384,7 +384,7 @@ function buildDetails(game, profile, ui) {
   const board = selectActiveBoard(game) ?? game.board;
   const unit = ui?.rangeUnitId ? board?.units?.[ui.rangeUnitId] : null;
   const definition = unit ? GENERAL_BY_ID[unit.definitionId] : null;
-  const unitDetail = definition ? buildUnitPlayerDetail(definition, unit?.evolution) : null;
+  const unitDetail = definition ? buildUnitPlayerDetail(definition, unit?.evolution, game.troopSpecializations ?? []) : null;
   return {
     visible: !boardActive,
     summary: '牌庫、設定與戰鬥詳情',

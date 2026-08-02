@@ -1,4 +1,5 @@
-import { EVOLUTION_BY_ID, resolveEvolvedDefinition } from '../../data/evolutions.js';
+import { EVOLUTION_BY_ID } from '../../data/evolutions.js';
+import { resolveUnitDefinition } from '../../data/specializations.js';
 
 const TIER_LABELS = Object.freeze({
   troop: '兵種',
@@ -15,9 +16,9 @@ const ATTACK_METHOD_LABELS = Object.freeze({
   'adjacent-burst': '重擊鄰近敵人',
 });
 
-export function buildUnitPlayerDetail(definition, evolutionId = null) {
+export function buildUnitPlayerDetail(definition, evolutionId = null, specializationIds = []) {
   if (!definition || typeof definition !== 'object') return null;
-  const effective = resolveEvolvedDefinition(definition, evolutionId) ?? definition;
+  const effective = resolveUnitDefinition(definition, evolutionId, specializationIds) ?? definition;
   const evolution = EVOLUTION_BY_ID[evolutionId];
   const validEvolution = evolution?.generalId === definition.id ? evolution : null;
   const tierLabel = TIER_LABELS[definition.tier] ?? (definition.kind === 'troop' ? '兵種' : '武將');
@@ -27,12 +28,16 @@ export function buildUnitPlayerDetail(definition, evolutionId = null) {
   const statsLabel = `生命 ${effective.maxHp}｜傷害 ${effective.damage}｜每 ${effective.attackEvery} 回合攻擊｜射程 ${effective.range}`;
   const evolutionLabel = validEvolution?.name ?? null;
   const evolutionEffect = validEvolution?.effect ?? null;
+  const specializationText = (effective.specializations ?? [])
+    .map(({ name, effect }) => `${name}：${effect}`)
+    .join('；') || null;
   const text = [
     `${definition.name}｜${tierLabel}`,
     `${rangeLabel}｜${attackMethodLabel}`,
     ability,
     statsLabel,
     validEvolution ? `進化「${validEvolution.name}」：${validEvolution.effect}` : null,
+    specializationText ? `兵種專精：${specializationText}` : null,
   ].filter(Boolean).join('。');
 
   return {
@@ -44,6 +49,7 @@ export function buildUnitPlayerDetail(definition, evolutionId = null) {
     statsLabel,
     evolutionLabel,
     evolutionEffect,
+    specializationText,
     text,
   };
 }

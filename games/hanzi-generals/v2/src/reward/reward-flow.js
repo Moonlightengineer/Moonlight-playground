@@ -1,6 +1,8 @@
 import { EVOLUTION_BY_ID } from '../../data/evolutions.js';
 import { GENERAL_BY_ID } from '../../data/generals.js';
+import { RECIPES } from '../../data/recipes.js';
 import { REWARD_BY_ID, REWARDS } from '../../data/rewards.js';
+import { SPECIALIZATION_BY_ID, TROOP_SPECIALIZATIONS } from '../../data/specializations.js';
 import { gameEvent } from '../core/events.js';
 import { shuffle } from '../core/rng.js';
 import { selectCardZoneIndex } from '../core/selectors/index.js';
@@ -84,6 +86,20 @@ function symbolCounts(game) {
   return counts;
 }
 
+function eligibleSpecializations(game) {
+  const acquired = new Set(game.troopSpecializations ?? []);
+  return TROOP_SPECIALIZATIONS.filter(({ id }) => !acquired.has(id));
+}
+
+function eligibleCampRecipes(game) {
+  const unlocked = new Set(game.unlockedRecipes ?? []);
+  return RECIPES.filter((recipe) => (
+    recipe.symbols.length === 2
+    && unlocked.has(recipe.id)
+    && recipe.availability !== 'reward-pack'
+  ));
+}
+
 export function selectRewardTargets(game, rewardId) {
   if (rewardId === 'copy-card') {
     const seenSymbols = new Set();
@@ -156,6 +172,18 @@ export function assessRewardAvailability(game, rewardOrId) {
       const invalid = validateEvolutionSelection(game, reward.payload ?? {});
       return { available: !invalid, code: invalid?.code ?? null, reason: invalid?.message ?? null, targets: [] };
     }
+    if (baseId === 'specialize-troop') {
+      const specialization = SPECIALIZATION_BY_ID[reward.payload?.specializationId];
+      const valid = Boolean(specialization && !(game.troopSpecializations ?? []).includes(specialization.id));
+      return { available: valid, code: valid ? null : 'REWARD_UNAVAILABLE', reason: valid ? null : '呢項兵種專精已取得或已失效。', targets: [] };
+    }
+    if (baseId === 'camp-reinforcements') {
+      const symbols = reward.payload?.symbols;
+      const valid = Array.isArray(symbols) && symbols.length === 2
+        && symbols.every((symbol) => typeof symbol === 'string' && symbol)
+        && reward.payload?.capacityAdd === symbols.length;
+      return { available: valid, code: valid ? null : 'REWARD_UNAVAILABLE', reason: valid ? null : '軍營增援內容已失效。', targets: [] };
+    }
   }
 
   if (baseId === 'repair-wall' && !(game.wallHp < game.wallMaxHp)) {
@@ -179,6 +207,14 @@ export function assessRewardAvailability(game, rewardOrId) {
     if (recipeIds.every((recipeId) => (game.unlockedRecipes ?? []).includes(recipeId))) {
       return { available: false, code: 'REWARD_UNAVAILABLE', reason: '呢個武將字包已經解鎖。', targets: [] };
     }
+  }
+
+  if (reward.type === 'troop-specialization' && !eligibleSpecializations(game).length) {
+    return { available: false, code: 'REWARD_UNAVAILABLE', reason: '所有兵種專精都已取得。', targets: [] };
+  }
+
+  if (reward.type === 'camp-reinforcement' && !eligibleCampRecipes(game).length) {
+    return { available: false, code: 'REWARD_UNAVAILABLE', reason: '目前冇可加入軍營嘅完整配方。', targets: [] };
   }
 
   if (baseId === 'remove-card' || baseId === 'convert-cards') {
@@ -284,12 +320,59 @@ function makeEvolutionChoice(game, template, rng) {
   };
 }
 
+function makeSpecializationChoice(game, template, rng) {
+  const eligible = eligibleSpecializations(game);
+  if (!eligible.length) return { choice: null, rng };
+  const shuffled = shuffle(rng, eligible);
+  const specialization = shuffled.items[0];
+  return {
+    choice: concrete(template, specialization.id, {
+      name: `${GENERAL_BY_ID[specialization.troopId]?.name ?? specialization.troopId}｜${specialization.name}`,
+      payload: { specializationId: specialization.id },
+      description: {
+        summary: specialization.summary,
+        effect: `${specialization.effect} 本輪目前及往後所有同類兵種自動套用。`,
+        useCase: '常用呢個兵種，想提升整體穩定度時選。',
+      },
+    }),
+    rng: shuffled.rng,
+  };
+}
+
+function makeCampReinforcementChoice(game, template, rng) {
+  const recipes = eligibleCampRecipes(game);
+  if (!recipes.length) return { choice: null, rng };
+  const counts = symbolCounts(game);
+  const ranked = [...recipes].sort((left, right) => (
+    left.symbols.reduce((sum, symbol) => sum + (counts.get(symbol) ?? 0), 0)
+      - right.symbols.reduce((sum, symbol) => sum + (counts.get(symbol) ?? 0), 0)
+    || left.id.localeCompare(right.id)
+  ));
+  const shuffled = shuffle(rng, ranked.slice(0, Math.min(5, ranked.length)));
+  const recipe = shuffled.items[0];
+  const definition = GENERAL_BY_ID[recipe.outputId];
+  return {
+    choice: concrete(template, recipe.id, {
+      name: `軍營增援｜${definition?.name ?? recipe.outputId}`,
+      payload: { recipeId: recipe.id, symbols: [...recipe.symbols], capacityAdd: recipe.symbols.length },
+      description: {
+        summary: `把「${recipe.symbols.join('＋')}」完整配方直接送入軍營。`,
+        effect: `新增 ${recipe.symbols.join('、')} 各 1 張，軍營容量永久 +${recipe.symbols.length}。`,
+        useCase: `想保證下一戰可以保存並組成${definition?.name ?? '指定單位'}時選。`,
+      },
+    }),
+    rng: shuffled.rng,
+  };
+}
+
 function concretize(game, template, rng) {
   if (!template || !assessRewardAvailability(game, template).available) return { choice: null, rng };
   if (template.id === 'copy-card') return makeCopyChoice(game, template, rng);
   if (template.id === 'remove-card') return makeRemoveChoice(game, template, rng);
   if (template.id === 'convert-cards') return makeConversionChoice(game, template, rng);
   if (template.id === 'evolve-general') return makeEvolutionChoice(game, template, rng);
+  if (template.id === 'specialize-troop') return makeSpecializationChoice(game, template, rng);
+  if (template.id === 'camp-reinforcements') return makeCampReinforcementChoice(game, template, rng);
   const payload = template.type === 'recipe-pack'
     ? { recipeIds: [...(template.recipeIds ?? [template.recipeId])], symbols: [...(template.symbols ?? [])] }
     : {};
@@ -313,6 +396,8 @@ function rarityWeight(rarity, battleNumber) {
 function rewardMatchesBuild(game, reward) {
   const baseId = baseIdOf(reward);
   if (baseId === 'extra-camp') return (game.camp?.cardIds?.length ?? 0) >= Math.max(1, (game.camp?.capacity ?? 0) - 1);
+  if (baseId === 'camp-reinforcements') return (game.camp?.cardIds?.length ?? 0) === 0;
+  if (baseId === 'specialize-troop') return (game.troopSpecializations?.length ?? 0) < 2;
   if (baseId === 'expand-wing') return game.route === 'danger';
   if (baseId === 'expand-depth') return game.route === 'safe';
   return false;

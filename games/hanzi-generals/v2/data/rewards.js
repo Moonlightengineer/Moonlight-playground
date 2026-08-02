@@ -96,6 +96,32 @@ export const REWARDS = Object.freeze([
     },
   },
   {
+    id: 'specialize-troop',
+    name: '兵種專精',
+    type: 'troop-specialization',
+    category: 'unit',
+    rarity: 'uncommon',
+    permanent: true,
+    description: {
+      summary: '預先指定一項兵種訓練，套用至本輪所有同類兵種。',
+      effect: '同一項專精只可取得一次，往後重新合成亦自動套用。',
+      useCase: '已有常用兵種，想令整個兵種體系長期變強時選。',
+    },
+  },
+  {
+    id: 'camp-reinforcements',
+    name: '軍營增援',
+    type: 'camp-reinforcement',
+    category: 'camp',
+    rarity: 'uncommon',
+    permanent: true,
+    description: {
+      summary: '預先指定一組完整配方字，直接加入軍營。',
+      effect: '加入指定字牌，同時永久增加足夠軍營容量。',
+      useCase: '想保證下一戰可以保存一組關鍵配方時選。',
+    },
+  },
+  {
     id: 'fire-arrows',
     name: '火矢',
     type: 'tactic',

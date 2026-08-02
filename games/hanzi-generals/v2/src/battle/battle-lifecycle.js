@@ -1,5 +1,5 @@
 import { ENEMY_BY_ID } from '../../data/enemies.js';
-import { resolveEvolvedDefinition } from '../../data/evolutions.js';
+import { resolveUnitDefinition } from '../../data/specializations.js';
 import { GENERAL_BY_ID } from '../../data/generals.js';
 import { STAGE_BY_ID } from '../../data/stages.js';
 import { TUTORIAL_SYMBOL_ORDER } from '../../data/recipes.js';
@@ -24,15 +24,15 @@ function failure(game, code, message) {
   return { ok: false, state: game, events: [], error: { code, message } };
 }
 
-function combatContext() {
+function combatContext(game) {
   return {
     unitsById: GENERAL_BY_ID,
     enemiesById: ENEMY_BY_ID,
     resolveUnitDefinition(unit) {
-      return resolveEvolvedDefinition(GENERAL_BY_ID[unit.definitionId], unit.evolution);
+      return resolveUnitDefinition(GENERAL_BY_ID[unit.definitionId], unit.evolution, game.troopSpecializations ?? []);
     },
     canAttack(unit, enemy) {
-      const definition = resolveEvolvedDefinition(GENERAL_BY_ID[unit.definitionId], unit.evolution);
+      const definition = resolveUnitDefinition(GENERAL_BY_ID[unit.definitionId], unit.evolution, game.troopSpecializations ?? []);
       return Boolean(definition) && enemy.hp > 0 && enemy.distance + unit.cell.row <= definition.range;
     },
     spawnHeavyCavalryPair(lane) {
@@ -274,7 +274,7 @@ export function finishBattle(game, combat, events = []) {
 
 export function stepBattleCombat(game) {
   if (!game.combat) return failure(game, 'NO_COMBAT_SESSION', '未有進行中戰鬥。');
-  const result = stepCombat(game.combat, combatContext());
+  const result = stepCombat(game.combat, combatContext(game));
   let next = syncDefeatedUnitCards(game, result.combat);
   next = {
     ...next,

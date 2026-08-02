@@ -6,6 +6,7 @@ import {
 } from '../board/board.js';
 import { RECIPES } from '../../data/recipes.js';
 import { GENERALS } from '../../data/generals.js';
+import { resolveUnitDefinition } from '../../data/specializations.js';
 import { gameEvent } from '../core/events.js';
 
 function recipeKey(symbols) {
@@ -108,14 +109,16 @@ export function confirmAssembly(game, source, target) {
 
   try {
     const unitId = `unit-${game.nextUnitId}`;
+    const evolution = game.evolutions?.[definition.id] ?? null;
+    const effective = resolveUnitDefinition(definition, evolution, game.troopSpecializations ?? []);
     const unit = {
       id: unitId,
       definitionId: definition.id,
       kind: definition.kind,
-      hp: definition.maxHp,
-      maxHp: definition.maxHp,
+      hp: effective.maxHp,
+      maxHp: effective.maxHp,
       cooldown: 0,
-      evolution: game.evolutions?.[definition.id] ?? null,
+      evolution,
       statuses: [],
     };
     const board = placeUnit(game.board, unit, target);

@@ -1,4 +1,6 @@
+import { GENERAL_BY_ID } from '../../data/generals.js';
 import { REWARD_BY_ID } from '../../data/rewards.js';
+import { SPECIALIZATION_BY_ID, resolveUnitDefinition } from '../../data/specializations.js';
 import { addSymbols } from '../deck/deck.js';
 import { expandBoard } from '../board/board.js';
 import { shuffle } from '../core/rng.js';
@@ -20,6 +22,13 @@ function compatible(game, reward) {
   if (reward.type === 'recipe-pack') {
     const recipeIds = reward.recipeIds ?? [reward.recipeId ?? reward.id.replace('unlock-', '')];
     return recipeIds.some((id) => !(game.unlockedRecipes ?? []).includes(id));
+  }
+  if (reward.type === 'troop-specialization') {
+    const specializationId = reward.payload?.specializationId;
+    return Boolean(SPECIALIZATION_BY_ID[specializationId] && !(game.troopSpecializations ?? []).includes(specializationId));
+  }
+  if (reward.type === 'camp-reinforcement') {
+    return Array.isArray(reward.payload?.symbols) && reward.payload.symbols.length > 0;
   }
   return !reward.legacy;
 }
@@ -89,6 +98,64 @@ function removeOwnedCards(game, cardIds) {
   };
 }
 
+function addSymbolsToCamp(game, symbols, capacityAdd = symbols.length) {
+  if (!Array.isArray(symbols) || !symbols.length) return game;
+  const start = game.deck.nextCardId ?? 1;
+  const cards = symbols.map((symbol, index) => ({
+    id: `card-${start + index}`,
+    symbol,
+    locked: false,
+  }));
+  return {
+    ...game,
+    deck: { ...game.deck, nextCardId: start + cards.length },
+    cardsById: {
+      ...game.cardsById,
+      ...Object.fromEntries(cards.map((card) => [card.id, card])),
+    },
+    camp: {
+      ...game.camp,
+      capacity: game.camp.capacity + Math.max(cards.length, capacityAdd),
+      cardIds: [...game.camp.cardIds, ...cards.map(({ id }) => id)],
+    },
+  };
+}
+
+function updateSpecializedUnit(unit, beforeIds, afterIds) {
+  const base = GENERAL_BY_ID[unit.definitionId];
+  if (!base || base.kind !== 'troop') return unit;
+  const before = resolveUnitDefinition(base, unit.evolution, beforeIds);
+  const after = resolveUnitDefinition(base, unit.evolution, afterIds);
+  const maxHpDelta = (after?.maxHp ?? unit.maxHp) - (before?.maxHp ?? unit.maxHp);
+  return {
+    ...unit,
+    maxHp: after?.maxHp ?? unit.maxHp,
+    hp: Math.min(after?.maxHp ?? unit.maxHp, unit.hp + Math.max(0, maxHpDelta)),
+  };
+}
+
+function specializeTroop(game, specializationId) {
+  const specialization = SPECIALIZATION_BY_ID[specializationId];
+  const beforeIds = [...(game.troopSpecializations ?? [])];
+  if (!specialization || beforeIds.includes(specializationId)) return game;
+  const afterIds = [...beforeIds, specializationId];
+  const updateBoard = (board) => board ? {
+    ...board,
+    units: Object.fromEntries(Object.entries(board.units ?? {}).map(([id, unit]) => [
+      id,
+      updateSpecializedUnit(unit, beforeIds, afterIds),
+    ])),
+  } : board;
+  const board = updateBoard(game.board);
+  const combatBoard = game.combat?.board === game.board ? board : updateBoard(game.combat?.board);
+  return {
+    ...game,
+    troopSpecializations: afterIds,
+    board,
+    combat: game.combat ? { ...game.combat, board: combatBoard } : game.combat,
+  };
+}
+
 function addPack(game, reward, payload) {
   const symbols = payload.symbols ?? reward.symbols ?? [];
   const recipeIds = payload.recipeIds ?? reward.recipeIds ?? [reward.recipeId].filter(Boolean);
@@ -135,6 +202,12 @@ export function applyReward(game, rewardOrId, payload = {}) {
       break;
     case 'extra-camp':
       next = { ...game, camp: { ...game.camp, capacity: game.camp.capacity + 1 } };
+      break;
+    case 'specialize-troop':
+      next = specializeTroop(game, payload.specializationId);
+      break;
+    case 'camp-reinforcements':
+      next = addSymbolsToCamp(game, payload.symbols, payload.capacityAdd);
       break;
     case 'unlock-huang-zhong':
     case 'unlock-zhang-fei':
