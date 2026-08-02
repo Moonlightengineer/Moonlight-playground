@@ -1,0 +1,1 @@
+Restore app.js from the last verified complete shell, apply only the approved military-order feedback block, run full regression, then delete this trigger and the temporary workflow.
