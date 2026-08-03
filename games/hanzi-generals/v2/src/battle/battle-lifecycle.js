@@ -1,11 +1,14 @@
 import { ENEMY_BY_ID } from '../../data/enemies.js';
-import { resolveEvolvedDefinition } from '../../data/evolutions.js';
+import { resolveUnitDefinition } from '../../data/specializations.js';
 import { GENERAL_BY_ID } from '../../data/generals.js';
 import { STAGE_BY_ID } from '../../data/stages.js';
+import { TUTORIAL_SYMBOL_ORDER } from '../../data/recipes.js';
 import { TUNING } from '../../data/tuning.js';
 import { createBoard, listCells } from '../board/board.js';
 import { createCombatState, stepCombat } from '../combat/combat-engine.js';
 import { releaseUnitCards } from '../deck/assembly.js';
+import { prepareBattleDeck } from '../deck/deck.js';
+import { advanceExpedition } from '../expedition/expedition.js';
 import {
   createBattleMetrics,
   finalizeBattleReport,
@@ -22,15 +25,15 @@ function failure(game, code, message) {
   return { ok: false, state: game, events: [], error: { code, message } };
 }
 
-function combatContext() {
+function combatContext(game) {
   return {
     unitsById: GENERAL_BY_ID,
     enemiesById: ENEMY_BY_ID,
     resolveUnitDefinition(unit) {
-      return resolveEvolvedDefinition(GENERAL_BY_ID[unit.definitionId], unit.evolution);
+      return resolveUnitDefinition(GENERAL_BY_ID[unit.definitionId], unit.evolution, game.troopSpecializations ?? []);
     },
     canAttack(unit, enemy) {
-      const definition = resolveEvolvedDefinition(GENERAL_BY_ID[unit.definitionId], unit.evolution);
+      const definition = resolveUnitDefinition(GENERAL_BY_ID[unit.definitionId], unit.evolution, game.troopSpecializations ?? []);
       return Boolean(definition) && enemy.hp > 0 && enemy.distance + unit.cell.row <= definition.range;
     },
     spawnHeavyCavalryPair(lane) {
@@ -73,48 +76,48 @@ function spawnPhase(stageId, phaseIndex, boardColumns) {
   });
 }
 
-function prioritizeTutorialPair(deck) {
-  const drawPile = [...deck.drawPile];
-  const wanted = [];
-  for (const symbol of ['黃', '忠']) {
-    const index = drawPile.findIndex((card) => card.symbol === symbol);
-    if (index >= 0) wanted.push(...drawPile.splice(index, 1));
+function orderTutorialDeck(deck) {
+  const remaining = [...deck.drawPile];
+  const ordered = [];
+  for (const symbol of TUTORIAL_SYMBOL_ORDER) {
+    const index = remaining.findIndex((card) => card.symbol === symbol);
+    if (index >= 0) ordered.push(...remaining.splice(index, 1));
   }
-  return { ...deck, drawPile: [...wanted, ...drawPile] };
+  return { ...deck, drawPile: [...ordered, ...remaining] };
 }
 
 export function startBattle(game) {
   if (!game.nextStageId) return failure(game, 'NO_STAGE_SELECTED', '未揀選下一場戰鬥。');
-  const board = createBoard(game.boardSizeId);
+  const settled = settleAfterBattle(game);
+  const prepared = prepareBattleDeck(settled.deck, settled.rng);
+  const board = createBoard(settled.boardSizeId);
   let deck = {
-    ...game.deck,
-    hand: [],
-    retained: [],
-    deployed: [],
-    freeRerollsRemaining: TUNING.freeRerollsPerBattle + (game.temporary?.extraRerolls ?? 0),
+    ...prepared.deck,
+    freeRerollsRemaining: TUNING.freeRerollsPerBattle + (settled.temporary?.extraRerolls ?? 0),
   };
-  if (game.nextStageId === 'tutorial') deck = prioritizeTutorialPair(deck);
+  if (settled.nextStageId === 'tutorial') deck = orderTutorialDeck(deck);
   const state = {
-    ...game,
-    recruitedGeneralIds: [...(game.recruitedGeneralIds ?? [])],
+    ...settled,
+    rng: prepared.rng,
+    recruitedGeneralIds: [...(settled.recruitedGeneralIds ?? [])],
     status: 'configuration',
     board,
     boardCards: {},
     deck,
     camp: {
-      capacity: game.camp.capacity,
-      cardIds: [...game.camp.cardIds],
+      capacity: settled.camp.capacity,
+      cardIds: [...settled.camp.cardIds],
     },
     selection: { cardIds: [] },
     currentBattle: {
-      stageId: game.nextStageId,
+      stageId: settled.nextStageId,
       phaseIndex: 0,
       phaseCount: 3,
       ordersRemaining: TUNING.ordersPerBattle,
     },
     currentBattleResult: null,
     nextStageId: null,
-    temporary: { ...game.temporary, extraRerolls: 0, extraCamp: 0 },
+    temporary: { ...settled.temporary, extraRerolls: 0, extraCamp: 0 },
     legalCells: listCells(board),
     legalActions: ['DRAW_CARDS'],
     battleReport: null,
@@ -179,7 +182,7 @@ function settleBetweenPhases(game) {
     deck: {
       ...game.deck,
       hand: retainedCards.map((card) => ({ ...card, locked: false })),
-      retained: [],
+      retained: retainedCards.map(({ id }) => id),
       discardPile: [...game.deck.discardPile, ...uniqueCards(game, discardIds)],
     },
     camp: { ...game.camp, cardIds: [...game.camp.cardIds] },
@@ -231,7 +234,7 @@ export function finishPhase(game, combat, events = []) {
     ...prepared,
     status: 'configuration',
     combat: null,
-    currentBattle: { ...prepared.currentBattle, phaseIndex },
+    currentBattle: { ...prepared.currentBattle, phaseIndex, ordersRemaining: combat.ordersRemaining },
     legalCells: listCells(prepared.board).filter((cell) => {
       const key = `${cell.column},${cell.row}`;
       return !prepared.boardCards[key]
@@ -253,11 +256,26 @@ export function finishBattle(game, combat, events = []) {
     currentBattleResult: 'victory',
     battleMetrics: metrics,
   });
+
+  const isFinalBattle = (settled.completedBattleIds?.length ?? 0) >= 5;
+  if (isFinalBattle) {
+    const battleReport = finalizeBattleReport(settled, 'victory', 'victory');
+    const completed = advanceExpedition(settled);
+    return success({
+      ...completed,
+      status: 'battle-report',
+      battleMetrics: null,
+      battleReport,
+      legalActions: ['CONTINUE_AFTER_REPORT', 'RESET_RUN'],
+    }, combinedEvents);
+  }
+
   const generated = generateRewardOffer(settled);
   const withRewards = {
     ...settled,
     rng: generated.rng,
     rewardChoices: generated.choices,
+    rewardOfferHistory: [...(settled.rewardOfferHistory ?? []), generated.record],
   };
   const battleReport = finalizeBattleReport(withRewards, 'victory', 'reward');
   return success({
@@ -271,7 +289,8 @@ export function finishBattle(game, combat, events = []) {
 
 export function stepBattleCombat(game) {
   if (!game.combat) return failure(game, 'NO_COMBAT_SESSION', '未有進行中戰鬥。');
-  const result = stepCombat(game.combat, combatContext());
+  if (game.combat.paused) return failure(game, 'COMBAT_PAUSED', '戰鬥暫停期間不會推進模擬時間。');
+  const result = stepCombat(game.combat, combatContext(game));
   let next = syncDefeatedUnitCards(game, result.combat);
   next = {
     ...next,

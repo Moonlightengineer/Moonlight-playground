@@ -1,5 +1,4 @@
 import { gameEvent } from '../core/events.js';
-import { moveUnit } from '../board/board.js';
 import { findTargets, nearestFriendlyTarget } from './targeting.js';
 
 function clone(value) {
@@ -36,30 +35,7 @@ function applyBurn(enemy, turn, events) {
   enemy.statuses = statuses.filter((status) => status.type !== 'burn' || status.remaining > 0);
 }
 
-function applySwap(next, order, events) {
-  const [firstId, secondId] = order.unitIds;
-  const first = next.board.units[firstId];
-  const second = next.board.units[secondId];
-  if (!first || !second || first.hp <= 0 || second.hp <= 0) return;
-  const firstCell = { ...first.cell };
-  const secondCell = { ...second.cell };
-  let board = { ...next.board, units: { ...next.board.units } };
-  delete board.units[firstId];
-  delete board.units[secondId];
-  board = moveUnit({ ...board, units: { ...board.units, [firstId]: first } }, firstId, secondCell);
-  board = moveUnit({ ...board, units: { ...board.units, [secondId]: second } }, secondId, firstCell);
-  next.board = board;
-  events.push(eventAt(next.turn, 'UNITS_SWAPPED', { unitIds: [firstId, secondId] }));
-}
-
-function applyPendingOrders(next, events) {
-  for (const order of next.pendingOrders ?? []) {
-    if (order.type === 'swap') applySwap(next, order, events);
-  }
-  next.pendingOrders = [];
-}
-
-function friendlyDamageAgainst(target, baseDamage, enemies) {
+function friendlyDamageAgainst(target, baseDamage, enemies, focus) {
   const shielded = target.definitionId !== 'shield-enemy'
     && enemies.some((enemy) => (
       enemy.hp > 0
@@ -68,8 +44,11 @@ function friendlyDamageAgainst(target, baseDamage, enemies) {
       && enemy.distance < target.distance
     ));
   const bossShielded = target.definitionId === 'hua-xiong' && (target.shieldTurns ?? 0) > 0;
-  if (shielded || bossShielded) return Math.max(1, Math.floor(baseDamage * 0.65));
-  return baseDamage;
+  const focusMultiplier = focus?.remainingSeconds > 0 && focus.enemyId === target.id
+    ? 1 + (focus.damageBonus ?? 0.2)
+    : 1;
+  const shieldMultiplier = shielded || bossShielded ? 0.65 : 1;
+  return Math.max(1, Math.floor(baseDamage * focusMultiplier * shieldMultiplier));
 }
 
 function enemyDamageBoost(enemy, enemies) {
@@ -91,12 +70,10 @@ function friendlyDirectReduction(board, unit, lane, fortify) {
     && candidate.cell.row + 1 === unit.cell.row
   ));
   if (shield) multiplier *= 0.75;
-  if (fortify?.lane === lane && fortify.remainingEnemyTurns > 0) multiplier *= 0.6;
+  if (fortify?.lane === lane && fortify.remainingSeconds > 0) {
+    multiplier *= 1 - (fortify.damageReduction ?? 0.35);
+  }
   return multiplier;
-}
-
-function wallDirectReduction(lane, fortify) {
-  return fortify?.lane === lane && fortify.remainingEnemyTurns > 0 ? 0.6 : 1;
 }
 
 function maybeTriggerBossPhase(next, enemy, context, events) {
@@ -147,9 +124,7 @@ function damageLaneTarget(next, enemy, enemyDefinition, events, options = {}) {
       }));
     }
   } else {
-    const damage = Math.max(1, Math.floor(
-      boostedDamage * wallDirectReduction(enemy.lane, next.fortify),
-    ));
+    const damage = Math.max(1, Math.floor(boostedDamage));
     next.wallHp = Math.max(0, next.wallHp - damage);
     events.push(eventAt(next.turn, 'WALL_DAMAGED', {
       attackerId: enemy.id,
@@ -185,9 +160,17 @@ export function createCombatState({
     ordersRemaining,
     focus: null,
     fortify: null,
+    assault: null,
     pendingOrders: [],
     tactics: [...tactics],
+    paused: false,
   };
+}
+
+function tickTimedOrder(order) {
+  if (!order) return null;
+  const remainingSeconds = Math.max(0, (order.remainingSeconds ?? 0) - 1);
+  return remainingSeconds > 0 ? { ...order, remainingSeconds } : null;
 }
 
 export function stepCombat(combat, context) {
@@ -196,7 +179,7 @@ export function stepCombat(combat, context) {
   const next = clone(combat);
   const events = [];
   next.turn += 1;
-  applyPendingOrders(next, events);
+  next.pendingOrders = [];
 
   for (const enemy of next.enemies) {
     applyBurn(enemy, next.turn, events);
@@ -212,19 +195,32 @@ export function stepCombat(combat, context) {
       || a.id.localeCompare(b.id)
     ));
 
-  let anyFriendlyAction = false;
   for (const unit of units) {
-    unit.cooldown = Math.max(0, unit.cooldown - 1);
+    const assaultActive = next.assault?.remainingSeconds > 0
+      && next.assault.lane === unit.cell.column;
+    const attackSpeedMultiplier = assaultActive
+      ? 1 + (next.assault.attackSpeedBonus ?? 0.3)
+      : 1;
+    unit.cooldown = (unit.cooldown ?? 0) - attackSpeedMultiplier;
     if (unit.cooldown > 0) continue;
+
     const unitDefinition = context.resolveUnitDefinition
       ? context.resolveUnitDefinition(unit)
       : definition(context, 'unitsById', unit.definitionId);
-    const focusId = next.focus?.remainingFriendlyTurns > 0 ? next.focus.enemyId : null;
+    const focusId = next.focus?.remainingSeconds > 0 ? next.focus.enemyId : null;
     const targets = findTargets(unit, next.enemies, unitDefinition, { focusId });
-    if (!targets.length) continue;
+    if (!targets.length) {
+      unit.cooldown = 0;
+      continue;
+    }
 
     for (const target of targets) {
-      const damage = friendlyDamageAgainst(target, unitDefinition.damage, next.enemies);
+      const damage = friendlyDamageAgainst(
+        target,
+        unitDefinition.damage,
+        next.enemies,
+        next.focus,
+      );
       const hpBefore = target.hp;
       target.hp -= damage;
       events.push(eventAt(next.turn, 'UNIT_HIT', {
@@ -240,26 +236,21 @@ export function stepCombat(combat, context) {
         }));
       }
     }
-    anyFriendlyAction = true;
-    unit.cooldown = unitDefinition.attackEvery;
-  }
-
-  if (next.focus && anyFriendlyAction) {
-    next.focus.remainingFriendlyTurns -= 1;
-    if (
-      next.focus.remainingFriendlyTurns <= 0
-      || !next.enemies.some(({ id, hp }) => id === next.focus.enemyId && hp > 0)
-    ) next.focus = null;
+    const overflow = assaultActive ? Math.min(0, unit.cooldown) : 0;
+    unit.cooldown = Math.max(0.1, unitDefinition.attackEvery + overflow);
   }
 
   next.enemies = next.enemies.filter((enemy) => enemy.hp > 0);
+  if (next.focus && !next.enemies.some(({ id, hp }) => id === next.focus.enemyId && hp > 0)) {
+    next.focus = null;
+  }
+
   const enemyActors = [...next.enemies].sort((a, b) => (
     a.lane - b.lane
     || a.distance - b.distance
     || a.id.localeCompare(b.id)
   ));
 
-  let anyEnemyAction = false;
   for (const enemy of enemyActors) {
     maybeTriggerBossPhase(next, enemy, context, events);
     const enemyDefinition = definition(context, 'enemiesById', enemy.definitionId);
@@ -290,13 +281,11 @@ export function stepCombat(combat, context) {
       } else if (enemy.cooldown === 0) {
         damageLaneTarget(next, enemy, enemyDefinition, events);
       }
-      anyEnemyAction = true;
       continue;
     }
 
     if (enemy.definitionId === 'crossbow' && enemy.cooldown === 0) {
       damageLaneTarget(next, enemy, enemyDefinition, events, { preferRear: true });
-      anyEnemyAction = true;
       continue;
     }
 
@@ -306,20 +295,11 @@ export function stepCombat(combat, context) {
         enemyId: enemy.id,
         distance: enemy.distance,
       }));
-      anyEnemyAction = true;
       continue;
     }
 
-    if (enemy.cooldown === 0) {
-      damageLaneTarget(next, enemy, enemyDefinition, events);
-      anyEnemyAction = true;
-    }
+    if (enemy.cooldown === 0) damageLaneTarget(next, enemy, enemyDefinition, events);
     if ((enemy.shieldTurns ?? 0) > 0) enemy.shieldTurns -= 1;
-  }
-
-  if (next.fortify && anyEnemyAction) {
-    next.fortify.remainingEnemyTurns -= 1;
-    if (next.fortify.remainingEnemyTurns <= 0) next.fortify = null;
   }
 
   for (const [unitId, unit] of Object.entries(next.board.units)) {
@@ -329,6 +309,10 @@ export function stepCombat(combat, context) {
   next.enemies = next.enemies.filter((enemy) => enemy.hp > 0);
   if (next.wallHp <= 0) next.status = 'defeat';
   else if (next.enemies.length === 0) next.status = 'victory';
+
+  next.fortify = tickTimedOrder(next.fortify);
+  next.assault = tickTimedOrder(next.assault);
+  next.focus = tickTimedOrder(next.focus);
 
   return { combat: next, events };
 }

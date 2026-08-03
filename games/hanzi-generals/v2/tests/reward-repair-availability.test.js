@@ -31,7 +31,7 @@ test('full-wall reward offers exclude repair and still provide three choices', (
   assert.equal(offer.choices.some(({ id }) => id === 'repair-wall'), false);
 });
 
-test('full-wall scripted third-battle offer replaces repair instead of showing a no-op', () => {
+test('full-wall third-battle offer contains only permanent concrete growth', () => {
   const game = rewardState({
     route: 'safe',
     completedBattleIds: ['tutorial', 'shield-line'],
@@ -42,8 +42,8 @@ test('full-wall scripted third-battle offer replaces repair instead of showing a
   });
   const offer = generateRewardOffer(game, REWARDS, game.rng);
   assert.equal(offer.choices.length, 3);
-  assert.equal(offer.choices.some(({ id }) => id === 'unlock-zhang-fei'), true);
-  assert.equal(offer.choices.some(({ id }) => id === 'repair-wall'), false);
+  assert.equal(offer.choices.some(({ baseId }) => baseId === 'repair-wall'), false);
+  assert.equal(offer.choices.every(({ concrete, permanent }) => concrete && permanent), true);
 });
 
 test('stale full-wall repair selection is rejected without advancing the expedition', () => {

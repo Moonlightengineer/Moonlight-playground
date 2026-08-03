@@ -2,7 +2,7 @@
 
 import { ENEMIES } from '../data/enemies.js';
 import { GENERAL_BY_ID, GENERALS } from '../data/generals.js';
-import { RECIPES } from '../data/recipes.js';
+import { RECIPES, STARTING_SYMBOLS } from '../data/recipes.js';
 import { REWARDS } from '../data/rewards.js';
 import { STAGES } from '../data/stages.js';
 import { TUNING } from '../data/tuning.js';
@@ -15,11 +15,13 @@ import {
   buildLatestVersionUrl,
   clearAllV2Data,
   isApprovedSaveBoundary,
+  loadRecipeDiscoveries,
   loadSettings,
   loadSnapshot,
   loadTutorial,
   maybeSave,
   resetExpedition,
+  saveRecipeDiscoveries,
   saveSettings,
   saveTutorial,
 } from './storage/storage.js';
@@ -28,6 +30,8 @@ import { createHelpPanel } from './ui/help-panel.js';
 import { bindInteractions } from './ui/interactions.js';
 import { renderApp } from './ui/render-app.js';
 import { buildAppViewModel } from './ui/runtime-view-model.js';
+import { recordRecipeDiscoveries } from './ui/recipe-codex.js';
+import { buildUnitPlayerDetail } from './ui/unit-copy.js';
 import {
   advanceTutorial,
   advanceTutorialForResult,
@@ -42,7 +46,7 @@ if (!root || !message) {
   throw new Error('Hanzi Generals v2 shell is missing required elements');
 }
 
-const validation = validateGameData({ GENERALS, ENEMIES, RECIPES, STAGES, REWARDS, TUNING });
+const validation = validateGameData({ GENERALS, ENEMIES, RECIPES, STAGES, REWARDS, TUNING, STARTING_SYMBOLS });
 
 function seedFromUrl() {
   const value = new URLSearchParams(window.location.search).get('seed');
@@ -59,6 +63,7 @@ function initialRuntimeState() {
     profile: {
       settings: { ...(base.settings ?? {}), ...storedSettings },
       tutorial: storedTutorial ?? base.tutorial ?? createTutorial(),
+      discoveredRecipeIds: loadRecipeDiscoveries(),
     },
     ui: {
       rangeUnitId: base.ui?.rangeUnitId ?? null,
@@ -112,6 +117,11 @@ function persistProfile(profile) {
   } catch {
     // Tutorial persistence is best-effort; gameplay remains available.
   }
+  try {
+    saveRecipeDiscoveries(profile.discoveredRecipeIds ?? []);
+  } catch {
+    // Codex persistence is best-effort; gameplay remains available.
+  }
 }
 
 function relevantEntityId(event) {
@@ -128,10 +138,9 @@ function eventMessage(events) {
   const labels = {
     CARD_PLACED: '字牌已放入戰陣，相鄰配對會自動合成。',
     UNIT_ASSEMBLED: '武將合成完成。',
-    ORDER_QUEUED: '變陣已下令，兩名武將會交換位置。',
-    UNITS_SWAPPED: '兩名武將已完成換位。',
-    FOCUS_ORDERED: `集火已生效，持續 ${important.payload?.turns ?? 3} 輪。`,
-    FORTIFY_ORDERED: `第 ${(important.payload?.lane ?? 0) + 1} 路已堅守，持續 ${important.payload?.turns ?? 2} 輪。`,
+    FOCUS_ORDERED: `集火已生效，持續 ${important.payload?.durationSeconds ?? 6} 秒。`,
+    FORTIFY_ORDERED: `第 ${(important.payload?.lane ?? 0) + 1} 路已固守，持續 ${important.payload?.durationSeconds ?? 6} 秒。`,
+    ASSAULT_ORDERED: `第 ${(important.payload?.lane ?? 0) + 1} 路已急攻，持續 ${important.payload?.durationSeconds ?? 6} 秒。`,
     WALL_DAMAGED: '城牆受到攻擊。',
     BOSS_PHASE_CHANGED: '華雄進入第二階段，重騎增援到達。',
     BATTLE_COMPLETED: '戰鬥勝利，請查看戰報。',
@@ -183,6 +192,7 @@ function handleExternalUiIntent(runtime, intent) {
     const board = runtime.game.status === 'combat' ? runtime.game.combat?.board : runtime.game.board;
     const unit = board?.units?.[intent.unitId];
     const definition = unit ? GENERAL_BY_ID[unit.definitionId] : null;
+    const detail = definition ? buildUnitPlayerDetail(definition, unit?.evolution, runtime.game.troopSpecializations ?? []) : null;
     return {
       runtime: cloneRuntime(runtime, {
         profile: {
@@ -192,9 +202,7 @@ function handleExternalUiIntent(runtime, intent) {
         ui: {
           ...runtime.ui,
           rangeUnitId: intent.unitId ?? null,
-          lastMessage: definition
-            ? `${definition.name}：射程 ${definition.range}，攻擊方式 ${definition.pattern}。`
-            : '未能讀取單位資料。',
+          lastMessage: detail?.text ?? '未能讀取單位資料。',
         },
       }),
     };
@@ -304,6 +312,10 @@ function finalizeDomainRuntime({ runtime, intent, result }) {
   const profile = {
     settings: { ...runtime.profile.settings, ...(game.settings ?? {}) },
     tutorial: advanceTutorialForResult(runtime.profile.tutorial, intent.type, result.events ?? []),
+    discoveredRecipeIds: recordRecipeDiscoveries(
+      runtime.profile.discoveredRecipeIds,
+      result.events ?? [],
+    ),
   };
   const nextMessage = eventMessage(result.events ?? []) ?? runtime.ui.lastMessage;
   return createRuntimeState({

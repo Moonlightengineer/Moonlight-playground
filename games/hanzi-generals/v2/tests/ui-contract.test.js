@@ -71,31 +71,31 @@ test('interaction layer translates intents and consumes canonical ViewModel targ
   for (const action of [
     'select-card', 'select-camp-card', 'return-camp-card', 'choose-cell',
     'move-card-to-camp', 'draw-cards', 'reroll', 'start-phase', 'choose-route',
-    'choose-reward', 'begin-order', 'order-select-unit', 'order-swap-target',
-    'order-focus-target', 'cancel-order', 'issue-order',
+    'choose-reward', 'begin-order', 'order-focus-target', 'cancel-order',
+    'issue-lane-order', 'issue-order',
   ]) assert.match(interactions, new RegExp(`'${action}'`));
   assert.match(interactions, /getViewModel/);
-  assert.match(interactions, /swapPairs/);
-  assert.match(interactions, /reinforce/);
   assert.match(interactions, /focusEnemyIds/);
-  assert.match(interactions, /unitIds:\s*\[orderMode\.unitId,\s*target\.dataset\.unitId\]/);
+  assert.doesNotMatch(interactions, /swapPairs/);
+  assert.doesNotMatch(interactions, /reinforce/);
+  assert.doesNotMatch(interactions, /order-swap-target/);
   assert.doesNotMatch(interactions, /order-reposition-target/);
   assert.doesNotMatch(interactions, /function distance\(/);
-  assert.doesNotMatch(interactions, /adjacentUnitTargets/);
-  assert.doesNotMatch(interactions, /adjacentEmptyLaneTargets/);
 });
 
-test('ViewModel and panel owners render spatial battle, order and reward contracts', async () => {
+test('ViewModel and panel owners render spatial battle, timed-order and reward contracts', async () => {
   const renderSource = await renderArchitectureSource();
   assert.match(renderSource, /buildBattleStage/);
   assert.match(renderSource, /--enemy-progress/);
   assert.match(renderSource, /enemy\.distance/);
   assert.match(renderSource, /--enemy-columns/);
   assert.match(renderSource, /selectOrderTargets/);
-  assert.match(renderSource, /swapPairs/);
   assert.match(renderSource, /focusEnemyIds/);
-  assert.match(renderSource, /remainingFriendlyTurns/);
-  assert.match(renderSource, /remainingEnemyTurns/);
+  assert.match(renderSource, /fortifyLanes/);
+  assert.match(renderSource, /assaultLanes/);
+  assert.match(renderSource, /remainingSeconds/);
+  assert.doesNotMatch(renderSource, /remainingFriendlyTurns/);
+  assert.doesNotMatch(renderSource, /remainingEnemyTurns/);
   assert.match(renderSource, /reward-name/);
   assert.match(renderSource, /reward-summary/);
   assert.match(renderSource, /reward-effect/);

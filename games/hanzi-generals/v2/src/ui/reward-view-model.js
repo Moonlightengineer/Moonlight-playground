@@ -40,7 +40,7 @@ export function buildRewardViewModels(game) {
   return (game.rewardChoices ?? []).map((reward) => {
     const availability = assessRewardAvailability(game, reward);
     const targets = availability.targets;
-    const requiresTarget = TARGET_REQUIRED.has(reward.id);
+    const requiresTarget = !reward.concrete && TARGET_REQUIRED.has(reward.baseId ?? reward.id);
     const disabled = !availability.available;
     return {
       id: reward.id,

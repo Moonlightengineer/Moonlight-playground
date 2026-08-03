@@ -11,6 +11,30 @@ export function selectCardZoneIndex(game) {
   return index;
 }
 
+export function selectDeckZoneCounts(game) {
+  const counts = {
+    drawPile: 0,
+    discardPile: 0,
+    hand: 0,
+    camp: 0,
+    deployed: 0,
+  };
+  for (const { zone } of collectCardZones(game)) {
+    if (zone === 'board' || zone === 'deployed') counts.deployed += 1;
+    else if (Object.prototype.hasOwnProperty.call(counts, zone)) counts[zone] += 1;
+  }
+  const total = game?.cardsById && typeof game.cardsById === 'object'
+    ? Object.keys(game.cardsById).length
+    : 0;
+  const ownedTotal = Object.values(counts).reduce((sum, count) => sum + count, 0);
+  return {
+    ...counts,
+    total,
+    ownedTotal,
+    reconciled: ownedTotal === total,
+  };
+}
+
 export function selectCampState(game) {
   const cardIds = Array.isArray(game?.camp?.cardIds) ? [...game.camp.cardIds] : [];
   const capacity = Number.isInteger(game?.camp?.capacity) && game.camp.capacity >= 0

@@ -1,54 +1,24 @@
+
 import { GENERAL_BY_ID } from '../../../data/generals.js';
 import { TUNING } from '../../../data/tuning.js';
-import { listCells } from '../../board/board.js';
 import { canFocusEnemy } from '../../combat/targeting.js';
 import { selectCampState, selectRerollState } from './cards.js';
 
-function byId(a, b) {
-  return a.id.localeCompare(b.id);
-}
-
-function cellDistance(a, b) {
-  return Math.abs(a.column - b.column) + Math.abs(a.row - b.row);
-}
-
 export function selectOrderTargets(game) {
-  const empty = { swapPairs: [], reinforce: [], focusEnemyIds: [], fortifyLanes: [] };
+  const empty = { focusEnemyIds: [], fortifyLanes: [], assaultLanes: [] };
   if (game?.status !== 'combat' || !game.combat?.board) return empty;
 
   const { combat } = game;
-  const board = combat.board;
-  const units = Object.values(board.units ?? {}).filter(({ hp }) => hp > 0).sort(byId);
-  const swapPairs = [];
-  for (let first = 0; first < units.length; first += 1) {
-    for (let second = first + 1; second < units.length; second += 1) {
-      if (cellDistance(units[first].cell, units[second].cell) === 1) {
-        swapPairs.push([units[first].id, units[second].id]);
-      }
-    }
-  }
-
-  const occupied = new Set(units.map(({ cell }) => `${cell.column},${cell.row}`));
-  const allCells = listCells(board);
-  const reinforce = units.map((unit) => ({
-    unitId: unit.id,
-    targetCells: allCells.filter((cell) => (
-      cellDistance(unit.cell, cell) === 1
-      && cell.column !== unit.cell.column
-      && !occupied.has(`${cell.column},${cell.row}`)
-    )),
-  })).filter(({ targetCells }) => targetCells.length > 0);
-
   const focusEnemyIds = [...(combat.enemies ?? [])]
     .filter(({ id, hp }) => hp > 0 && canFocusEnemy(combat, id, GENERAL_BY_ID))
     .sort((a, b) => a.lane - b.lane || a.distance - b.distance || a.id.localeCompare(b.id))
     .map(({ id }) => id);
+  const lanes = Array.from({ length: combat.board.size.columns }, (_, lane) => lane);
 
   return {
-    swapPairs,
-    reinforce,
     focusEnemyIds,
-    fortifyLanes: Array.from({ length: board.size.columns }, (_, lane) => lane),
+    fortifyLanes: lanes,
+    assaultLanes: [...lanes],
   };
 }
 

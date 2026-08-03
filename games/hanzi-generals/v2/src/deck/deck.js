@@ -105,3 +105,23 @@ export function allDeckCards(deck) {
     ...deck.hand,
   ];
 }
+
+export function prepareBattleDeck(deck, rng) {
+  const looseCards = [
+    ...(deck.drawPile ?? []),
+    ...(deck.discardPile ?? []),
+    ...(deck.hand ?? []),
+  ].map((card) => ({ ...card, locked: false }));
+  const shuffled = shuffle(rng, looseCards);
+  return {
+    deck: {
+      ...deck,
+      drawPile: shuffled.items,
+      discardPile: [],
+      hand: [],
+      retained: [],
+      deployed: [],
+    },
+    rng: shuffled.rng,
+  };
+}

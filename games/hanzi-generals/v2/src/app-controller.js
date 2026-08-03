@@ -34,6 +34,7 @@ function syncLegacyRuntime(runtime, nextGame) {
   return createRuntimeState({
     game: nextGame,
     profile: {
+      ...runtime.profile,
       settings: { ...runtime.profile.settings, ...(nextGame.settings ?? {}) },
       tutorial: nextGame.tutorial ?? runtime.profile.tutorial,
     },

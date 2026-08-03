@@ -16,7 +16,9 @@ test('state-machine.js is the single canonical reducer and migration entry', asy
   assert.equal(typeof stateMachine.finalizeGameResult, 'function');
 
   const legacyReward = {
+    ...createExpedition('canonical-legacy-reward'),
     status: 'reward',
+    rng: undefined,
     rewardChoices: [
       { id: 'evolve-general' },
       { id: 'copy-card' },
@@ -44,27 +46,33 @@ test('browser and storage use the canonical entry without import-map or reviewed
   await assert.rejects(access(new URL('src/core/state-machine-reviewed.js', ROOT)));
 });
 
-test('canonical reducer carries board assembly through battle report and fifth-battle evolution choice', () => {
+test('canonical reducer carries board assembly through battle report and fifth-battle pity choice', () => {
   let game = reduceGame(createExpedition('canonical-evolution'), { type: 'START_BATTLE' }).state;
   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
 
-  const huang = game.deck.hand.find(({ symbol }) => symbol === '黃');
-  const zhong = game.deck.hand.find(({ symbol }) => symbol === '忠');
-  assert.ok(huang);
-  assert.ok(zhong);
+  const zhang = game.deck.hand.find(({ symbol }) => symbol === '張');
+  const fei = game.deck.hand.find(({ symbol }) => symbol === '飛');
+  assert.ok(zhang);
+  assert.ok(fei);
 
-  game = reduceGame(game, { type: 'SELECT_CARD', cardId: huang.id }).state;
+  game = reduceGame(game, { type: 'SELECT_CARD', cardId: zhang.id }).state;
   game = reduceGame(game, { type: 'ASSEMBLE', target: { column: 0, row: 0 } }).state;
-  game = reduceGame(game, { type: 'SELECT_CARD', cardId: zhong.id }).state;
+  game = reduceGame(game, { type: 'SELECT_CARD', cardId: fei.id }).state;
   const assembled = reduceGame(game, { type: 'ASSEMBLE', target: { column: 1, row: 0 } });
   assert.equal(assembled.ok, true);
-  assert.deepEqual(assembled.state.recruitedGeneralIds, ['huang-zhong']);
+  assert.deepEqual(assembled.state.recruitedGeneralIds, ['zhang-fei']);
 
   const fifthBattle = {
     ...assembled.state,
     status: 'combat',
     route: 'safe',
     completedBattleIds: ['tutorial', 'shield-line', 'route-safe', 'cavalry-warning'],
+    rewardOfferHistory: [
+      { battleNumber: 1, rareOffered: false },
+      { battleNumber: 2, rareOffered: false },
+      { battleNumber: 3, rareOffered: false },
+      { battleNumber: 4, rareOffered: false },
+    ],
     currentBattle: {
       stageId: 'elite-mixed',
       phaseIndex: 2,
@@ -86,17 +94,20 @@ test('canonical reducer carries board assembly through battle report and fifth-b
   assert.equal(report.ok, true);
   assert.equal(report.state.status, 'battle-report');
   assert.equal(report.state.battleReport.nextStatus, 'reward');
-  assert.equal(report.state.rewardChoices.some(({ id }) => id === 'evolve-general'), true);
+  assert.equal(report.state.rewardChoices.length, 3);
+  assert.equal(report.state.rewardChoices.every(({ concrete, permanent }) => concrete && permanent), true);
+  assert.equal(report.state.rewardOfferHistory.at(-1).pityTriggered, true);
+  assert.equal(report.state.rewardOfferHistory.at(-1).rareOffered, true);
 
   const reward = reduceGame(report.state, { type: 'CONTINUE_AFTER_REPORT' });
   assert.equal(reward.ok, true);
   assert.equal(reward.state.status, 'reward');
 
-  const evolved = reduceGame(reward.state, {
+  const selected = reward.state.rewardChoices[0];
+  const applied = reduceGame(reward.state, {
     type: 'CHOOSE_REWARD',
-    rewardId: 'evolve-general',
-    payload: { generalId: 'huang-zhong', evolutionId: 'divine-shot' },
+    rewardId: selected.id,
   });
-  assert.equal(evolved.ok, true);
-  assert.equal(evolved.state.evolutions['huang-zhong'], 'divine-shot');
+  assert.equal(applied.ok, true);
+  assert.equal(applied.state.rewardHistory.at(-1).rewardId, selected.id);
 });

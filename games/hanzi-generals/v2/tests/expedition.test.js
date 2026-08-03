@@ -58,7 +58,7 @@ test('expansion and recipe packs modify future choices without permanent stat bo
   assert.deepEqual(game.board.size, { columns: 4, rows: 3 });
 
   const before = Object.keys(game.cardsById).length;
-  game = applyReward(game, 'unlock-zhang-fei');
-  assert.equal(game.unlockedRecipes.includes('zhang-fei'), true);
-  assert.equal(Object.keys(game.cardsById).length, before + 2);
+  game = applyReward(game, 'unlock-huang-zhong');
+  assert.equal(game.unlockedRecipes.includes('huang-zhong'), true);
+  assert.equal(Object.keys(game.cardsById).length, before + 3);
 });

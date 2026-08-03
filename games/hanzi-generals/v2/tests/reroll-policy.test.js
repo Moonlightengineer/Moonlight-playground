@@ -72,14 +72,14 @@ test('canReroll requires a hand and at least one remaining use', () => {
   assert.equal(canReroll(completeDeck({ hand: [] })), false);
 });
 
-test('rerollRetainedHand keeps only deck.retained cards and clears retained afterwards', () => {
+test('rerollRetainedHand keeps only deck.retained cards and preserves retained afterwards', () => {
   const deck = setRetainedCards(completeDeck(), ['card-1', 'card-2']);
   const result = rerollRetainedHand(deck, createRng(11), 5);
   assert.equal(result.deck.hand.length, 5);
   assert.equal(result.deck.hand.some(({ id }) => id === 'card-1'), true);
   assert.equal(result.deck.hand.some(({ id }) => id === 'card-2'), true);
   assert.equal(result.deck.freeRerollsRemaining, 0);
-  assert.deepEqual(result.deck.retained, []);
+  assert.deepEqual(result.deck.retained, ['card-1', 'card-2']);
   assert.equal(result.deck.hand.every(({ locked }) => locked === false), true);
   assertUniqueLooseCardIds(result.deck);
 });
@@ -130,7 +130,8 @@ test('reducer REROLL uses deck.retained and ignores legacy lockedCardIds payload
   const result = reduceGame(game, { type: 'REROLL', lockedCardIds: [legacyPayloadId] });
   assert.equal(result.ok, true);
   assert.equal(result.state.deck.hand.some(({ id }) => id === retainedId), true);
-  assert.deepEqual(result.state.deck.retained, []);
+  assert.deepEqual(result.state.deck.retained, [retainedId]);
+  assert.equal(result.state.deck.retained.includes(legacyPayloadId), false);
 });
 
 test('reroll policy never mutates the original deck', () => {

@@ -10,13 +10,16 @@ const STORAGE_NAMESPACE = 'hanzi-generals-v2:';
 const SAVE_KEY = `${STORAGE_NAMESPACE}save:v1`;
 const SETTINGS_KEY = `${STORAGE_NAMESPACE}settings:v1`;
 const TUTORIAL_KEY = `${STORAGE_NAMESPACE}tutorial:v1`;
+const CODEX_KEY = `${STORAGE_NAMESPACE}codex:v1`;
 const FRESH_RESET_SESSION_KEY = `${STORAGE_NAMESPACE}fresh-reset`;
 const TUTORIAL_VERSION = 1;
+const CODEX_VERSION = 1;
 
 export const V2_STORAGE_KEYS = Object.freeze([
   SAVE_KEY,
   SETTINGS_KEY,
   TUTORIAL_KEY,
+  CODEX_KEY,
 ]);
 
 function resolveStorage(storage) {
@@ -179,6 +182,51 @@ export function loadTutorial(storage) {
   }
 }
 
+function normalizeRecipeDiscoveries(values) {
+  if (!Array.isArray(values)) return [];
+  const result = [];
+  const seen = new Set();
+  for (const value of values) {
+    if (typeof value !== 'string' || !value || seen.has(value)) continue;
+    seen.add(value);
+    result.push(value);
+  }
+  return result;
+}
+
+export function saveRecipeDiscoveries(recipeIds, storage) {
+  resolveStorage(storage).setItem(
+    CODEX_KEY,
+    JSON.stringify({
+      schemaVersion: CODEX_VERSION,
+      discoveredRecipeIds: normalizeRecipeDiscoveries(recipeIds),
+    }),
+  );
+}
+
+export function loadRecipeDiscoveries(storage) {
+  let target;
+  try {
+    target = resolveStorage(storage);
+  } catch {
+    return [];
+  }
+  let raw;
+  try {
+    raw = target.getItem(CODEX_KEY);
+  } catch {
+    return [];
+  }
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed.schemaVersion !== CODEX_VERSION) return [];
+    return normalizeRecipeDiscoveries(parsed.discoveredRecipeIds);
+  } catch {
+    return [];
+  }
+}
+
 export function resetExpedition(storage) {
   try {
     resolveStorage(storage).removeItem(SAVE_KEY);
@@ -237,4 +285,5 @@ export const STORAGE_KEYS = Object.freeze({
   save: SAVE_KEY,
   settings: SETTINGS_KEY,
   tutorial: TUTORIAL_KEY,
+  codex: CODEX_KEY,
 });

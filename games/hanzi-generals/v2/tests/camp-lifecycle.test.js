@@ -12,6 +12,7 @@ import {
 } from '../src/expedition/camp-lifecycle.js';
 import { createExpedition } from '../src/expedition/expedition.js';
 import { REWARDS } from '../data/rewards.js';
+import { generateRewardOffer } from '../src/reward/reward-flow.js';
 
 function moveRegistryCardToCamp(game, cardId) {
   const remove = (cards) => cards.filter(({ id }) => id !== cardId);
@@ -30,12 +31,12 @@ function moveRegistryCardToCamp(game, cardId) {
 function prepareBattleWithCamp(seed = 'camp-battle') {
   let game = reduceGame(createExpedition(seed), { type: 'START_BATTLE' }).state;
   game = reduceGame(game, { type: 'DRAW_CARDS' }).state;
-  const huang = game.deck.hand.find(({ symbol }) => symbol === '黃');
-  const zhong = game.deck.hand.find(({ symbol }) => symbol === '忠');
-  assert.ok(huang && zhong);
+  const zhang = game.deck.hand.find(({ symbol }) => symbol === '張');
+  const fei = game.deck.hand.find(({ symbol }) => symbol === '飛');
+  assert.ok(zhang && fei);
   game = reduceGame(game, {
     type: 'ASSEMBLE',
-    source: { type: 'hand', cardIds: [huang.id, zhong.id] },
+    source: { type: 'hand', cardIds: [zhang.id, fei.id] },
     target: { column: 0, row: 0 },
   }).state;
   const campCard = game.deck.hand[0];
@@ -182,21 +183,29 @@ test('camp survives final battle settlement through report into reward', () => {
 });
 
 test('extra-camp reward permanently increases expedition capacity and clears legacy pending bonus', () => {
-  const reward = REWARDS.find(({ id }) => id === 'extra-camp');
+  const catalogue = REWARDS.filter(({ id }) => [
+    'copy-card', 'extra-camp', 'specialize-troop',
+  ].includes(id));
   let game = createExpedition('camp-reward');
   const cardId = game.deck.drawPile[0].id;
   game = moveRegistryCardToCamp(game, cardId);
+  const offer = generateRewardOffer(game, catalogue, game.rng);
+  const reward = offer.choices.find(({ baseId }) => baseId === 'extra-camp');
+  assert.ok(reward);
+  assert.equal(offer.choices.length, 3);
   game = {
     ...game,
+    rng: offer.rng,
     status: 'reward',
     currentBattle: { stageId: 'tutorial', phaseIndex: 2, phaseCount: 3, ordersRemaining: 0 },
     currentBattleResult: 'victory',
-    rewardChoices: [reward],
+    rewardChoices: offer.choices,
+    rewardOfferHistory: [offer.record],
     legalActions: ['CHOOSE_REWARD'],
   };
   const beforeCapacity = game.camp.capacity;
 
-  const chosen = reduceGame(game, { type: 'CHOOSE_REWARD', rewardId: 'extra-camp' });
+  const chosen = reduceGame(game, { type: 'CHOOSE_REWARD', rewardId: reward.id });
   assert.equal(chosen.ok, true);
   assert.equal(chosen.state.camp.capacity, beforeCapacity + 1);
   assert.deepEqual(chosen.state.camp.cardIds, [cardId]);

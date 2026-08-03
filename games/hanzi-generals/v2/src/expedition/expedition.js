@@ -1,7 +1,7 @@
 import { createBoard } from '../board/board.js';
 import { allDeckCards, createDeckState } from '../deck/deck.js';
 import { createRng } from '../core/rng.js';
-import { STARTING_SYMBOLS } from '../../data/recipes.js';
+import { CONTENT_VERSION, STARTING_RECIPE_IDS, STARTING_SYMBOLS } from '../../data/recipes.js';
 import { TUNING } from '../../data/tuning.js';
 
 export const ROUTES = Object.freeze({
@@ -22,6 +22,7 @@ export function createExpedition(seed) {
 
   return {
     version: 1,
+    contentVersion: CONTENT_VERSION,
     seed: String(seed),
     rng,
     status: 'expedition-map',
@@ -39,13 +40,15 @@ export function createExpedition(seed) {
     nextUnitId: 1,
     selection: { cardIds: [] },
     evolutions: {},
-    unlockedRecipes: ['huang-zhong', 'zhao-yun', 'guan-yu', 'lu-bu', 'archer', 'shield-troop'],
+    troopSpecializations: [],
+    unlockedRecipes: [...STARTING_RECIPE_IDS],
     temporary: { extraRerolls: 0, extraCamp: 0 },
     tactics: [],
     currentBattle: null,
     currentBattleResult: null,
     nextStageId: 'tutorial',
     rewardChoices: [],
+    rewardOfferHistory: [],
     legalActions: ['START_BATTLE'],
     error: null,
     settings: { reducedMotion: false, vibration: true, speed: 1 },

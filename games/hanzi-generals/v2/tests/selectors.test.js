@@ -134,7 +134,7 @@ test('selectAssemblyTargets ignores stale legalCells and returns only empty boar
   assert.equal(targets.length, 7);
 });
 
-test('selectOrderTargets returns deterministic swap, reinforce, focus and fortify targets', () => {
+test('selectOrderTargets returns deterministic focus, fortify and assault targets only', () => {
   const game = configurationFixture();
   const board = createBoard('base');
   board.units = {
@@ -150,12 +150,11 @@ test('selectOrderTargets returns deterministic swap, reinforce, focus and fortif
     ordersRemaining: 2,
   };
   const targets = selectOrderTargets({ ...game, status: 'combat', combat });
-  assert.deepEqual(targets.swapPairs, [['unit-1', 'unit-2']]);
-  assert.equal(targets.reinforce.some(({ unitId, targetCells }) => (
-    unitId === 'unit-1' && targetCells.some(({ column, row }) => column === 1 && row === 0)
-  )), true);
   assert.deepEqual(targets.focusEnemyIds, ['enemy-1']);
   assert.deepEqual(targets.fortifyLanes, [0, 1, 2]);
+  assert.deepEqual(targets.assaultLanes, [0, 1, 2]);
+  assert.equal(targets.swapPairs, undefined);
+  assert.equal(targets.reinforce, undefined);
 });
 
 test('selectLegalCommands derives legality instead of copying stale legalActions', () => {

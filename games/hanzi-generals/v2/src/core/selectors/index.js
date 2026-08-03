@@ -3,6 +3,7 @@ export {
   selectAssemblyTargets,
   selectCampState,
   selectCardZoneIndex,
+  selectDeckZoneCounts,
   selectRerollState,
 } from './cards.js';
 export { selectLegalCommands, selectOrderTargets } from './commands.js';
