@@ -310,13 +310,13 @@ async function run() {
     await page.waitForTimeout(60);
     await page.locator('#orders [data-action="pause"]').click();
 
-    const focus = page.getByRole('button', { name: '集火', exact: true });
+    const focus = page.locator('#orders [data-action="begin-order"][data-order-type="focus"]');
     if (await focus.isEnabled()) {
       await focus.click();
       const target = page.locator('#enemy-field .enemy-token.is-order-target').first();
       if (await target.count()) await target.click();
     }
-    await page.getByRole('button', { name: '固守2路', exact: true }).click();
+    await page.locator('#orders [data-action="issue-lane-order"][data-order-type="fortify"][data-lane="1"]').click();
 
     const status = page.locator('#orders .order-status');
     const statusText = (await status.textContent())?.trim() ?? '';
