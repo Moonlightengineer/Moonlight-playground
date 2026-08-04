@@ -2,14 +2,20 @@ import { mkdir } from 'node:fs/promises';
 import { spawn } from 'node:child_process';
 import { chromium } from 'playwright';
 
-const URL = 'http://127.0.0.1:8001/games/hanzi-generals/v2/?seed=phone-fun-gate';
+const BASE_URL = 'http://127.0.0.1:8001/games/hanzi-generals/v2/';
 const ARTIFACT = 'artifacts/hanzi-v2-playtest/10-phone-fun-gate.png';
+
+function gameUrl(seed) {
+  const url = new URL(BASE_URL);
+  url.searchParams.set('seed', seed);
+  return url.toString();
+}
 
 async function waitForServer() {
   const deadline = Date.now() + 15000;
   while (Date.now() < deadline) {
     try {
-      if ((await fetch(URL)).ok) return;
+      if ((await fetch(gameUrl('server-check'))).ok) return;
     } catch {}
     await new Promise((resolve) => setTimeout(resolve, 250));
   }
@@ -18,6 +24,49 @@ async function waitForServer() {
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
+}
+
+async function createCleanPhonePage(browser, seed) {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    isMobile: true,
+    hasTouch: true,
+  });
+  const page = await context.newPage();
+  await page.goto(gameUrl(seed), { waitUntil: 'networkidle' });
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  await page.reload({ waitUntil: 'networkidle' });
+  return { context, page };
+}
+
+async function getRenderedViewModel(page) {
+  return page.evaluate(async () => {
+    const { getRenderedViewModel } = await import('./src/ui/rendered-view-model.js');
+    const root = document.querySelector('#v2-game-app');
+    const model = root ? getRenderedViewModel(root) : null;
+    return model ? JSON.parse(JSON.stringify(model)) : null;
+  });
+}
+
+function orderCount(viewModel) {
+  const label = viewModel?.runStatus?.orderLabel ?? '';
+  const match = label.match(/(\d+)/);
+  return match ? Number(match[1]) : null;
+}
+
+function combatSignature(viewModel) {
+  return JSON.stringify({
+    statuses: viewModel?.orders?.statuses ?? [],
+    enemies: (viewModel?.battleStage?.enemies ?? []).map(({ id, hp, distance, focused }) => ({
+      id, hp, distance, focused,
+    })),
+    cells: (viewModel?.battleStage?.cells ?? [])
+      .filter(({ kind }) => kind === 'unit')
+      .map(({ unitId, column, row, hpLabel, fortified }) => ({ unitId, column, row, hpLabel, fortified })),
+  });
 }
 
 async function openPersistentPanel(page, action, panel, expectedText) {
@@ -33,6 +82,15 @@ async function openPersistentPanel(page, action, panel, expectedText) {
 async function closePanel(page, panel, action) {
   await page.locator(`${panel} [data-action="${action}"]`).click();
   await page.locator(panel).waitFor({ state: 'hidden' });
+}
+
+async function assertPersistentPanels(page) {
+  await openPersistentPanel(page, 'open-help', '#help-panel', '玩法說明');
+  await closePanel(page, '#help-panel', 'close-help');
+  await openPersistentPanel(page, 'open-codex', '#codex-panel', '圖鑑');
+  const codexText = (await page.locator('#codex-panel').innerText()) ?? '';
+  assert(codexText.includes('已發現') && codexText.includes('未發現'), 'Codex must expose complete discovered and undiscovered content');
+  await closePanel(page, '#codex-panel', 'close-codex');
 }
 
 async function handWrapBySymbol(page, symbol) {
@@ -55,6 +113,26 @@ async function assembleTutorialUnit(page) {
   await page.locator('#battle-board [data-action="choose-cell"][data-column="1"][data-row="0"]').click();
 }
 
+async function startCombat(page, { checkDrawBudget = false } = {}) {
+  await page.getByRole('button', { name: '開始下一戰', exact: true }).click();
+  const drawButton = page.getByRole('button', { name: /抽牌/ });
+  if (checkDrawBudget) {
+    assert(/1\/1/.test((await drawButton.innerText()) ?? ''), 'draw action must show visible 1/1 budget');
+  }
+  await drawButton.click();
+  if (checkDrawBudget) {
+    assert(/0\/1/.test((await drawButton.innerText()) ?? ''), 'draw action must show visible 0/1 budget after use');
+    assert(await drawButton.isDisabled(), 'draw action must disable after budget is consumed');
+  }
+  await assembleTutorialUnit(page);
+  await page.getByRole('button', { name: '開始呢一段', exact: true }).click();
+  await page.waitForFunction(() => document.querySelector('#v2-game-app')?.dataset.status === 'combat');
+  const pause = page.locator('#orders [data-action="pause"]');
+  if (await pause.count()) await pause.click();
+  const speedTwo = page.locator('#orders [data-action="set-speed"][data-speed="2"]');
+  if (await speedTwo.count()) await speedTwo.click();
+}
+
 async function assertCombatGeometry(page) {
   const enemy = await page.locator('#enemy-field').boundingBox();
   const wall = await page.locator('[data-wall], .wall-status, .wall-line').first().boundingBox();
@@ -66,135 +144,203 @@ async function assertCombatGeometry(page) {
   assert(wall.x >= 0 && wall.x + wall.width <= viewport.width, 'wall must remain visible inside iPhone width');
 }
 
-async function exerciseCombatControls(page) {
-  await openPersistentPanel(page, 'open-help', '#help-panel', '玩法說明');
-  await closePanel(page, '#help-panel', 'close-help');
-  await openPersistentPanel(page, 'open-codex', '#codex-panel', '圖鑑');
-  await closePanel(page, '#codex-panel', 'close-codex');
+async function waitForOneCombatStep(page, issuedModel, orderLabel) {
+  const resume = page.locator('#orders [data-action="resume"]');
+  assert(await resume.count() === 1, `${orderLabel} scenario must be paused before deterministic step`);
+  await resume.click();
+  await page.waitForTimeout(900);
+  const pause = page.locator('#orders [data-action="pause"]');
+  if (await pause.count()) await pause.click();
+  const stepped = await getRenderedViewModel(page);
+  assert(stepped?.root?.status === 'combat', `${orderLabel} scenario must remain in active combat after one step`);
+  assert(combatSignature(stepped) !== combatSignature(issuedModel), `${orderLabel} must survive a real combat step with measurable state change`);
+  assert(stepped?.runStatus?.cardCountsReconciled === true, `${orderLabel} step must preserve canonical card ownership`);
+  return stepped;
+}
 
-  await page.locator('#orders [data-action="pause"]').click();
-  const ordersBefore = Number((await page.locator('[data-orders-remaining]').first().getAttribute('data-orders-remaining')) ?? '3');
-
+async function exerciseRedeploy(page) {
+  const before = await getRenderedViewModel(page);
+  const beforeOrders = orderCount(before);
   const redeploy = page.locator('#orders [data-action="begin-order"][data-order-type="redeploy"]');
   assert(await redeploy.count() === 1, 'redeploy must be visible during combat');
   await redeploy.click();
+
   const unit = page.locator('#battle-board [data-unit-id]').first();
   const unitId = await unit.getAttribute('data-unit-id');
+  const beforeCell = `${await unit.getAttribute('data-column')},${await unit.getAttribute('data-row')}`;
   await unit.click();
-  const legalCell = page.locator('#battle-board [data-action="choose-cell"].is-order-target').first();
-  assert(await legalCell.count() === 1, 'redeploy must expose a legal target cell');
-  const beforeCell = await unit.getAttribute('data-cell');
-  await legalCell.click();
+  const legalCells = page.locator('#battle-board [data-action="choose-cell"].is-order-target');
+  assert(await legalCells.count() > 1, 'redeploy must expose more than one legal target so one-shot rejection is testable');
+  await legalCells.first().click();
+
   const movedUnit = page.locator(`#battle-board [data-unit-id="${unitId}"]`);
-  const afterCell = await movedUnit.getAttribute('data-cell');
+  const afterCell = `${await movedUnit.getAttribute('data-column')},${await movedUnit.getAttribute('data-row')}`;
   assert(beforeCell !== afterCell, 'redeploy must visibly move the unit');
 
-  const status = page.locator('#orders .order-status');
-  for (const type of ['fortify', 'assault', 'focus']) {
-    const before = (await status.textContent()) ?? '';
-    const begin = page.locator(`#orders [data-order-type="${type}"]`).first();
-    assert(await begin.count() === 1, `${type} order must be visible`);
-    await begin.click();
-    if (type === 'focus') {
-      const target = page.locator('#enemy-field .enemy-token.is-order-target').first();
-      assert(await target.count() === 1, 'focus must expose a legal enemy target');
-      await target.click();
-    }
-    const after = (await status.textContent()) ?? '';
-    assert(after !== before && after.length > 0, `${type} must produce visible status feedback`);
-  }
+  const issued = await getRenderedViewModel(page);
+  assert(orderCount(issued) === beforeOrders - 1, 'redeploy must consume exactly one shared order point');
+  assert(issued?.runStatus?.cardCountsReconciled === true, 'redeploy must preserve canonical card ownership');
+  assert(((await page.locator('#action-message').textContent()) ?? '').trim().length > 0, 'redeploy must produce visible feedback');
+  assert(await redeploy.isDisabled(), 'redeploy must become unavailable after its first successful use');
 
-  const ordersAfterText = await page.locator('[data-orders-remaining]').first().getAttribute('data-orders-remaining');
-  if (ordersAfterText !== null) assert(Number(ordersAfterText) < ordersBefore, 'orders must consume shared points');
-  await assertCombatGeometry(page);
+  const spent = orderCount(issued);
+  await redeploy.click({ force: true }).catch(() => {});
+  const afterRepeat = await getRenderedViewModel(page);
+  assert(orderCount(afterRepeat) === spent, 'repeated redeploy must not spend another point');
+
+  const stepped = await waitForOneCombatStep(page, issued, 'redeploy');
+  const steppedUnit = stepped.battleStage.cells.find((cell) => cell.unitId === unitId);
+  assert(`${steppedUnit?.column},${steppedUnit?.row}` === afterCell, 'redeployed unit must remain at its canonical destination after combat advances');
 }
 
-async function exerciseRewardApplication(page) {
-  await page.evaluate(async () => {
-    const [
-      { renderApp },
-      { bindInteractions },
-      { createExpedition },
-      { reduceGame },
-      { generateRewardOffer },
-    ] = await Promise.all([
-      import('./src/ui/render-interactive.js'),
-      import('./src/ui/interactions.js'),
-      import('./src/expedition/expedition.js'),
-      import('./src/core/state-machine.js'),
-      import('./src/reward/reward-flow.js'),
-    ]);
+const ORDER_EXPECTATIONS = Object.freeze({
+  fortify: { label: '固守', message: '固守', classSelector: '#enemy-field .enemy-lane.is-fortified' },
+  assault: { label: '急攻', message: '急攻', classSelector: null },
+  focus: { label: '集火', message: '集火', classSelector: '#enemy-field .enemy-token.is-focused' },
+});
 
-    const root = document.createElement('main');
-    root.id = 'phone-gate-reward-fixture';
-    root.innerHTML = `
-      <section id="run-status"></section>
-      <section class="battle-stage"><section id="enemy-intents"></section><section id="enemy-field"></section><section id="battle-board"></section></section>
-      <section class="command-panel"><section id="camp"></section><section id="primary-actions"></section><section id="orders"></section></section>
-      <section id="hand"></section><details id="details-panel"><summary>詳情</summary></details><p id="action-message"></p>
-    `;
-    document.body.append(root);
+async function exerciseRetainedOrder(browser, type) {
+  const expectation = ORDER_EXPECTATIONS[type];
+  const { context, page } = await createCleanPhonePage(browser, `phone-gate-${type}`);
+  try {
+    await startCombat(page);
+    const before = await getRenderedViewModel(page);
+    const beforeOrders = orderCount(before);
+    let controls;
 
-    let state = createExpedition('phone-gate-reward');
-    const generated = generateRewardOffer(state);
-    state = {
-      ...state,
-      status: 'reward',
-      completedBattleIds: ['tutorial'],
-      rewardChoices: generated.choices,
-      rewardOfferHistory: [generated.record],
-      legalActions: ['CHOOSE_REWARD'],
-    };
-    const before = JSON.stringify({
-      cards: Object.keys(state.cardsById).length,
-      camp: state.camp.capacity,
-      boardSizeId: state.boardSizeId,
-      evolutions: state.evolutions,
-      specializations: state.troopSpecializations,
-      history: state.rewardHistory ?? [],
-    });
-
-    function rerender() {
-      const viewModel = renderApp(root, state);
-      bindInteractions(root, (intent) => {
-        const result = reduceGame(state, intent);
-        if (!result.ok) return result;
-        state = result.state;
-        localStorage.setItem('hanzi-v2:phone-gate-reward', JSON.stringify(state));
-        rerender();
-        return result;
-      }, () => viewModel);
+    if (type === 'focus') {
+      controls = page.locator('#orders [data-action="begin-order"][data-order-type="focus"]');
+      assert(await controls.count() === 1, 'focus order must be visible');
+      await controls.click();
+      const target = page.locator('#enemy-field .enemy-token.is-order-target, #enemy-field .enemy-token[data-focus-eligible="true"]').first();
+      assert(await target.count() === 1, 'focus must expose a legal enemy target');
+      await target.click();
+    } else {
+      controls = page.locator(`#orders [data-action="issue-lane-order"][data-order-type="${type}"]`);
+      assert(await controls.count() > 0, `${type} order must expose a legal lane`);
+      await controls.first().click();
     }
-    rerender();
-    root.dataset.beforeReward = before;
-  });
 
-  const fixture = page.locator('#phone-gate-reward-fixture');
-  const reward = fixture.locator('#primary-actions .reward-button').first();
-  assert(await reward.count() === 1, 'reward fixture must expose a concrete reward');
-  const rewardId = await reward.getAttribute('data-reward-id');
-  await reward.click();
-  const applied = await page.evaluate(() => {
-    const raw = localStorage.getItem('hanzi-v2:phone-gate-reward');
-    if (!raw) return null;
-    const state = JSON.parse(raw);
-    return {
-      status: state.status,
-      rewardHistory: state.rewardHistory,
-      cards: Object.keys(state.cardsById ?? {}).length,
-      camp: state.camp?.capacity,
-      boardSizeId: state.boardSizeId,
-      evolutions: state.evolutions,
-      specializations: state.troopSpecializations,
-    };
-  });
-  assert(applied && applied.status !== 'reward', 'reward click must change canonical run state');
-  assert((applied.rewardHistory?.length ?? 0) > 0, `reward ${rewardId} must be recorded`);
+    const issued = await getRenderedViewModel(page);
+    assert(orderCount(issued) === beforeOrders - 1, `${type} must consume exactly one shared order point`);
+    const statusText = (issued.orders.statuses ?? []).join('｜');
+    assert(statusText.includes(expectation.label) && /剩餘\s*6\s*秒/.test(statusText), `${type} must expose canonical target and six-second duration`);
+    assert(((await page.locator('#action-message').textContent()) ?? '').includes(expectation.message), `${type} must produce visible tactical feedback`);
+    if (expectation.classSelector) {
+      assert(await page.locator(expectation.classSelector).count() > 0, `${type} must have a visible target effect`);
+    }
 
-  await page.reload({ waitUntil: 'networkidle' });
-  const reloaded = await page.evaluate(() => JSON.parse(localStorage.getItem('hanzi-v2:phone-gate-reward') ?? 'null'));
-  assert(reloaded && reloaded.status !== 'reward', 'rewarded canonical state must survive reload');
-  assert((reloaded.rewardHistory?.length ?? 0) > 0, 'reward history must survive reload');
+    for (const control of await controls.all()) {
+      assert(await control.isDisabled(), `${type} must be disabled while active so it cannot refresh or spend twice`);
+    }
+
+    const stepped = await waitForOneCombatStep(page, issued, type);
+    const steppedStatus = (stepped.orders.statuses ?? []).join('｜');
+    assert(steppedStatus.includes(expectation.label), `${type} effect must remain active after a real combat step`);
+    assert(steppedStatus !== statusText, `${type} duration or tactical state must advance after the step`);
+  } finally {
+    await context.close();
+  }
+}
+
+function rewardEffectFingerprint(game) {
+  return JSON.stringify({
+    cardIds: Object.keys(game.cardsById ?? {}).sort(),
+    campCapacity: game.camp?.capacity,
+    boardSizeId: game.boardSizeId,
+    evolutions: game.evolutions,
+    specializations: game.troopSpecializations,
+    unlockedRecipes: game.unlockedRecipes,
+    wallHp: game.wallHp,
+    temporary: game.temporary,
+    tactics: game.tactics,
+  });
+}
+
+async function exerciseRewardApplication(browser) {
+  const { context, page } = await createCleanPhonePage(browser, 'phone-gate-reward');
+  try {
+    const prepared = await page.evaluate(async () => {
+      const [
+        { createExpedition },
+        { generateRewardOffer },
+        { loadSnapshot, saveSnapshot, STORAGE_KEYS },
+      ] = await Promise.all([
+        import('./src/expedition/expedition.js'),
+        import('./src/reward/reward-flow.js'),
+        import('./src/storage/storage.js'),
+      ]);
+      let game = createExpedition('phone-gate-reward');
+      game = { ...game, completedBattleIds: ['tutorial'] };
+      const generated = generateRewardOffer(game);
+      game = {
+        ...game,
+        status: 'reward',
+        rng: generated.rng,
+        rewardChoices: generated.choices,
+        rewardOfferHistory: [generated.record],
+        legalActions: ['CHOOSE_REWARD'],
+      };
+      saveSnapshot(game);
+      const loaded = loadSnapshot();
+      return {
+        ok: loaded.ok,
+        saveKey: STORAGE_KEYS.save,
+        rewardIds: loaded.ok ? loaded.game.rewardChoices.map(({ id }) => id) : [],
+      };
+    });
+    assert(prepared.ok, 'production saveSnapshot/loadSnapshot must accept the reward precondition');
+    assert(prepared.saveKey === 'hanzi-generals-v2:save:v1', 'reward gate must use the production versioned save key');
+
+    await page.reload({ waitUntil: 'networkidle' });
+    assert(await page.locator('#v2-game-app').getAttribute('data-status') === 'reward', 'real app must restore the reward screen from production storage');
+    const reward = page.locator('#v2-game-app #primary-actions .reward-button').first();
+    assert(await reward.count() === 1, 'real app must expose a concrete reward control');
+    const rewardId = await reward.getAttribute('data-reward-id');
+
+    const before = await page.evaluate(async () => {
+      const { loadSnapshot } = await import('./src/storage/storage.js');
+      const loaded = loadSnapshot();
+      return loaded.ok ? loaded.game : null;
+    });
+    assert(before, 'reward precondition must load through the production loader');
+    const beforeFingerprint = rewardEffectFingerprint(before);
+    const beforeHistory = before.rewardHistory?.length ?? 0;
+
+    await reward.click();
+    await page.waitForFunction(() => document.querySelector('#v2-game-app')?.dataset.status !== 'reward');
+    const applied = await page.evaluate(async () => {
+      const { loadSnapshot, STORAGE_KEYS } = await import('./src/storage/storage.js');
+      const raw = localStorage.getItem(STORAGE_KEYS.save);
+      const loaded = loadSnapshot();
+      return { raw, loaded };
+    });
+    assert(applied.raw, 'real controller must persist reward through the production save envelope');
+    assert(applied.loaded.ok, 'persisted reward must reload through loadSnapshot');
+    assert((applied.loaded.game.rewardHistory?.length ?? 0) === beforeHistory + 1, `reward ${rewardId} must be recorded exactly once`);
+    assert(rewardEffectFingerprint(applied.loaded.game) !== beforeFingerprint, `reward ${rewardId} must alter canonical run state beyond history text`);
+    const appliedFingerprint = rewardEffectFingerprint(applied.loaded.game);
+
+    await page.reload({ waitUntil: 'networkidle' });
+    const reloaded = await page.evaluate(async () => {
+      const { loadSnapshot } = await import('./src/storage/storage.js');
+      const loaded = loadSnapshot();
+      return loaded.ok ? loaded.game : null;
+    });
+    assert(reloaded, 'rewarded run must survive a real navigation reload');
+    assert((reloaded.rewardHistory?.length ?? 0) === beforeHistory + 1, 'reward history must survive reload');
+    assert(rewardEffectFingerprint(reloaded) === appliedFingerprint, 'the exact applied reward effect must survive reload');
+  } finally {
+    await context.close();
+  }
+}
+
+async function recordCheck(failures, name, action) {
+  try {
+    await action();
+  } catch (error) {
+    failures.push(`${name}: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 async function run() {
@@ -204,31 +350,30 @@ async function run() {
   try {
     await waitForServer();
     browser = await chromium.launch({ headless: true });
-    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
-    await context.addInitScript(() => localStorage.clear());
-    const page = await context.newPage();
-    await page.goto(URL, { waitUntil: 'networkidle' });
+    const failures = [];
 
-    await openPersistentPanel(page, 'open-help', '#help-panel', '玩法說明');
-    await closePanel(page, '#help-panel', 'close-help');
-    await openPersistentPanel(page, 'open-codex', '#codex-panel', '圖鑑');
-    await closePanel(page, '#codex-panel', 'close-codex');
+    const { context, page } = await createCleanPhonePage(browser, 'phone-fun-gate');
+    try {
+      await recordCheck(failures, 'persistent panels in configuration', () => assertPersistentPanels(page));
+      await recordCheck(failures, 'draw budget and combat entry', () => startCombat(page, { checkDrawBudget: true }));
+      if ((await page.locator('#v2-game-app').getAttribute('data-status')) === 'combat') {
+        await recordCheck(failures, 'persistent panels in combat', () => assertPersistentPanels(page));
+        await recordCheck(failures, 'redeploy', () => exerciseRedeploy(page));
+        await recordCheck(failures, 'combat geometry', () => assertCombatGeometry(page));
+        await page.screenshot({ path: ARTIFACT, fullPage: true });
+      }
+    } finally {
+      await context.close();
+    }
 
-    await page.getByRole('button', { name: '開始下一戰', exact: true }).click();
-    const drawButton = page.getByRole('button', { name: /抽牌/ });
-    assert(/1\/1/.test((await drawButton.innerText()) ?? ''), 'draw action must show visible 1/1 budget');
-    await drawButton.click();
-    assert(/0\/1/.test((await drawButton.innerText()) ?? ''), 'draw action must show visible 0/1 budget after use');
-    assert(await drawButton.isDisabled(), 'draw action must disable after budget is consumed');
+    for (const type of ['fortify', 'assault', 'focus']) {
+      await recordCheck(failures, `${type} retained order`, () => exerciseRetainedOrder(browser, type));
+    }
+    await recordCheck(failures, 'real reward application and reload', () => exerciseRewardApplication(browser));
 
-    await assembleTutorialUnit(page);
-    await page.getByRole('button', { name: '開始呢一段', exact: true }).click();
-    await page.waitForFunction(() => document.querySelector('#v2-game-app')?.dataset.status === 'combat');
-    await exerciseCombatControls(page);
-    await page.screenshot({ path: ARTIFACT, fullPage: true });
-
-    await exerciseRewardApplication(page);
-    await context.close();
+    if (failures.length) {
+      throw new Error(`Phone fun gate failures:\n- ${failures.join('\n- ')}`);
+    }
   } finally {
     await browser?.close();
     server.kill('SIGTERM');
