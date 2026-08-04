@@ -204,20 +204,36 @@ async function exerciseRetainedOrder(browser, type) {
   const { context, page } = await createCleanPhonePage(browser, `phone-gate-${type}`);
   try {
     await startCombat(page);
-    const before = await getRenderedViewModel(page);
-    const beforeOrders = orderCount(before);
     let controls;
 
     if (type === 'focus') {
       controls = page.locator('#orders [data-action="begin-order"][data-order-type="focus"]');
       assert(await controls.count() === 1, 'focus order must be visible');
+      if (await controls.isDisabled()) {
+        const resume = page.locator('#orders [data-action="resume"]');
+        assert(await resume.count() === 1, 'focus setup must be able to resume combat until a legal target enters range');
+        await resume.click();
+        await page.waitForFunction(() => {
+          const control = document.querySelector('#orders [data-action="begin-order"][data-order-type="focus"]');
+          return control && !control.disabled;
+        }, null, { timeout: 10000 });
+        const pause = page.locator('#orders [data-action="pause"]');
+        if (await pause.count()) await pause.click();
+      }
+    } else {
+      controls = page.locator(`#orders [data-action="issue-lane-order"][data-order-type="${type}"]`);
+      assert(await controls.count() > 0, `${type} order must expose a legal lane`);
+    }
+
+    const before = await getRenderedViewModel(page);
+    const beforeOrders = orderCount(before);
+
+    if (type === 'focus') {
       await controls.click();
       const target = page.locator('#enemy-field .enemy-token.is-order-target, #enemy-field .enemy-token[data-focus-eligible="true"]').first();
       assert(await target.count() === 1, 'focus must expose a legal enemy target');
       await target.click();
     } else {
-      controls = page.locator(`#orders [data-action="issue-lane-order"][data-order-type="${type}"]`);
-      assert(await controls.count() > 0, `${type} order must expose a legal lane`);
       await controls.first().click();
     }
 
