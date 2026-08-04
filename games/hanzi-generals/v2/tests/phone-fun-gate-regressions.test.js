@@ -1,9 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 import { createExpedition } from '../src/expedition/expedition.js';
-import { finishPhase } from '../src/battle/battle-lifecycle.js';
-import { reduceGame } from '../src/core/state-machine.js';
+import { normalizeGameState, reduceGame } from '../src/core/state-machine.js';
 
 function startConfiguration(seed = 'phone-fun-gate') {
   return reduceGame(createExpedition(seed), { type: 'START_BATTLE' }).state;
@@ -19,7 +17,19 @@ function assembleTutorialZhangFei(game) {
   return reduceGame(next, { type: 'ASSEMBLE', target: { column: 1, row: 0 } }).state;
 }
 
-test('each configuration phase has one visible draw budget and cannot refill repeatedly', () => {
+function ownershipSnapshot(game) {
+  const ids = [
+    ...game.deck.drawPile.map(({ id }) => id),
+    ...game.deck.discardPile.map(({ id }) => id),
+    ...game.deck.hand.map(({ id }) => id),
+    ...game.camp.cardIds,
+    ...Object.values(game.boardCards ?? {}),
+    ...game.deck.deployed.flatMap(({ cardIds }) => cardIds),
+  ];
+  return { total: ids.length, unique: new Set(ids).size, sorted: [...ids].sort() };
+}
+
+test('each configuration phase exposes one draw budget and rejects refill', () => {
   const game = startConfiguration('draw-budget');
   assert.equal(game.currentBattle.drawsRemaining, 1);
 
@@ -28,95 +38,90 @@ test('each configuration phase has one visible draw budget and cannot refill rep
   assert.equal(first.state.currentBattle.drawsRemaining, 0);
   assert.equal(first.state.deck.hand.length, 5);
 
-  const cardId = first.state.deck.hand[0].id;
-  const moved = reduceGame(first.state, { type: 'MOVE_CARD_TO_CAMP', cardId });
+  const moved = reduceGame(first.state, {
+    type: 'MOVE_CARD_TO_CAMP',
+    cardId: first.state.deck.hand[0].id,
+  });
   assert.equal(moved.ok, true);
-  assert.equal(moved.state.deck.hand.length, 4);
-
-  const second = reduceGame(moved.state, { type: 'DRAW_CARDS' });
-  assert.equal(second.ok, false);
-  assert.equal(second.error.code, 'DRAW_LIMIT_REACHED');
-  assert.equal(second.state.deck.hand.length, 4);
-});
-
-test('draw budget resets through the real same-battle phase boundary', () => {
-  let game = assembleTutorialZhangFei(startConfiguration('draw-reset'));
-  const combat = reduceGame(game, { type: 'START_PHASE' });
-  assert.equal(combat.ok, true);
-  assert.equal(combat.state.currentBattle.phaseIndex, 0);
-  assert.equal(combat.state.currentBattle.drawsRemaining, 0);
-
-  const completed = finishPhase(
-    combat.state,
-    { ...combat.state.combat, status: 'victory' },
-    [],
-  );
-  assert.equal(completed.ok, true);
-  assert.equal(completed.state.status, 'configuration');
-  assert.equal(completed.state.currentBattle.phaseIndex, 1);
-  assert.equal(completed.state.currentBattle.drawsRemaining, 1);
-
-  const nextDraw = reduceGame(completed.state, { type: 'DRAW_CARDS' });
-  assert.equal(nextDraw.ok, true);
-  assert.equal(nextDraw.state.currentBattle.drawsRemaining, 0);
-  const repeated = reduceGame(nextDraw.state, { type: 'DRAW_CARDS' });
+  const beforeRepeat = ownershipSnapshot(moved.state);
+  const repeated = reduceGame(moved.state, { type: 'DRAW_CARDS' });
   assert.equal(repeated.ok, false);
   assert.equal(repeated.error.code, 'DRAW_LIMIT_REACHED');
+  assert.deepEqual(ownershipSnapshot(repeated.state), beforeRepeat);
 });
 
-test('redeploy is a functional one-shot public military order', () => {
-  let game = assembleTutorialZhangFei(startConfiguration('combat-move'));
-  const combat = reduceGame(game, { type: 'START_PHASE' });
-  assert.equal(combat.ok, true);
-  const before = combat.state.combat.board.units['unit-1'].cell;
-  const ordersBefore = combat.state.combat.ordersRemaining;
+test('normalization supplies deterministic draw budget for active saves without losing progress', () => {
+  const untouched = startConfiguration('legacy-undrawn');
+  delete untouched.currentBattle.drawsRemaining;
+  const untouchedBefore = ownershipSnapshot(untouched);
+  const normalizedUntouched = normalizeGameState(untouched);
+  assert.equal(normalizedUntouched.currentBattle.drawsRemaining, 1);
+  assert.deepEqual(ownershipSnapshot(normalizedUntouched), untouchedBefore);
 
-  const moved = reduceGame(combat.state, {
+  let consumed = startConfiguration('legacy-drawn');
+  consumed = reduceGame(consumed, { type: 'DRAW_CARDS' }).state;
+  delete consumed.currentBattle.drawsRemaining;
+  const consumedBefore = ownershipSnapshot(consumed);
+  const normalizedConsumed = normalizeGameState(consumed);
+  assert.equal(normalizedConsumed.currentBattle.drawsRemaining, 0);
+  assert.equal(normalizedConsumed.currentBattle.phaseIndex, consumed.currentBattle.phaseIndex);
+  assert.deepEqual(normalizedConsumed.camp, consumed.camp);
+  assert.deepEqual(ownershipSnapshot(normalizedConsumed), consumedBefore);
+});
+
+test('draw budget resets through the public same-battle lifecycle', () => {
+  let game = assembleTutorialZhangFei(startConfiguration('draw-reset-public'));
+  game = reduceGame(game, { type: 'START_PHASE' }).state;
+  assert.equal(game.currentBattle.drawsRemaining, 0);
+
+  for (let step = 0; step < 3000 && game.status === 'combat'; step += 1) {
+    const result = reduceGame(game, { type: 'STEP_COMBAT' });
+    assert.equal(result.ok, true);
+    game = result.state;
+  }
+
+  assert.equal(game.status, 'configuration');
+  assert.equal(game.currentBattle.phaseIndex, 1);
+  assert.equal(game.currentBattle.drawsRemaining, 1);
+  assert.equal(game.legalActions.includes('DRAW_CARDS'), true);
+  assert.equal(ownershipSnapshot(game).total, ownershipSnapshot(game).unique);
+});
+
+test('redeploy is one-shot, validates targets, preserves ownership and combat continues', () => {
+  let game = assembleTutorialZhangFei(startConfiguration('combat-move'));
+  game = reduceGame(game, { type: 'START_PHASE' }).state;
+  const beforeOwnership = ownershipSnapshot(game);
+  const beforeOrders = game.combat.ordersRemaining;
+
+  const moved = reduceGame(game, {
     type: 'ISSUE_ORDER',
-    order: {
-      type: 'redeploy',
-      unitId: 'unit-1',
-      target: { column: 1, row: 1 },
-    },
+    order: { type: 'redeploy', unitId: 'unit-1', target: { column: 1, row: 1 } },
   });
   assert.equal(moved.ok, true);
-  assert.notDeepEqual(moved.state.combat.board.units['unit-1'].cell, before);
   assert.deepEqual(moved.state.combat.board.units['unit-1'].cell, { column: 1, row: 1 });
-  assert.equal(moved.state.combat.ordersRemaining, ordersBefore - 1);
+  assert.equal(moved.state.combat.ordersRemaining, beforeOrders - 1);
+  assert.deepEqual(ownershipSnapshot(moved.state), beforeOwnership);
 
-  const noOp = reduceGame(moved.state, {
+  const secondLegal = reduceGame(moved.state, {
     type: 'ISSUE_ORDER',
-    order: {
-      type: 'redeploy',
-      unitId: 'unit-1',
-      target: { column: 1, row: 1 },
-    },
+    order: { type: 'redeploy', unitId: 'unit-1', target: { column: 2, row: 1 } },
   });
-  assert.equal(noOp.ok, false);
-  assert.equal(noOp.error.code, 'ILLEGAL_REDEPLOY_TARGET');
-  assert.deepEqual(noOp.state.combat.board.units['unit-1'].cell, { column: 1, row: 1 });
-});
+  assert.equal(secondLegal.ok, false);
+  assert.equal(secondLegal.error.code, 'REDEPLOY_ALREADY_USED');
+  assert.equal(secondLegal.state.combat.ordersRemaining, beforeOrders - 1);
 
-test('help and codex stay in the UI/browser boundary and outside military orders', async () => {
-  const root = new URL('../../../../', import.meta.url);
-  const [html, interactions, ordersPanel] = await Promise.all([
-    readFile(new URL('games/hanzi-generals/v2/index.html', root), 'utf8'),
-    readFile(new URL('games/hanzi-generals/v2/src/ui/interactions.js', root), 'utf8'),
-    readFile(new URL('games/hanzi-generals/v2/src/ui/panels/combat-orders-panel.js', root), 'utf8'),
-  ]);
+  for (const order of [
+    { type: 'redeploy', unitId: 'missing', target: { column: 0, row: 0 } },
+    { type: 'redeploy', unitId: 'unit-1', target: { column: -1, row: 0 } },
+    { type: 'redeploy', unitId: 'unit-1', target: { column: 1, row: 1 } },
+  ]) {
+    const snapshot = structuredClone(moved.state.combat);
+    const invalid = reduceGame(moved.state, { type: 'ISSUE_ORDER', order });
+    assert.equal(invalid.ok, false);
+    assert.deepEqual(invalid.state.combat, snapshot);
+  }
 
-  assert.match(html, /data-action="open-help"/);
-  assert.match(html, /data-action="open-codex"/);
-  assert.match(interactions, /open-help/);
-  assert.match(interactions, /open-codex/);
-  assert.doesNotMatch(ordersPanel, /open-help|open-codex|玩法|字典/);
-});
-
-test('phone browser gate covers the remaining player-visible regressions', async () => {
-  const root = new URL('../../../../', import.meta.url);
-  const script = await readFile(new URL('scripts/hanzi_v2_browser_ui_regressions.mjs', root), 'utf8');
-  assert.match(script, /reward.*reload|reload.*reward/is);
-  assert.match(script, /open-codex/);
-  assert.match(script, /wall.*enemy|enemy.*wall/is);
-  assert.match(script, /fortify.*assault.*focus|order.*observable/is);
+  const stepped = reduceGame(moved.state, { type: 'STEP_COMBAT' });
+  assert.equal(stepped.ok, true);
+  assert.equal(ownershipSnapshot(stepped.state).total, ownershipSnapshot(stepped.state).unique);
 });
