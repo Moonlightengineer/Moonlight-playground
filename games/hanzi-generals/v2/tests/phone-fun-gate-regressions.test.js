@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { createExpedition } from '../src/expedition/expedition.js';
 import { normalizeGameState, reduceGame } from '../src/core/state-machine.js';
 import { validateCardOwnership } from '../src/core/card-invariants.js';
+import { CURRENT_SAVE_VERSION } from '../src/storage/migrations.js';
+import { loadSnapshot, STORAGE_KEYS } from '../src/storage/storage.js';
 
 function startConfiguration(seed = 'phone-fun-gate') {
   return reduceGame(createExpedition(seed), { type: 'START_BATTLE' }).state;
@@ -37,6 +39,33 @@ function assertOwnershipValid(game) {
   assert.equal(result.valid, true, JSON.stringify(result.errors, null, 2));
 }
 
+function memoryStorage(envelope) {
+  const values = new Map([[STORAGE_KEYS.save, JSON.stringify(envelope)]]);
+  return {
+    getItem(key) {
+      return values.get(key) ?? null;
+    },
+    setItem(key, value) {
+      values.set(key, String(value));
+    },
+    removeItem(key) {
+      values.delete(key);
+    },
+  };
+}
+
+function loadDrawBudgetCase({ seed, schemaVersion = CURRENT_SAVE_VERSION, budget, omit = false }) {
+  const game = startConfiguration(seed);
+  if (omit) delete game.currentBattle.drawsRemaining;
+  else game.currentBattle.drawsRemaining = budget;
+  const before = ownershipSnapshot(game);
+  const loaded = loadSnapshot(memoryStorage({ schemaVersion, game }));
+  assert.equal(loaded.ok, true, loaded.error?.message);
+  assert.deepEqual(ownershipSnapshot(loaded.game), before);
+  assertOwnershipValid(loaded.game);
+  return loaded;
+}
+
 test('each configuration phase exposes one draw budget and rejects refill', () => {
   const game = startConfiguration('draw-budget');
   assert.equal(game.currentBattle.drawsRemaining, 1);
@@ -57,21 +86,32 @@ test('each configuration phase exposes one draw budget and rejects refill', () =
   assertOwnershipValid(repeated.state);
 });
 
-test('current saves preserve explicit draw budget while missing legacy markers fail closed', () => {
-  const explicit = startConfiguration('explicit-current');
-  explicit.currentBattle.drawsRemaining = 1;
-  const normalizedExplicit = normalizeGameState(explicit);
-  assert.equal(normalizedExplicit.currentBattle.drawsRemaining, 1);
-  assertOwnershipValid(normalizedExplicit);
+test('real save loader preserves valid draw budgets and fails closed for missing or corrupt values', () => {
+  for (const budget of [0, 1]) {
+    const loaded = loadDrawBudgetCase({ seed: `current-valid-${budget}`, budget });
+    assert.equal(loaded.game.currentBattle.drawsRemaining, budget);
+    assert.equal(loaded.migratedFrom, CURRENT_SAVE_VERSION);
+  }
 
-  const untouchedLegacy = startConfiguration('legacy-ambiguous-empty');
-  delete untouchedLegacy.currentBattle.drawsRemaining;
-  const untouchedBefore = ownershipSnapshot(untouchedLegacy);
-  const normalizedUntouched = normalizeGameState(untouchedLegacy);
-  assert.equal(normalizedUntouched.currentBattle.drawsRemaining, 0);
-  assert.deepEqual(ownershipSnapshot(normalizedUntouched), untouchedBefore);
-  assertOwnershipValid(normalizedUntouched);
+  const missingCurrent = loadDrawBudgetCase({ seed: 'current-missing', omit: true });
+  assert.equal(missingCurrent.game.currentBattle.drawsRemaining, 0);
 
+  const missingLegacy = loadDrawBudgetCase({ seed: 'legacy-missing', schemaVersion: 2, omit: true });
+  assert.equal(missingLegacy.game.currentBattle.drawsRemaining, 0);
+  assert.equal(missingLegacy.migratedFrom, 2);
+  assert.equal(missingLegacy.appliedMigrations.includes('v2-to-v3'), true);
+
+  for (const budget of [-1, 2, 99, 0.5, '1', null]) {
+    const loaded = loadDrawBudgetCase({ seed: `current-invalid-${String(budget)}`, budget });
+    assert.equal(
+      loaded.game.currentBattle.drawsRemaining,
+      0,
+      `invalid persisted draw budget ${String(budget)} must fail closed`,
+    );
+  }
+});
+
+test('missing legacy markers fail closed even after a consumed draw empties the hand', () => {
   let consumedAndEmptied = startConfiguration('legacy-consumed-empty');
   consumedAndEmptied = reduceGame(consumedAndEmptied, { type: 'DRAW_CARDS' }).state;
   consumedAndEmptied = {
@@ -85,10 +125,14 @@ test('current saves preserve explicit draw budget while missing legacy markers f
   };
   delete consumedAndEmptied.currentBattle.drawsRemaining;
   const ambiguousBefore = ownershipSnapshot(consumedAndEmptied);
-  const normalizedAmbiguous = normalizeGameState(consumedAndEmptied);
-  assert.equal(normalizedAmbiguous.currentBattle.drawsRemaining, 0);
-  assert.deepEqual(ownershipSnapshot(normalizedAmbiguous), ambiguousBefore);
-  assertOwnershipValid(normalizedAmbiguous);
+  const loaded = loadSnapshot(memoryStorage({
+    schemaVersion: CURRENT_SAVE_VERSION,
+    game: consumedAndEmptied,
+  }));
+  assert.equal(loaded.ok, true, loaded.error?.message);
+  assert.equal(loaded.game.currentBattle.drawsRemaining, 0);
+  assert.deepEqual(ownershipSnapshot(loaded.game), ambiguousBefore);
+  assertOwnershipValid(loaded.game);
 });
 
 test('draw budget resets through the public same-battle lifecycle', () => {
