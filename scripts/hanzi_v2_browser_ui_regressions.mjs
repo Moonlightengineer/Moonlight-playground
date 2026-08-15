@@ -289,7 +289,7 @@ async function run() {
     await measureOverflow(page, 'start');
 
     await page.getByRole('button', { name: '開始下一戰', exact: true }).click();
-    await page.getByRole('button', { name: '抽牌', exact: true }).click();
+    await page.getByRole('button', { name: /^抽牌 \d+\/1$/ }).click();
 
     for (const symbol of ['張', '飛']) {
       const wrap = await handWrapBySymbol(page, symbol);
