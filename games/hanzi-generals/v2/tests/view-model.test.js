@@ -33,6 +33,7 @@ test('buildAppViewModel returns panel-specific data without exposing the full ga
   assert.match(viewModel.runStatus.title, /第 1 戰/);
   assert.equal(viewModel.runStatus.wallLabel, `城牆 ${game.wallHp}/${game.wallMaxHp}`);
   assert.equal(viewModel.battleStage.visible, true);
+  assert.equal(viewModel.battleStage.wallLabel, `城牆防線 ${game.wallHp}/${game.wallMaxHp}`);
   assert.equal(viewModel.camp.visible, true);
   assert.equal(viewModel.hand.cards.length, game.deck.hand.length);
   assert.equal(viewModel.hand.cards[0].moveToCamp.disabled, false);

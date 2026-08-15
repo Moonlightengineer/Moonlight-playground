@@ -110,11 +110,14 @@ export function renderBattleStagePanel(stage, model) {
   setVisible(stage, model.visible);
   const intents = stage.querySelector('#enemy-intents');
   const enemies = stage.querySelector('#enemy-field');
+  const wall = stage.querySelector('[data-wall]');
   const board = stage.querySelector('#battle-board');
   setVisible(intents, model.combat);
   setVisible(enemies, model.combat);
+  setVisible(wall, model.combat);
   setVisible(board, model.visible);
   if (!model.visible) return;
+  if (wall) wall.textContent = model.wallLabel ?? '';
   renderWarnings(intents, model);
   renderEnemies(enemies, model);
   renderBoard(board, model);

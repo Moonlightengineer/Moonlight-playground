@@ -132,7 +132,15 @@ function buildBoardCells(game, board, assemblyTargets) {
 function buildBattleStage(game, orderTargets) {
   const visible = ['configuration', 'combat'].includes(game.status);
   const board = selectActiveBoard(game);
-  if (!visible || !board) return { visible: false, combat: false, warnings: [], enemies: [], columns: 0, cells: [] };
+  if (!visible || !board) return {
+    visible: false,
+    combat: false,
+    wallLabel: null,
+    warnings: [],
+    enemies: [],
+    columns: 0,
+    cells: [],
+  };
   const combat = game.status === 'combat';
   const focusable = new Set(orderTargets.focusEnemyIds);
   const laneStacks = new Map();
@@ -167,6 +175,7 @@ function buildBattleStage(game, orderTargets) {
   return {
     visible,
     combat,
+    wallLabel: `城牆防線 ${game.wallHp}/${game.wallMaxHp}`,
     columns: board.size.columns,
     warnings,
     enemies,
