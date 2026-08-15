@@ -22,12 +22,14 @@ export function selectOrderTargets(game) {
     ...Object.values(combat.board.units).map(({ cell }) => `${cell.column},${cell.row}`),
     ...Object.keys(game.boardCards ?? {}),
   ]);
-  const redeployUnitIds = Object.values(combat.board.units)
-    .filter(({ hp }) => hp > 0)
-    .map(({ id }) => id)
-    .sort();
   const legalRedeployCells = listCells(combat.board)
     .filter(({ column, row }) => !occupied.has(`${column},${row}`));
+  const redeployUnitIds = legalRedeployCells.length
+    ? Object.values(combat.board.units)
+      .filter(({ hp }) => hp > 0)
+      .map(({ id }) => id)
+      .sort()
+    : [];
 
   return {
     focusEnemyIds,
