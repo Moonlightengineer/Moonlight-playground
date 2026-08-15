@@ -14,6 +14,7 @@ import {
 import { createExpedition } from '../expedition/expedition.js';
 import { recordBattleEvents } from '../report/battle-report.js';
 import { assessRewardAvailability, applyRewardChoice, generateRewardOffer } from '../reward/reward-flow.js';
+import { normalizeDrawBudget } from './draw-budget.js';
 import { createRng } from './rng.js';
 import { reduceGame as reduceBaseGame, ALLOWED } from './state-machine-base.js';
 
@@ -107,7 +108,7 @@ function normalizeRewardChoices(state) {
 
 export function normalizeGameState(state) {
   if (!state || typeof state !== 'object') return state;
-  const migrated = normalizeLegacyCampBonus({
+  const migrated = normalizeDrawBudget(normalizeLegacyCampBonus({
     ...state,
     combat: normalizeCombatOrders(state.combat),
     recruitedGeneralIds: [...new Set(state.recruitedGeneralIds ?? [])],
@@ -116,7 +117,7 @@ export function normalizeGameState(state) {
     battleReport: state.battleReport ?? null,
     lastBattleReport: state.lastBattleReport ?? null,
     battleMetrics: state.battleMetrics ?? null,
-  });
+  }));
   return normalizeRewardChoices(migrated);
 }
 

@@ -30,7 +30,8 @@ body {
     var(--paper);
   background-size: 28px 28px;
 }
-body.help-open { overflow: hidden; }
+body.help-open,
+body.codex-open { overflow: hidden; }
 
 button,
 a,
@@ -71,8 +72,12 @@ button:disabled { cursor: not-allowed; opacity: 0.5; }
 }
 .header-actions { display: flex; flex: 0 0 auto; gap: 5px; }
 
-#v2-game-app[data-status="combat"] .game-header,
+#v2-game-app[data-status="combat"] .game-header > div:first-child,
 #v2-game-app[data-status="combat"] .disclaimer { display: none; }
+#v2-game-app[data-status="combat"] .game-header {
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
 #v2-game-app[data-status="combat"] { padding-top: 4px; }
 
 .eyebrow {
@@ -479,7 +484,25 @@ h2 { margin: 0 0 6px; font-size: 0.85rem; }
   overscroll-behavior: contain;
   background: rgba(43, 33, 24, 0.72);
 }
+#codex-panel {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  padding: max(8px, env(safe-area-inset-top)) 8px max(12px, env(safe-area-inset-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: rgba(43, 33, 24, 0.72);
+}
 .help-sheet {
+  width: min(100%, 720px);
+  min-height: calc(100% - 4px);
+  margin: 0 auto;
+  padding: 0 12px 24px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--paper-soft);
+}
+.codex-sheet {
   width: min(100%, 720px);
   min-height: calc(100% - 4px);
   margin: 0 auto;
@@ -503,6 +526,23 @@ h2 { margin: 0 0 6px; font-size: 0.85rem; }
   background: rgba(255, 249, 236, 0.98);
 }
 .help-header h2 { margin: 0; font-size: 1.2rem; }
+.codex-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 -12px 10px;
+  padding: 12px;
+  border-bottom: 1px solid var(--line);
+  border-radius: 16px 16px 0 0;
+  background: rgba(255, 249, 236, 0.98);
+}
+.codex-header h2 { margin: 0; font-size: 1.2rem; }
+.codex-summary { margin: 0; color: var(--muted); font-size: 0.8rem; font-weight: 750; }
+.codex-grid { margin-top: 10px; }
 .help-intro { margin: 0 0 10px; color: var(--muted); font-size: 0.8rem; line-height: 1.45; }
 .help-navigation {
   display: flex;

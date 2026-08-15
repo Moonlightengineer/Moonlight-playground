@@ -8,6 +8,7 @@ import {
 import { drawToHand } from '../deck/deck.js';
 import { applyOrder } from '../combat/orders.js';
 import { createExpedition, ROUTES } from '../expedition/expedition.js';
+import { canDrawThisPhase } from './draw-budget.js';
 import { gameEvent } from './events.js';
 
 const ALLOWED = Object.freeze({
@@ -34,11 +35,15 @@ function failure(game, code, message) {
 }
 
 function drawCards(game) {
+  if (!canDrawThisPhase(game)) {
+    return failure(game, 'DRAW_LIMIT_REACHED', '本段抽牌次數已用完。');
+  }
   const result = drawToHand(game.deck, TUNING.handSize, game.rng);
   return success({
     ...game,
     deck: result.deck,
     rng: result.rng,
+    currentBattle: { ...game.currentBattle, drawsRemaining: 0 },
     legalActions: [
       'SELECT_CARD', 'MOVE_CARD_TO_CAMP', 'RETURN_CAMP_CARD',
       'RETURN_BOARD_CARD', 'ASSEMBLE', 'RETAIN_CARDS', 'REROLL', 'START_PHASE',
@@ -124,9 +129,20 @@ export function reduceGame(game, action) {
     case 'ASSEMBLE':
       return assemble(game, action);
     case 'ISSUE_ORDER': {
-      const result = applyOrder(game.combat, action.order, { unitsById: GENERAL_BY_ID });
+      const result = applyOrder(game.combat, action.order, {
+        unitsById: GENERAL_BY_ID,
+        boardCards: game.boardCards,
+      });
       return result.ok
-        ? success({ ...game, combat: result.state }, result.events)
+        ? success({
+          ...game,
+          combat: result.state,
+          currentBattle: {
+            ...game.currentBattle,
+            ordersRemaining: result.state.ordersRemaining,
+            redeployUsed: Boolean(result.state.redeployUsed),
+          },
+        }, result.events)
         : { ...result, state: game };
     }
     case 'PAUSE':
