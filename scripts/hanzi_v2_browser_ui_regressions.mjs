@@ -177,7 +177,7 @@ async function verifyResetFlows(page) {
   });
 
   const before = await storageSnapshot(page);
-  await page.locator('#orders [data-action="open-help"]').click();
+  await page.locator('.game-header [data-action="open-help"]').click();
   await acceptNextDialog(page);
   await page.locator('#help-panel [data-action="restart-expedition"]').click();
   await page.waitForFunction(() => document.querySelector('#v2-game-app')?.dataset.status === 'expedition-map');
