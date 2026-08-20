@@ -47,3 +47,41 @@
 - 預設以新 branch + Pull Request 修改；Owner 負責最終合併。
 - PR 說明要列出實際使用效果、測試證據、風險及需要人手確認的項目。
 - 不做與當前實驗無關的大型重構。
+
+## `games/hanzi-generals/**`｜字陣無雙開發路由
+
+本節只適用於《字陣無雙》。它選擇性整合 `mattpocock/skills` 的對齊、規格、TDD、除錯、review 及 handoff 原則；不安裝整套流程，不取代現有 MPOS、Notion SOT 或 GitHub 規則。
+
+### 開工順序與真相來源
+
+1. 先讀 Notion「字陣無雙｜Project Brain」。
+2. 再核對最新 approved repository／PR exact HEAD、diff、測試及 workflow。
+3. 最後只讀本次工作真正相關的 SOT。
+
+Notion 保存已批准決定、設計、架構、專案狀態及交接；GitHub 保存實作真相；Chat 只作臨時工作空間。除非 Project Brain 明確批准，不新增 `CONTEXT.md`、ADR、平行 issue tracker、重複規格或散落交接文件。
+
+### 按任務選流程
+
+- **細小而完整定義的工作：** 直接實作及驗證；不要為使用流程而強行訪談、寫長規格或拆大量 tickets。
+- **會實質改變產品、玩法、UX、架構、資料或成本的模糊工作：** 先完成 Decision Baseline，只向 Ken 提交真正需要人作決定的分支；可由 repo、Notion 或工具查到的事實由 agent 自行查證。未批准前不可寫 production code。
+- **已批准、跨多步驟的改動：** 將既有決定整理成精簡 spec、out-of-scope、驗收準則及測試邊界，寫入現有 Notion SOT 或相連 GitHub issue。只有超過一個安全 PR／session或存在依賴時才拆 tickets。
+- **功能或一般修正：** 以最小垂直切片推進；優先在既有 public seam 驗證玩家可見行為。適用時先建立會失敗的測試，再寫最少 production code 令其通過；不得為增加測試數量而測 private implementation。
+- **困難 bug／效能問題：** 先建立能捕捉原始症狀、可重複及可由 agent 執行的 feedback loop；縮小重現案例，再列出可證偽假設、精準 instrument、修正根因及加入 regression test。完成前移除臨時 log、harness 及 debug artifact。
+- **Review：** 先固定 base／merge-base及 exact HEAD，再分開檢查：① Spec／SOT 是否完整落實、有否 scope creep；② Repo 標準、回歸、安全、私隱、資料格式及可維護性。舊 SHA 的綠燈不可當成新 HEAD 證據。
+- **Handoff：** 只引用 Project Brain、SOT、issue、PR、commit、測試及 artifact，不重抄已保存內容。狀態或決定有改變便更新 Project Brain；未完成而下一位 AI 無法直接接手便留下 Handoff。
+
+### 角色及範圍邊界
+
+- Gameplay 負責玩法；UX 負責呈現及互動；Research 只提出建議；Codex／Implementation 只實作已批准工作。
+- UX 不可自行改玩法；Implementation 不可補作產品決定；跨範圍 finding 以 Handoff 交回正確角色。
+- 自動測試及 Chromium browser gate 不可冒充真實 iPhone／Safari 玩家驗收。
+- 不把目前 PR 號碼、SHA 或短期進度寫死在本檔；每次由 Project Brain 及 GitHub 重新取得。
+- AI 不得自行 merge。
+
+### 字陣無雙完成標準
+
+1. 玩家可見效果符合已批准 SOT／issue及驗收準則。
+2. Focused tests、完整 test suite、static build及適用 browser gate均在同一 exact HEAD 通過。
+3. 無 unrelated refactor、臨時檔、秘密、資料格式不一致或未說明風險。
+4. PR 清楚列出實際效果、exact-SHA證據、已知限制及需人手確認項目。
+5. 如專案狀態、決定或下一步有改變，Project Brain／Handoff 已同步，令下一位 AI 毋須閱讀本次對話即可繼續。
