@@ -1,0 +1,2 @@
+# Frozen experiment artifacts are verified by byte hash on Windows and Linux.
+games/boss-model-comparison/play/** -text
