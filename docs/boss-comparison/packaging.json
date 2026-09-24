@@ -83,5 +83,29 @@
       "assets/index-B0QUmHpS.css": "6ec7132b5295bde664a1a1a394393891c3fa04422af64c9beac6babb1b4974bc",
       "assets/index-OJMszNL_.js": "968f6f89f9dd640d67da1eb6926863c41253306efd7a01d507f606ed87c297f0"
     }
+  },
+  "opus-stage2": {
+    "source": "Frozen Opus5.5 High Stage2, Devin implementation continued by Claude Code",
+    "adaptation": "Relative URLs already portable. Only service worker cache namespace, cleanup, lookup and request scope isolated; gameplay JS/CSS unchanged.",
+    "original_asset_sha256": {
+      "index.html": "336dba772b16866117ada2abecbdbc702f876982e53db0e780fb6e89a727d19f",
+      "manifest.webmanifest": "c4718fc49a2f2ab08e075f629d751ceb607c8ef94a3c2bc7eceb8773c6b7772a",
+      "sw.js": "879f2ad904c7b6e979795bf5b7301a4c54137c716a298b89db95182af044b2ac",
+      "assets/index-C-ql9nlT.css": "e2e0acff419152fceb972ad2f1cdae1085a1fba889ce0b32fd1429bdfb5952be",
+      "assets/index-Ccc9WRz9.js": "a49836626a8641fc25d0e537c0e4a5a12a008727e4fd10f23d49122421c09116",
+      "icons/icon-192.png": "665e9940f3a2069d2f7c4366fc20204841a5518793bfd4521f035cc95f400a4f",
+      "icons/icon-512.png": "71692e0a9f998dd77ea7e18af695683ef00ee579ed9ec0dcac1eaf01cb68b141",
+      "icons/maskable-512.png": "17dc187ca9d8acb5ce679efa2d64f43aa230f3f93b34c5b4c65c5d09f88bd53b"
+    },
+    "assets": {
+      "index.html": "336dba772b16866117ada2abecbdbc702f876982e53db0e780fb6e89a727d19f",
+      "manifest.webmanifest": "c4718fc49a2f2ab08e075f629d751ceb607c8ef94a3c2bc7eceb8773c6b7772a",
+      "sw.js": "34c2ba877a7bacfe8bd535761d56c3672f636e963607f2ea32c9f520a5ce1826",
+      "assets/index-C-ql9nlT.css": "e2e0acff419152fceb972ad2f1cdae1085a1fba889ce0b32fd1429bdfb5952be",
+      "assets/index-Ccc9WRz9.js": "a49836626a8641fc25d0e537c0e4a5a12a008727e4fd10f23d49122421c09116",
+      "icons/icon-192.png": "665e9940f3a2069d2f7c4366fc20204841a5518793bfd4521f035cc95f400a4f",
+      "icons/icon-512.png": "71692e0a9f998dd77ea7e18af695683ef00ee579ed9ec0dcac1eaf01cb68b141",
+      "icons/maskable-512.png": "17dc187ca9d8acb5ce679efa2d64f43aa230f3f93b34c5b4c65c5d09f88bd53b"
+    }
   }
 }

@@ -80,7 +80,7 @@ def build() -> None:
     comparison = ROOT / "games" / "boss-model-comparison"
     if any(p.get("id") == "boss-model-comparison" for p in projects):
         manifest = json.loads((ROOT / "docs/boss-comparison/packaging.json").read_text(encoding="utf-8"))
-        for model in ("opus", "astra", "sol", "astra-stage2", "sol-stage2"):
+        for model in ("opus", "astra", "sol", "astra-stage2", "sol-stage2", "opus-stage2"):
             for filename, expected in manifest[model]["assets"].items():
                 if ":" in filename or "\\" in filename or filename.startswith("/") or ".." in filename.split("/"):
                     raise RuntimeError(f"Nonportable asset path: {filename}")
