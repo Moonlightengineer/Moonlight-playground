@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="theme-color" content="#0d0f14" />
+    <title>裂甲守衛</title>
+    <link rel="icon" href="data:," />
+    <script type="module" crossorigin src="./assets/index-Djz4C06j.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-Ds23Zvho.css">
+  </head>
+  <body>
+    <div id="safe-probe"></div>
+    <div id="app">
+      <canvas id="view"></canvas>
+      <div id="topbar">
+        <div class="bar-row boss-row">
+          <span class="boss-name">裂甲守衛</span>
+          <div class="bar boss-bar"><div class="fill" id="bossFill"></div><div class="lag" id="bossLag"></div></div>
+          <span class="num" id="bossNum">900</span>
+        </div>
+        <div class="bar-row player-row">
+          <div class="bar hp-bar"><div class="fill" id="hpFill"></div></div>
+          <span class="num" id="hpNum">100</span>
+          <div class="bar st-bar"><div class="fill" id="stFill"></div></div>
+        </div>
+        <button id="pauseBtn" class="icon-btn" aria-label="暫停"><span></span><span></span></button>
+      </div>
+      <div id="panel">
+        <div id="ring">
+          <div id="rimMark"></div>
+          <div id="dot"></div>
+        </div>
+      </div>
+      <div id="flash"></div>
+      <div id="screenTitle" class="screen">
+        <h1>裂甲守衛</h1>
+        <button id="startBtn" class="btn">開始</button>
+      </div>
+      <div id="screenPause" class="screen hidden">
+        <h2>暫停</h2>
+        <button id="resumeBtn" class="btn">繼續</button>
+        <button id="retryBtn2" class="btn ghost">重試</button>
+        <button id="muteBtn" class="btn ghost">音效：開</button>
+      </div>
+      <div id="screenResult" class="screen hidden">
+        <h2 id="resultTitle">勝利</h2>
+        <p id="resultTime">00:00.0</p>
+        <button id="retryBtn" class="btn">重試</button>
+      </div>
+      <div id="screenSmall" class="screen hidden"><p>請放大視窗</p></div>
+      <pre id="debug" class="hidden"></pre>
+    </div>
+
+  </body>
+</html>

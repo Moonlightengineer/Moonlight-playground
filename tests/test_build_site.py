@@ -6,6 +6,21 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildSiteTest(unittest.TestCase):
+    def test_boss_comparison_requires_packaged_assets(self):
+        from scripts.build_site import build, ROOT
+        from unittest.mock import patch
+        original = Path.read_bytes
+        def missing_asset(path):
+            if path.parent.name == "assets" and "boss-model-comparison" in path.parts:
+                raise FileNotFoundError("Simulated missing game bundle")
+            return original(path)
+        with patch.object(Path, "read_bytes", missing_asset):
+            with self.assertRaises(FileNotFoundError):
+                build()
+        build()
+        for model in ("opus", "astra", "sol"):
+            self.assertTrue((ROOT / f"_site/games/boss-model-comparison/play/{model}/index.html").is_file())
+
     def test_build_keeps_classic_and_copies_hidden_v2(self):
         result = subprocess.run(
             ["python", "scripts/build_site.py"],

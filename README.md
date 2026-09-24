@@ -99,3 +99,7 @@ Vertical Slice 完成後由以下路徑提供指定測試者使用：
 - 公開實驗不代表任何僱主、客戶或項目。
 - 預設使用原創或獲合法授權的素材。
 - 此 Repo 用作快速試驗，不取代成熟項目的正式文件、Issue、測試及版本管理。
+
+## 三模型 Boss 戰評測頁
+
+`games/boss-model-comparison/` 是評測介紹及三組 Stage 1 production 成品。首頁只新增入口。遊戲邏輯不改，HTML asset URL 調整成相對路徑，包裝 hash 見 `docs/boss-comparison/packaging.json`。評分未公開。
