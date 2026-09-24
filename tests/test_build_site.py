@@ -6,6 +6,19 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildSiteTest(unittest.TestCase):
+    def test_boss_manifest_rejects_windows_drive(self):
+        from scripts.build_site import build
+        from unittest.mock import patch
+        import json
+        manifest = json.loads((ROOT / "docs/boss-comparison/packaging.json").read_text(encoding="utf-8"))
+        manifest["opus"]["assets"]["C:/tmp/escape.bin"] = "unused"
+        original = Path.read_text
+        def read_manifest(path, *args, **kwargs):
+            return json.dumps(manifest) if path.name == "packaging.json" else original(path, *args, **kwargs)
+        with patch.object(Path, "read_text", read_manifest):
+            with self.assertRaisesRegex(RuntimeError, "Nonportable asset path"):
+                build()
+
     def test_boss_comparison_requires_packaged_assets(self):
         from scripts.build_site import build, ROOT
         from unittest.mock import patch

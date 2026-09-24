@@ -82,7 +82,7 @@ def build() -> None:
         manifest = json.loads((ROOT / "docs/boss-comparison/packaging.json").read_text(encoding="utf-8"))
         for model in ("opus", "astra", "sol"):
             for filename, expected in manifest[model]["assets"].items():
-                if "\\" in filename or filename.startswith("/") or ".." in filename.split("/"):
+                if ":" in filename or "\\" in filename or filename.startswith("/") or ".." in filename.split("/"):
                     raise RuntimeError(f"Nonportable asset path: {filename}")
                 asset = comparison / "play" / model / filename
                 if hashlib.sha256(asset.read_bytes()).hexdigest() != expected:
