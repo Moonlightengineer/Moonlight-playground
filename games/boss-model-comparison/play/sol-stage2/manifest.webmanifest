@@ -1,0 +1,11 @@
+{
+  "name":"裂甲守衛",
+  "short_name":"裂甲守衛",
+  "description":"單手操控的 3D Boss 戰",
+  "start_url":"/Moonlight-playground/games/boss-model-comparison/play/sol-stage2/",
+  "scope":"/Moonlight-playground/games/boss-model-comparison/play/sol-stage2/",
+  "display":"standalone",
+  "background_color":"#111923",
+  "theme_color":"#17232b",
+  "icons":[{"src":"/Moonlight-playground/games/boss-model-comparison/play/sol-stage2/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}

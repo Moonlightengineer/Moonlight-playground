@@ -80,15 +80,15 @@ def build() -> None:
     comparison = ROOT / "games" / "boss-model-comparison"
     if any(p.get("id") == "boss-model-comparison" for p in projects):
         manifest = json.loads((ROOT / "docs/boss-comparison/packaging.json").read_text(encoding="utf-8"))
-        for model in ("opus", "astra", "sol"):
+        for model in ("opus", "astra", "sol", "astra-stage2", "sol-stage2"):
             for filename, expected in manifest[model]["assets"].items():
                 if ":" in filename or "\\" in filename or filename.startswith("/") or ".." in filename.split("/"):
                     raise RuntimeError(f"Nonportable asset path: {filename}")
                 asset = comparison / "play" / model / filename
                 if hashlib.sha256(asset.read_bytes()).hexdigest() != expected:
                     raise RuntimeError(f"Boss build hash mismatch: {model}/{filename}")
-            require_text(comparison / "play" / model / "index.html", "./assets/")
-            if not (comparison / "images" / f"{model}.png").is_file():
+            require_text(comparison / "play" / model / "index.html", "/assets/")
+            if not (comparison / "images" / f"{model.removesuffix('-stage2')}.png").is_file():
                 raise RuntimeError(f"Missing screenshot: {model}")
         require_text(comparison / "cover.svg", "<svg")
         require_text(comparison / "style.css", ":root")

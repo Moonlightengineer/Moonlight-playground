@@ -37,5 +37,51 @@
       "assets/index-BNYOSF1s.css": "8880b9803b22707ab9ac90d57721b4e958836f77f6cc3e0e6c9fa6dc79aef380",
       "assets/index-CFH2LEtD.js": "5670af9c666f6aefba3f42371feb38a9fc29eee5ecb5a2146d31be83e6c4f22e"
     }
+  },
+  "astra-stage2": {
+    "source": "frozen Stage 2 production build",
+    "adaptation": "Deployment URL prefix only in HTML, manifest, service worker and registration; gameplay unchanged. Original hashes retained.",
+    "original_asset_sha256": {
+      "index.html": "975f580c666b9fab1169c550309624455112a6c4cebaed1afacebdd601d79861",
+      "manifest.webmanifest": "4982a1d531e67de360c281234a9c773c3631d0111016553742df35fd2dece8d3",
+      "sw.js": "765dc50b9ca17d7d542d6b8235f47c0cfc7b7548b7fee56fda10053bb0e34945",
+      "assets/index-Be0ma_mj.css": "57dcefc8a4679be8cfed6403d9255e272fe9c493d660e296ea051e302fac1ccf",
+      "assets/index-D5hZ9Yqg.js": "b37202dc8a813e817edf50bb680a6742a62ef0ee02f7fa4afdf693294c2182aa",
+      "icons/warden-192.png": "287a70ac9e1fd8abeff9873af42a20464091a5abfb87f5d163d4bce2b3bf7622",
+      "icons/warden-512.png": "b5924eb2ad0348f1b9bd5870e1e2ac91fac43df91d018462fc4c2a4f6265c753",
+      "icons/warden-maskable.png": "b5924eb2ad0348f1b9bd5870e1e2ac91fac43df91d018462fc4c2a4f6265c753",
+      "icons/warden.svg": "63d3e0920f3a21a7efffab14d44de3d1ba89e183a00a96fa330794d69aba6c4c"
+    },
+    "assets": {
+      "index.html": "f39ec85ef9d323b44edc5ff61ff8c7111876df73ff3bc0a9a7afe1c47c55aa30",
+      "manifest.webmanifest": "04806873a0c0c8b23733be0a6c4d1bba5f132bffb451f0853839aeb4c1223c1b",
+      "sw.js": "be7c873d534a48ae2da6062745b8acf4b8c1b1448d6da8a3958eb9912826b60c",
+      "assets/index-Be0ma_mj.css": "57dcefc8a4679be8cfed6403d9255e272fe9c493d660e296ea051e302fac1ccf",
+      "assets/index-D5hZ9Yqg.js": "1710b47e757d3897e41d42af44e7ab46006ff9f9317b621c47ceac3e7a2e3b0a",
+      "icons/warden-192.png": "287a70ac9e1fd8abeff9873af42a20464091a5abfb87f5d163d4bce2b3bf7622",
+      "icons/warden-512.png": "b5924eb2ad0348f1b9bd5870e1e2ac91fac43df91d018462fc4c2a4f6265c753",
+      "icons/warden-maskable.png": "b5924eb2ad0348f1b9bd5870e1e2ac91fac43df91d018462fc4c2a4f6265c753",
+      "icons/warden.svg": "63d3e0920f3a21a7efffab14d44de3d1ba89e183a00a96fa330794d69aba6c4c"
+    }
+  },
+  "sol-stage2": {
+    "source": "frozen Stage 2 production build",
+    "adaptation": "Deployment URL prefix only in HTML, manifest, service worker and registration; gameplay unchanged. Original hashes retained.",
+    "original_asset_sha256": {
+      "icon.svg": "0c960a7e057b9b275f1bd5a75fedc613049f71d6c8db72c1f48188fda7132e73",
+      "index.html": "d4cc2ba00bcf77e36314eb75d2adbecc71ae4163e150b8e5e830437b4620fc81",
+      "manifest.webmanifest": "ded78166d94e88576c014b36bd13e82650254f380e9c414bf5d114d17c7b2cc9",
+      "sw.js": "584d69aeb27570d21e2b0635356b29d69fbe6333b64b3a5d00a7cd8015a7bbef",
+      "assets/index-B0QUmHpS.css": "6ec7132b5295bde664a1a1a394393891c3fa04422af64c9beac6babb1b4974bc",
+      "assets/index-OJMszNL_.js": "5374ad94c2c4c7763620a523014427249524906867243e5dc9ebf2bd42eae22c"
+    },
+    "assets": {
+      "icon.svg": "0c960a7e057b9b275f1bd5a75fedc613049f71d6c8db72c1f48188fda7132e73",
+      "index.html": "1fa3233eff9b81ff2bda0e4655fc1fb00b9b972abcd0b82d0d5231e100251e01",
+      "manifest.webmanifest": "ba19e12545592bf7f4d5a481df08a7535f4646d3081385e6493ec96ca7de6373",
+      "sw.js": "98113969e1206d54b28c764193fde0d1bfa1060fc3db617e6d0e11b7b120a0c6",
+      "assets/index-B0QUmHpS.css": "6ec7132b5295bde664a1a1a394393891c3fa04422af64c9beac6babb1b4974bc",
+      "assets/index-OJMszNL_.js": "968f6f89f9dd640d67da1eb6926863c41253306efd7a01d507f606ed87c297f0"
+    }
   }
 }

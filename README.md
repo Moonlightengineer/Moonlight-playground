@@ -1,14 +1,16 @@
-# 月光試驗場｜Moonlight Playground
+# 庫倫 Coulomb × 異相工作室｜Out of Phase Studio
 
-> 有正職嘅香港工程師，夜晚學用 AI 將想法整成可以玩、可以用嘅工具同遊戲。
+> 用工程的眼光，拆解日常與科技。
 
-Moonlight Engineer 係一個放工後 AI 試驗場。這裡集中放置小型網頁遊戲、實用工具及概念驗證；有足夠價值、使用者或獨立發佈需要的實驗，會升級成獨立 Repo。
+庫倫 Coulomb 的個人創作入口，集中展示異相工作室的內容方向、社交入口與已公開的小型網頁遊戲、工具及概念驗證。成熟實驗仍保留獨立 Repo，不將所有正式產品搬回此處。
+
+Repo 及 GitHub Pages 路徑沿用 `Moonlight-playground`，避免破壞既有連結；月光試驗場為歷史名稱。
 
 ## 公開網址
 
-首次合併並啟用 GitHub Pages 後：
-
 `https://moonlightengineer.github.io/Moonlight-playground/`
+
+首頁修改以 PR 提交；合併並完成既有 GitHub Pages workflow 後才會反映到公開網址。
 
 ## 現有實驗
 
@@ -16,17 +18,27 @@ Moonlight Engineer 係一個放工後 AI 試驗場。這裡集中放置小型網
 |---|---|---|---|
 | 字陣無雙 | 網頁遊戲 | 可遊玩 | `games/hanzi-generals/` |
 
+## 首頁品牌與發布邊界
+
+- 創作者：庫倫 Coulomb；內容品牌：異相工作室 Out of Phase Studio。
+- 四個內容方向：AI・科技、零序 Zero Sequence、空想科學台、異相實驗室。連結指向同一個 YouTube 頻道，不宣稱已有個別影片或 Playlist。
+- 社交入口依已確認帳號：YouTube `@outofphasehk`、Instagram／Threads `coulomb.hk`、X `@coulombhk`。
+- 首頁採文字識別，`coulomb-type.svg` 只是文字 C 的網站小圖示；不是待驗收的 TRI PHASE Studio Logo。波形為裝飾，不是最終 Logo。
+- 不公開私人 Repo、未發布實驗、公司／客戶資料或登入用電郵。`projects.json` 仍只登記已公開作品。
+- 讀取 registry 前或讀取失敗時保留可點擊的 HTML 作品卡；分類只在有效資料載入後啟用。JavaScript 停用時仍可使用作品及社交連結。
+
 ## Repo 結構
 
 ```text
 Moonlight-playground/
-├─ index.html                         # 公開入口首頁
+├─ index.html                         # 個人創作／內容／作品入口
 ├─ projects.json                      # 首頁項目登記
-├─ assets/                            # Playground 品牌與介面資源
+├─ assets/                            # 首頁介面資源
 ├─ games/<slug>/                      # 各個獨立網頁遊戲
 ├─ tools/<slug>/                      # 各個獨立實用工具
 ├─ site-packages/                     # 首次匯入大型單檔作品的傳輸封裝
 ├─ scripts/build_site.py              # 建置及完整性驗證
+├─ tests/homepage_browser.py          # 可選的離線首頁 browser smoke test
 ├─ AGENTS.md                          # AI agent 工作規則
 └─ .github/workflows/pages.yml        # PR 驗證及 GitHub Pages 部署
 ```
@@ -35,7 +47,7 @@ Moonlight-playground/
 
 1. 建立 `games/<slug>/` 或 `tools/<slug>/`。
 2. 確保資料夾內有可直接開啟的 `index.html`。
-3. 在 `projects.json` 加入項目資料、封面及公開路徑。
+3. 在 `projects.json` 加入項目資料、封面及公開路徑，並同步首頁靜態 fallback。
 4. 執行 `python scripts/build_site.py`。
 5. 用本機靜態伺服器檢查 `_site/`。
 6. 以 Pull Request 提交，由 Owner 合併。
@@ -65,6 +77,20 @@ python -m http.server 8000 --directory _site
 ```text
 SITE_VERIFY_OK projects=1 game_bytes=58434 v2=1
 ```
+
+### 可選首頁 browser smoke test
+
+不增加網站 runtime dependency。開發環境安裝 Playwright 與 Chromium 後執行：
+
+```bash
+python -m pip install playwright
+python -m playwright install chromium
+python tests/homepage_browser.py
+# 使用已安裝的 Chromium：
+python tests/homepage_browser.py --browser /usr/bin/chromium
+```
+
+輸出到 `artifacts/homepage/`。測試將原始 HTML／CSS／封面在記憶體內載入，僅 mock registry 網絡回應，覆蓋手機／桌面尺寸、分類、鍵盤、錯誤／慢速資料、無 JavaScript 與減少動態效果。這不是正式站網絡驗證、Safari／實體 iPhone 驗收或完整遊戲試玩；不應混稱。
 
 ## GitHub Pages 一次性設定
 
@@ -102,4 +128,5 @@ Vertical Slice 完成後由以下路徑提供指定測試者使用：
 
 ## 三模型 Boss 戰評測頁
 
-`games/boss-model-comparison/` 是評測介紹及三組 Stage 1 production 成品。首頁只新增入口。遊戲邏輯不改，HTML asset URL 調整成相對路徑，包裝 hash 見 `docs/boss-comparison/packaging.json`。評分未公開。
+`games/boss-model-comparison/` 是評測介紹、三組 Stage 1 及 Astra／Sol Stage 2 production 成品。整合 PR #21 品牌首頁，新增評測入口。遊戲邏輯不改；Stage 1 調整 HTML asset URL，Stage 2 額外限定 PWA manifest、service worker 與註冊 URL 至各自子目錄，包裝 hash 見 `docs/boss-comparison/packaging.json`。評分未公開。
+
