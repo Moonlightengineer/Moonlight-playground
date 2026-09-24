@@ -1,11 +1,41 @@
+import json
 import subprocess
 import unittest
+from html.parser import HTMLParser
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
 
 class BuildSiteTest(unittest.TestCase):
+    def test_boss_manifest_rejects_windows_drive(self):
+        from scripts.build_site import build
+        from unittest.mock import patch
+        import json
+        manifest = json.loads((ROOT / "docs/boss-comparison/packaging.json").read_text(encoding="utf-8"))
+        manifest["opus"]["assets"]["C:/tmp/escape.bin"] = "unused"
+        original = Path.read_text
+        def read_manifest(path, *args, **kwargs):
+            return json.dumps(manifest) if path.name == "packaging.json" else original(path, *args, **kwargs)
+        with patch.object(Path, "read_text", read_manifest):
+            with self.assertRaisesRegex(RuntimeError, "Nonportable asset path"):
+                build()
+
+    def test_boss_comparison_requires_packaged_assets(self):
+        from scripts.build_site import build, ROOT
+        from unittest.mock import patch
+        original = Path.read_bytes
+        def missing_asset(path):
+            if path.parent.name == "assets" and "boss-model-comparison" in path.parts:
+                raise FileNotFoundError("Simulated missing game bundle")
+            return original(path)
+        with patch.object(Path, "read_bytes", missing_asset):
+            with self.assertRaises(FileNotFoundError):
+                build()
+        build()
+        for model in ("opus", "astra", "sol"):
+            self.assertTrue((ROOT / f"_site/games/boss-model-comparison/play/{model}/index.html").is_file())
+
     def test_build_keeps_classic_and_copies_hidden_v2(self):
         result = subprocess.run(
             ["python", "scripts/build_site.py"],
@@ -46,6 +76,67 @@ class BuildSiteTest(unittest.TestCase):
         )
         self.assertFalse((ROOT / "_site/games/hanzi-generals/v2/tests").exists())
         self.assertFalse((ROOT / "_site/docs").exists())
+
+
+class PageParser(HTMLParser):
+    def __init__(self, source):
+        super().__init__()
+        self.nodes = []
+        self.feed(source)
+
+    def handle_starttag(self, tag, attrs):
+        self.nodes.append((tag, dict(attrs)))
+
+
+class HomepageContractTest(unittest.TestCase):
+    def setUp(self):
+        self.html = (ROOT / "index.html").read_text(encoding="utf-8")
+        self.nodes = PageParser(self.html).nodes
+
+    def test_current_identity_and_four_series(self):
+        for text in ("庫倫 Coulomb", "異相工作室", "Out of Phase Studio",
+                     "AI・科技", "Zero Sequence", "空想科學台", "異相實驗室"):
+            self.assertIn(text, self.html)
+        self.assertEqual(sum(tag == "h1" for tag, _ in self.nodes), 1)
+        self.assertEqual(sum(attrs.get("class") == "series-item" for _, attrs in self.nodes), 4)
+
+    def test_internal_anchors_and_ids(self):
+        ids = [attrs["id"] for _, attrs in self.nodes if "id" in attrs]
+        self.assertEqual(len(ids), len(set(ids)))
+        for tag, attrs in self.nodes:
+            href = attrs.get("href", "")
+            if tag == "a" and href.startswith("#"):
+                self.assertIn(href[1:], ids)
+
+    def test_static_fallback_matches_public_registry(self):
+        registry = json.loads((ROOT / "projects.json").read_text(encoding="utf-8"))
+        for project in registry["projects"]:
+            if project.get("published") is False:
+                continue
+            for key in ("title", "description", "path", "cover"):
+                self.assertIn(project[key], self.html)
+        self.assertNotIn("hanzi-generals/v2", self.html)
+        self.assertIn('href="./games/hanzi-generals/"', self.html)
+
+    def test_filters_start_hidden_and_disabled(self):
+        filters = next(attrs for _, attrs in self.nodes if attrs.get("id") == "project-filters")
+        self.assertIn("hidden", filters)
+        buttons = [attrs for tag, attrs in self.nodes if tag == "button" and "data-filter" in attrs]
+        self.assertEqual(len(buttons), 3)
+        self.assertTrue(all("disabled" in attrs and "aria-pressed" in attrs for attrs in buttons))
+
+    def test_assets_and_canonical_route(self):
+        for tag, attrs in self.nodes:
+            value = attrs.get("src", "") if tag in ("script", "img") else attrs.get("href", "") if tag == "link" else ""
+            if value.startswith("./"):
+                self.assertTrue((ROOT / value[2:]).is_file(), value)
+        canonical = next(attrs for tag, attrs in self.nodes if tag == "link" and attrs.get("rel") == "canonical")
+        self.assertEqual(canonical["href"], "https://moonlightengineer.github.io/Moonlight-playground/")
+
+    def test_404_has_stable_return_route_and_new_identity(self):
+        html = (ROOT / "404.html").read_text(encoding="utf-8")
+        self.assertIn("異相工作室", html)
+        self.assertIn('href="/Moonlight-playground/"', html)
 
 
 if __name__ == "__main__":

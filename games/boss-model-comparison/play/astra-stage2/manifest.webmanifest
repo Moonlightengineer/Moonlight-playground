@@ -1,0 +1,17 @@
+{
+  "id": "/Moonlight-playground/games/boss-model-comparison/play/astra-stage2/",
+  "name": "裂甲守衛 · Stage 2",
+  "short_name": "裂甲守衛",
+  "lang": "zh-HK",
+  "start_url": "/Moonlight-playground/games/boss-model-comparison/play/astra-stage2/",
+  "scope": "/Moonlight-playground/games/boss-model-comparison/play/astra-stage2/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#172a34",
+  "theme_color": "#172a34",
+  "icons": [
+    { "src": "/Moonlight-playground/games/boss-model-comparison/play/astra-stage2/icons/warden-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/Moonlight-playground/games/boss-model-comparison/play/astra-stage2/icons/warden-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/Moonlight-playground/games/boss-model-comparison/play/astra-stage2/icons/warden-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

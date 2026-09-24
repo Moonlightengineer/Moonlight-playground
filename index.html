@@ -3,104 +3,115 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#07111f">
-  <meta name="description" content="有正職嘅香港工程師，放工後學用 AI 製作小工具、網頁遊戲同各種實驗。">
-  <meta property="og:title" content="月光試驗場｜Moonlight Playground">
-  <meta property="og:description" content="日頭返工，夜晚用 AI 將想法砌成可以玩、可以用嘅作品。">
+  <meta name="theme-color" content="#0a1019">
+  <meta name="description" content="庫倫 Coulomb 的個人創作入口：異相工作室以工程視角，淺白拆解日常、AI 與科幻科學，亦分享可以試玩的公開實驗。">
+  <meta property="og:title" content="庫倫 Coulomb × 異相工作室">
+  <meta property="og:description" content="用工程的眼光，拆解日常與科技。內容系列、AI 實測與公開作品。">
   <meta property="og:type" content="website">
-  <title>月光試驗場｜Moonlight Playground</title>
-  <link rel="icon" href="./assets/moonlight-mark.svg" type="image/svg+xml">
+  <meta property="og:locale" content="zh_HK">
+  <meta property="og:url" content="https://moonlightengineer.github.io/Moonlight-playground/">
+  <link rel="canonical" href="https://moonlightengineer.github.io/Moonlight-playground/">
+  <title>庫倫 Coulomb × 異相工作室｜Out of Phase Studio</title>
+  <link rel="icon" href="./assets/coulomb-type.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./assets/styles.css">
   <script src="./assets/app.js" defer></script>
 </head>
 <body>
-  <a class="skip-link" href="#experiments">跳到實驗項目</a>
-
+  <a class="skip-link" href="#main">跳到主要內容</a>
   <header class="site-header">
-    <a class="brand" href="./" aria-label="月光試驗場首頁">
-      <img src="./assets/moonlight-mark.svg" alt="" width="42" height="42">
-      <span>
-        <strong>月光試驗場</strong>
-        <small>Moonlight Playground</small>
-      </span>
+    <a class="brand" href="./" aria-label="異相工作室首頁">
+      <strong>異相工作室<span class="brand-dot" aria-hidden="true">.</span></strong>
+      <small>OUT OF PHASE STUDIO</small>
     </a>
-    <a class="header-link" href="https://github.com/Moonlightengineer" rel="noreferrer">GitHub ↗</a>
+    <nav class="header-nav" aria-label="主要導覽">
+      <a href="#series">內容</a><a href="#experiments">作品</a><a href="#about">關於</a>
+    </nav>
   </header>
-
-  <main>
+  <main id="main">
     <section class="hero" aria-labelledby="hero-title">
       <div class="hero-copy">
-        <p class="eyebrow">有正職嘅香港工程師 × 放工後 AI 實驗</p>
-        <h1 id="hero-title">日頭返工，夜晚用 AI 將想法砌成可以玩、可以用嘅作品。</h1>
-        <p class="hero-lede">一邊學，一邊整。呢度收集我放工後用 AI 製作嘅小工具、網頁遊戲同各種實驗；先整到可以試，再慢慢改善。</p>
+        <p class="eyebrow">庫倫 COULOMB <span aria-hidden="true">／</span> 工程師 × AI 創作者</p>
+        <h1 id="hero-title">用工程的眼光，<br><span>拆解日常與科技。</span></h1>
+        <p class="hero-lede">點解會咁？可唔可以有另一種做法？<br>由日常現象、AI 工具到科幻背後嘅科學，用淺白嘅方式一齊拆解，再將想法整成可以試嘅作品。</p>
         <div class="hero-actions">
-          <a class="primary-action" href="#experiments">睇最新作品</a>
-          <span class="availability"><span aria-hidden="true"></span> AFTER HOURS：持續學習中</span>
+          <a class="primary-action" href="https://www.youtube.com/@outofphasehk">去 YouTube 睇內容 <span aria-hidden="true">↗</span></a>
+          <a class="secondary-action" href="#experiments">試玩公開作品 <span aria-hidden="true">↓</span></a>
         </div>
       </div>
-
-      <div
-        class="workbench"
-        role="img"
-        aria-label="窗外有月亮和香港城市夜景，桌上有電腦、遊戲畫面、工具介面與設計筆記的夜間 AI 工作台"
-        style="background-image: linear-gradient(180deg, rgba(7, 17, 31, 0.02), rgba(7, 17, 31, 0.22)), url('./assets/moonlight-workbench-bg.svg'); background-size: cover; background-position: 46% center; background-repeat: no-repeat;"
-      ></div>
+      <div class="phase-panel" aria-hidden="true">
+        <div class="panel-caption"><span>A DIFFERENT PERSPECTIVE</span><span>φ ≠ 0</span></div>
+        <svg class="phase-wave" viewBox="0 0 520 350" focusable="false">
+          <defs><pattern id="phase-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0H0V40" fill="none" stroke="currentColor" stroke-width="0.6"/></pattern></defs>
+          <rect width="520" height="350" fill="url(#phase-grid)" opacity="0.16"/>
+          <path d="M0 175H520" class="wave-axis"/>
+          <path d="M-60 175C5 175 5 65 70 65S135 285 200 285 265 65 330 65 395 285 460 285 525 175 590 175" class="wave-back"/>
+          <path d="M-130 175C-65 175 -65 65 0 65S65 285 130 285 195 65 260 65 325 285 390 285 455 65 520 65 585 175 650 175" class="wave-front"/>
+          <path d="M260 35V315" class="wave-guide"/>
+          <circle cx="260" cy="65" r="6" class="wave-point"/>
+        </svg>
+        <div class="panel-footer"><span>觀察</span><span>提問</span><span>動手試</span></div>
+      </div>
     </section>
 
-    <section class="experiments" id="experiments" aria-labelledby="experiments-title">
+    <section class="series section" id="series" aria-labelledby="series-title">
       <div class="section-heading">
-        <div>
-          <p class="eyebrow">NOW PLAYING</p>
-          <h2 id="experiments-title">公開實驗</h2>
-        </div>
-        <div class="filters" aria-label="項目分類">
-          <button type="button" class="filter-button is-active" data-filter="all">全部</button>
-          <button type="button" class="filter-button" data-filter="game">遊戲</button>
-          <button type="button" class="filter-button" data-filter="tool">工具</button>
+        <div><p class="eyebrow">01 / CONTENT</p><h2 id="series-title">同一份好奇，四個方向。</h2></div>
+        <p class="section-note">都喺「異相工作室」同一個 YouTube 頻道。</p>
+      </div>
+      <div class="series-grid">
+        <article class="series-item"><span class="series-number">01</span><h3>AI・科技</h3><p>AI、Agent 同新工具，唔只睇介紹，更想知道實際用落點。</p></article>
+        <article class="series-item"><span class="series-number">02</span><h3>零序 <small>Zero Sequence</small></h3><p>日常見到嘅現象同設計，用工程角度拆開講，唔使有工程底都睇得明。</p></article>
+        <article class="series-item"><span class="series-number">03</span><h3>空想科學台</h3><p>由科幻嘅「假如」出發，分清真實科學、合理推測同想像。</p></article>
+        <article class="series-item"><span class="series-number">04</span><h3>異相實驗室</h3><p>將想法變成工具、遊戲同小實驗，分享做出嚟嘅成果同發現。</p></article>
+      </div>
+    </section>
+
+    <section class="experiments section" id="experiments" aria-labelledby="experiments-title">
+      <div class="section-heading">
+        <div><p class="eyebrow">02 / PLAYGROUND</p><h2 id="experiments-title">唔只講，仲可以試。</h2></div>
+        <div class="filters" id="project-filters" aria-label="項目分類" hidden>
+          <button type="button" class="filter-button is-active" data-filter="all" aria-pressed="true" disabled>全部</button>
+          <button type="button" class="filter-button" data-filter="game" aria-pressed="false" disabled>遊戲</button>
+          <button type="button" class="filter-button" data-filter="tool" aria-pressed="false" disabled>工具</button>
         </div>
       </div>
-
-      <p id="load-status" class="visually-hidden" aria-live="polite"></p>
+      <p id="load-status" class="section-note" role="status" aria-live="polite" aria-atomic="true">目前公開的實驗作品。</p>
       <div id="project-grid" class="project-grid">
+        <article class="project-card" data-category="game"><a class="project-cover" href="./games/boss-model-comparison/"><img src="./games/boss-model-comparison/cover.svg" alt="一個 Prompt，三個 Boss 戰"></a><div class="project-body"><div class="project-meta"><span class="status status-experiment">試驗中</span><span>網頁遊戲</span></div><h3><a href="./games/boss-model-comparison/">一個 Prompt，三個 Boss 戰</a></h3><p>Opus 5.5、GPT-6 Astra、GPT-6 Sol：同一份規格，三份手機 3D Boss 戰。</p><a class="project-action" href="./games/boss-model-comparison/">試玩與評測 →</a></div></article>
         <article class="project-card featured" data-category="game">
           <a class="project-cover" href="./games/hanzi-generals/" aria-label="開始遊玩字陣無雙">
-            <img src="./games/hanzi-generals/cover.svg" alt="字陣無雙：黃、忠、趙、雲中文字牌組成的三乘三戰陣">
+            <img src="./games/hanzi-generals/cover.svg" alt="字陣無雙：黃、忠、趙、雲中文字牌組成的三乘三戰陣" width="1000" height="620" loading="lazy">
           </a>
           <div class="project-body">
-            <div class="project-meta">
-              <span class="status status-playable">可遊玩</span>
-              <span>網頁遊戲</span>
-            </div>
+            <div class="project-meta"><span class="status status-playable">可遊玩</span><span>網頁遊戲</span></div>
             <h3><a href="./games/hanzi-generals/">字陣無雙</a></h3>
             <p>將中文字牌合成三國武將，在 3×3 戰陣守住固定十波敵軍。</p>
-            <ul class="tag-list" aria-label="項目特色">
-              <li>手機優先</li><li>單局 5–8 分鐘</li><li>無登入</li>
-            </ul>
+            <ul class="tag-list" aria-label="項目特色"><li>手機優先</li><li>單局 5–8 分鐘</li><li>無登入</li></ul>
             <a class="project-action" href="./games/hanzi-generals/">開始遊戲 <span aria-hidden="true">→</span></a>
           </div>
         </article>
       </div>
+      <p class="project-footnote">呢度只列出已公開入口；作品仍會持續改善。舊有試玩連結維持不變。</p>
     </section>
 
-    <section class="principles" aria-labelledby="principles-title">
-      <div>
-        <p class="eyebrow">PLAYGROUND RULES</p>
-        <h2 id="principles-title">快試，但唔亂嚟。</h2>
+    <section class="about section" id="about" aria-labelledby="about-title">
+      <div><p class="eyebrow">03 / BEHIND THE WORK</p><h2 id="about-title">我係庫倫。<br>一個鍾意問點解嘅工程師。</h2></div>
+      <div class="about-copy">
+        <p>「庫倫 Coulomb」係我嘅創作者身份；「異相工作室」就係放低內容同實驗嘅地方。由工程出發，但唔限於工程。</p>
+        <p>我用 AI 學習、製作同測試，亦記錄有用嘅發現。做得到嘅就俾你試，未驗證嘅唔當成果。</p>
+        <nav class="social-links" aria-label="追蹤庫倫與異相工作室">
+          <a href="https://www.youtube.com/@outofphasehk">YouTube <span aria-hidden="true">↗</span></a>
+          <a href="https://www.instagram.com/coulomb.hk/">Instagram <span aria-hidden="true">↗</span></a>
+          <a href="https://www.threads.com/@coulomb.hk">Threads <span aria-hidden="true">↗</span></a>
+          <a href="https://x.com/coulombhk">X <span aria-hidden="true">↗</span></a>
+          <a href="https://github.com/Moonlightengineer">GitHub <span aria-hidden="true">↗</span></a>
+        </nav>
       </div>
-      <ol class="principle-list">
-        <li><strong>先做到可用</strong><span>唔為未發生嘅需求過度設計。</span></li>
-        <li><strong>每個實驗獨立</strong><span>互不影響，壞一個唔會拖垮其他作品。</span></li>
-        <li><strong>成熟先升級</strong><span>有真實價值、使用者或路線圖，先搬去獨立項目。</span></li>
-      </ol>
     </section>
   </main>
-
   <footer class="site-footer">
-    <div>
-      <strong>Moonlight Engineer</strong>
-      <p>日頭有正職，月光下學用 AI 整工具同遊戲。</p>
-    </div>
-    <p>個人實驗，不代表任何僱主、客戶或項目。</p>
+    <div><strong>庫倫 Coulomb × 異相工作室</strong><p>前身為月光試驗場。名字更新，好奇心繼續。</p></div>
+    <p>個人創作與實驗，不代表任何僱主、客戶或項目。</p>
   </footer>
 </body>
 </html>

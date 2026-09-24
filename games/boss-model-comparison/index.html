@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-Hant-HK">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101b1d">
+  <title>一個 Prompt，三個 Boss 戰｜異相工作室</title>
+  <meta name="description" content="Opus 5.5、GPT-6 Astra、GPT-6 Sol，同一份手機 3D Boss 戰規格，各自完成遊戲。先親手玩，再睇評測。">
+  <meta property="og:title" content="一個 Prompt，三個 Boss 戰">
+  <meta property="og:description" content="三個模型，同一份規格。手機直接試玩 Stage 1，先感受操作，再睇評測。">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://moonlightengineer.github.io/Moonlight-playground/games/boss-model-comparison/">
+  <meta property="og:image" content="https://moonlightengineer.github.io/Moonlight-playground/games/boss-model-comparison/images/astra.png">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="icon" href="../../assets/coulomb-type.svg" type="image/svg+xml">
+</head>
+<body>
+<a class="skip" href="#play">跳到試玩</a>
+<header><a class="brand" href="../../">異相工作室</a><span>FIELD NOTES / 001</span></header>
+<main>
+  <section class="hero">
+    <div class="intro"><p class="eyebrow">AI × GAME MAKING · 2026.09</p><h1>一個 Prompt，<br>三個 <em>Boss 戰。</em></h1><p class="lede">同一份規格，交俾三個模型。<br>究竟整出嚟嘅遊戲，玩落差幾遠？</p><a class="button" href="#play">親手試 Stage 1 <span>↘</span></a><p class="byline">庫倫 Coulomb · 放工後 AI 實驗</p></div>
+    <div class="hero-art"><img src="./images/astra.png" alt="Astra 製作的石製圓形競技場、劍士與 Boss 實際遊戲畫面" width="390" height="844"><div class="art-label">同一個起點。<br>三份可玩的答案。<small>STAGE 1 · 實際遊戲截圖</small></div></div>
+  </section>
+  <nav class="contents" aria-label="文章章節"><a href="#play">01 試玩作品</a><a href="#brief">02 題目係乜</a><a href="#method">03 點樣測</a><a href="#results">04 評測進度</a></nav>
+  <section id="play"><div class="heading"><div><p class="eyebrow">01 / PLAY FIRST</p><h2>唔使估，落場試。</h2></div><p>三組 Stage 1 原版，加上 Astra、Sol Stage 2。<br>建議手機直屏，一次開一個遊戲。</p></div>
+  <div class="games">
+    <article><a class="shot" href="./play/opus/" aria-label="試玩 Opus 5.5 Stage 1"><img src="./images/opus.png" alt="Opus Stage 1 實際戰鬥畫面" loading="lazy"></a><div class="card-body"><span class="badge">STAGE 1 · REASONING: HIGH</span><h3>Opus 5.5</h3><p>Devin CLI</p><a class="play" href="./play/opus/">開始試玩 <span>↗</span></a></div></article>
+    <article><a class="shot" href="./play/astra/" aria-label="試玩 GPT-6 Astra Stage 1"><img src="./images/astra.png" alt="Astra Stage 1 實際戰鬥畫面" loading="lazy" width="390" height="844"></a><div class="card-body"><span class="badge">STAGE 1 · REASONING: HIGH</span><h3>GPT-6 Astra</h3><p>Codex · 獨立 task</p><a class="play" href="./play/astra/">Stage 1 <span>↗</span></a><a class="play" href="./play/astra-stage2/">Stage 2 <span>↗</span></a></div></article>
+    <article><a class="shot" href="./play/sol/" aria-label="試玩 GPT-6 Sol Stage 1"><img src="./images/sol.png" alt="Sol Stage 1 實際戰鬥畫面" loading="lazy" width="390" height="844"></a><div class="card-body"><span class="badge">STAGE 1 · REASONING: HIGH</span><h3>GPT-6 Sol</h3><p>Codex · 獨立 task</p><a class="play" href="./play/sol/">Stage 1 <span>↗</span></a><a class="play" href="./play/sol-stage2/">Stage 2 <span>↗</span></a></div></article>
+  </div><details class="controls"><summary>第一次玩？睇操作</summary><p>喺下方固定圓內短按放手出普攻；按住持續拖動就移動，停指就停步；快掃後放手翻滾。人物保留當前面向，唔會自動追住 Boss。Stage 1 未加入蓄力同技能。遊戲內保持簡潔，冇教學遮住畫面。</p><p>用瀏覽器「上一頁」返嚟揀另一組。若切換程式或轉橫屏後暫停，按「繼續」。</p></details>
+  </section>
+  <section id="brief" class="brief"><div><p class="eyebrow">02 / THE BRIEF</p><h2>一個場，一隻 Boss。<br>操作先係主角。</h2><p>我想試嘅係：AI 可唔可以由一份清楚規格，整出有遊戲感、手機單手玩到嘅 3D 小品？唔只係一張靚截圖。</p></div><div class="stages"><article><span>STAGE 1</span><h3>先整到好好玩</h3><p>固定視角 3D 競技場、八方向移動、翻滾、三連普攻。Boss 會追人，有橫掃同重砸，出招前顯示危險範圍。加上血量、體力、暫停、勝負與重試。</p></article><article><span>STAGE 2 · 後續擴充</span><h3>再加深度與畫面</h3><p>兩段蓄力、三招技能與冷卻、多條 Boss 血量、第二階段變化、PWA，同一套更強嘅造型、光影、動作及鏡頭要求。Astra、Sol Stage 2 已提供試玩；Opus Stage 2 等待執行額度恢復。</p></article></div></section>
+  <section id="method"><p class="eyebrow">03 / THE METHOD</p><h2>規則先定，作品後睇。</h2><div class="method-grid"><article><b>01</b><h3>同一份輸入</h3><p>三組用相同 Stage 1 prompt。各自由獨立對話與工作目錄開始；完成前唔睇其他組成果。</p></article><article><b>02</b><h3>自行檢查與修正</h3><p>一次輸入包含修正循環。模型可以自己測試、修復；總控唔追加遊戲設計提示，亦唔代改遊戲程式。</p></article><article><b>03</b><h3>先分開評，後對答案</h3><p>總控先保存獨立觀察，Ken 再親手試玩，之後先比較兩份評測。公開頁列明模型名稱，所以唔係盲測。</p></article></div>
+  <details><summary>公平性、用時同驗證限制</summary><p>呢次係每個模型各一次嘅個人實驗，唔係統計 benchmark。三組都選 High，但唔代表相同推理量。Opus 用 Devin CLI，另外兩組用 Codex，工具介面與上下文條件有差異。</p><p>Astra 同 Sol 平行執行，共用本機資源；Opus Stage 1 較早獨立執行。工具批准等待會另列，唔可以用總經過時間直接判速度勝負。帳號額度亦唔等於單次 token 或實付成本。</p><p>總控已在桌面瀏覽器模擬手機尺寸試過操作與戰鬥流程；真手機觸感仍待實玩。Astra／Sol 勝利流程曾用診斷模式降低 Boss 血量驗證，唔代表已正常打完整場。呢度提供正常 production build，冇預設開作弊。</p><p>Stage 1 只調整 HTML 資源路徑；Stage 2 另調整 PWA、service worker 同註冊網址至各自子目錄。遊戲邏輯保持原版，原始及部署檔案 hash 分別保存。</p></details></section>
+  <section id="results" class="results"><p class="eyebrow">04 / WORK IN PROGRESS</p><h2>先玩，評分遲啲揭曉。</h2><p>三組 Stage 1 已完成。完整評分、個人手感、用量紀錄與 Stage 2 進展會喺評測完成後更新到呢度；目前未公布排名。</p><a href="#play" class="button">返去揀遊戲 <span>↑</span></a></section>
+</main><footer><a href="../../">異相工作室 / Out of Phase Studio</a><p>香港工程師嘅放工後實驗。<br>由想法，做到可以親手試。</p><a href="https://github.com/Moonlightengineer/Moonlight-playground">GitHub ↗</a></footer>
+</body></html>
