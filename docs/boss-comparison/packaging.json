@@ -53,7 +53,7 @@
       "icons/warden.svg": "63d3e0920f3a21a7efffab14d44de3d1ba89e183a00a96fa330794d69aba6c4c"
     },
     "assets": {
-      "index.html": "f39ec85ef9d323b44edc5ff61ff8c7111876df73ff3bc0a9a7afe1c47c55aa30",
+      "index.html": "6cf11eca20ccfe6c143f08455fc6cfa2eb47de083b6a3ed942c889c0b7bc0503",
       "manifest.webmanifest": "04806873a0c0c8b23733be0a6c4d1bba5f132bffb451f0853839aeb4c1223c1b",
       "sw.js": "be7c873d534a48ae2da6062745b8acf4b8c1b1448d6da8a3958eb9912826b60c",
       "assets/index-Be0ma_mj.css": "57dcefc8a4679be8cfed6403d9255e272fe9c493d660e296ea051e302fac1ccf",
@@ -77,7 +77,7 @@
     },
     "assets": {
       "icon.svg": "0c960a7e057b9b275f1bd5a75fedc613049f71d6c8db72c1f48188fda7132e73",
-      "index.html": "1fa3233eff9b81ff2bda0e4655fc1fb00b9b972abcd0b82d0d5231e100251e01",
+      "index.html": "8db64daaaa384d592a4c953a0644b151a4f21ca0594f3098f083f8d19c18b228",
       "manifest.webmanifest": "ba19e12545592bf7f4d5a481df08a7535f4646d3081385e6493ec96ca7de6373",
       "sw.js": "98113969e1206d54b28c764193fde0d1bfa1060fc3db617e6d0e11b7b120a0c6",
       "assets/index-B0QUmHpS.css": "6ec7132b5295bde664a1a1a394393891c3fa04422af64c9beac6babb1b4974bc",

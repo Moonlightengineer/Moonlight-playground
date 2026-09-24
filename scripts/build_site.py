@@ -88,6 +88,9 @@ def build() -> None:
                 if hashlib.sha256(asset.read_bytes()).hexdigest() != expected:
                     raise RuntimeError(f"Boss build hash mismatch: {model}/{filename}")
             require_text(comparison / "play" / model / "index.html", "/assets/")
+            html = (comparison / "play" / model / "index.html").read_text(encoding="utf-8")
+            if "/Moonlight-playground/" in html.replace('="/Moonlight-playground/', '="'):
+                raise RuntimeError(f"Deployment prefix outside URL attribute: {model}")
             if not (comparison / "images" / f"{model.removesuffix('-stage2')}.png").is_file():
                 raise RuntimeError(f"Missing screenshot: {model}")
         require_text(comparison / "cover.svg", "<svg")
