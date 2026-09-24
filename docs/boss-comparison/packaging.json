@@ -4,12 +4,12 @@
     "adaptation": "index.html asset URLs made relative for GitHub Pages subpath; game JS/CSS bytes unchanged",
     "assets": {
       "index.html": "a1e2c1544de792bf8956226f8c4e25b9bd5c6ad2cd98312791be81f958d05fa3",
-      "assets\\index-Djz4C06j.js": "cfd809071c679931446f4230b5db22e24a672b5b2790aacef0825df8c018b336",
-      "assets\\index-Ds23Zvho.css": "d0789df1ed418cde89f877fca36949f5440b768d7ff59991f01fd46ce579cc9c"
+      "assets/index-Djz4C06j.js": "cfd809071c679931446f4230b5db22e24a672b5b2790aacef0825df8c018b336",
+      "assets/index-Ds23Zvho.css": "d0789df1ed418cde89f877fca36949f5440b768d7ff59991f01fd46ce579cc9c"
     },
     "original_asset_sha256": {
-      "assets\\index-Djz4C06j.js": "cfd809071c679931446f4230b5db22e24a672b5b2790aacef0825df8c018b336",
-      "assets\\index-Ds23Zvho.css": "d0789df1ed418cde89f877fca36949f5440b768d7ff59991f01fd46ce579cc9c"
+      "assets/index-Djz4C06j.js": "cfd809071c679931446f4230b5db22e24a672b5b2790aacef0825df8c018b336",
+      "assets/index-Ds23Zvho.css": "d0789df1ed418cde89f877fca36949f5440b768d7ff59991f01fd46ce579cc9c"
     }
   },
   "astra": {
@@ -17,12 +17,12 @@
     "adaptation": "index.html asset URLs made relative for GitHub Pages subpath; game JS/CSS bytes unchanged",
     "assets": {
       "index.html": "df99756647cfff08d1d92d737ef8196e41b03514c2ef0c7eda455948d68b945d",
-      "assets\\index-CdqZ_GQt.js": "e546a4c63e825d2cbaa4a2cee43c59a3dd8a695cfa90f0dca07f8819d941203c",
-      "assets\\index-DfyqVdbW.css": "5c53e0a120e69329bdda37f83cd8f149255f6f24afdaf4c9ad1121b827a8c5d2"
+      "assets/index-CdqZ_GQt.js": "e546a4c63e825d2cbaa4a2cee43c59a3dd8a695cfa90f0dca07f8819d941203c",
+      "assets/index-DfyqVdbW.css": "5c53e0a120e69329bdda37f83cd8f149255f6f24afdaf4c9ad1121b827a8c5d2"
     },
     "original_asset_sha256": {
-      "assets\\index-CdqZ_GQt.js": "e546a4c63e825d2cbaa4a2cee43c59a3dd8a695cfa90f0dca07f8819d941203c",
-      "assets\\index-DfyqVdbW.css": "5c53e0a120e69329bdda37f83cd8f149255f6f24afdaf4c9ad1121b827a8c5d2"
+      "assets/index-CdqZ_GQt.js": "e546a4c63e825d2cbaa4a2cee43c59a3dd8a695cfa90f0dca07f8819d941203c",
+      "assets/index-DfyqVdbW.css": "5c53e0a120e69329bdda37f83cd8f149255f6f24afdaf4c9ad1121b827a8c5d2"
     }
   },
   "sol": {
@@ -30,12 +30,12 @@
     "adaptation": "index.html asset URLs made relative for GitHub Pages subpath; game JS/CSS bytes unchanged",
     "assets": {
       "index.html": "e8e26ef8c66c9414364065eba2689b558488c6c88ffb88b464e9f80c39a11124",
-      "assets\\index-BNYOSF1s.css": "8880b9803b22707ab9ac90d57721b4e958836f77f6cc3e0e6c9fa6dc79aef380",
-      "assets\\index-CFH2LEtD.js": "5670af9c666f6aefba3f42371feb38a9fc29eee5ecb5a2146d31be83e6c4f22e"
+      "assets/index-BNYOSF1s.css": "8880b9803b22707ab9ac90d57721b4e958836f77f6cc3e0e6c9fa6dc79aef380",
+      "assets/index-CFH2LEtD.js": "5670af9c666f6aefba3f42371feb38a9fc29eee5ecb5a2146d31be83e6c4f22e"
     },
     "original_asset_sha256": {
-      "assets\\index-BNYOSF1s.css": "8880b9803b22707ab9ac90d57721b4e958836f77f6cc3e0e6c9fa6dc79aef380",
-      "assets\\index-CFH2LEtD.js": "5670af9c666f6aefba3f42371feb38a9fc29eee5ecb5a2146d31be83e6c4f22e"
+      "assets/index-BNYOSF1s.css": "8880b9803b22707ab9ac90d57721b4e958836f77f6cc3e0e6c9fa6dc79aef380",
+      "assets/index-CFH2LEtD.js": "5670af9c666f6aefba3f42371feb38a9fc29eee5ecb5a2146d31be83e6c4f22e"
     }
   }
 }
