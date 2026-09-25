@@ -26,15 +26,15 @@
       "title": "一個 Prompt，三個 Boss 戰",
       "category": "game",
       "status": "experiment",
-      "description": "Opus 5.5、GPT-6 Astra、GPT-6 Sol：同一份規格，三份手機 3D Boss 戰。",
+      "description": "同一規格比較三款 AI 的 3D 造型、動作與特效。完整評分、原始提示詞及手機觸控試玩。",
       "path": "./games/boss-model-comparison/",
       "cover": "./games/boss-model-comparison/cover.svg",
       "coverAlt": "三模型 Boss 戰比較",
       "actionLabel": "試玩與評測",
       "tags": [
         "三模型比較",
-        "手機試玩",
-        "Stage 1 / 2"
+        "手機觸控限定",
+        "完整評分與提示詞"
       ],
       "createdAt": "2026-09-24",
       "featured": false,
