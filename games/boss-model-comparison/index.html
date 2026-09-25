@@ -1,38 +1,176 @@
 <!doctype html>
-<html lang="zh-Hant-HK">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#101b1d">
-  <title>一個 Prompt，三個 Boss 戰｜異相工作室</title>
-  <meta name="description" content="Opus 5.5、GPT-6 Astra、GPT-6 Sol，同一份手機 3D Boss 戰規格，各自完成遊戲。先親手玩，再睇評測。">
-  <meta property="og:title" content="一個 Prompt，三個 Boss 戰">
-  <meta property="og:description" content="三個模型，同一份規格。手機直接試玩 Stage 1，先感受操作，再睇評測。">
-  <meta property="og:type" content="article">
-  <meta property="og:url" content="https://moonlightengineer.github.io/Moonlight-playground/games/boss-model-comparison/">
-  <meta property="og:image" content="https://moonlightengineer.github.io/Moonlight-playground/games/boss-model-comparison/images/astra.png">
-  <link rel="stylesheet" href="./style.css">
-  <link rel="icon" href="../../assets/coulomb-type.svg" type="image/svg+xml">
-</head>
-<body>
-<a class="skip" href="#play">跳到試玩</a>
-<header><a class="brand" href="../../">異相工作室</a><span>FIELD NOTES / 001</span></header>
-<main>
-  <section class="hero">
-    <div class="intro"><p class="eyebrow">AI × GAME MAKING · 2026.09</p><h1>一個 Prompt，<br>三個 <em>Boss 戰。</em></h1><p class="lede">同一份規格，交俾三個模型。<br>究竟整出嚟嘅遊戲，玩落差幾遠？</p><a class="button" href="#play">親手試 Stage 1 <span>↘</span></a><p class="byline">庫倫 Coulomb · 放工後 AI 實驗</p></div>
-    <div class="hero-art"><img src="./images/astra.png" alt="Astra 製作的石製圓形競技場、劍士與 Boss 實際遊戲畫面" width="390" height="844"><div class="art-label">同一個起點。<br>三份可玩的答案。<small>STAGE 1 · 實際遊戲截圖</small></div></div>
-  </section>
-  <nav class="contents" aria-label="文章章節"><a href="#play">01 試玩作品</a><a href="#brief">02 題目係乜</a><a href="#method">03 點樣測</a><a href="#results">04 評測進度</a></nav>
-  <section id="play"><div class="heading"><div><p class="eyebrow">01 / PLAY FIRST</p><h2>唔使估，落場試。</h2></div><p>三組 Stage 1 原版，同埋三組 Stage 2。<br>建議手機直屏，一次開一個遊戲。</p></div>
-  <div class="games">
-    <article><a class="shot" href="./play/opus/" aria-label="試玩 Opus 5.5 Stage 1"><img src="./images/opus.png" alt="Opus Stage 1 實際戰鬥畫面" loading="lazy"></a><div class="card-body"><span class="badge">STAGE 1 · REASONING: HIGH</span><h3>Opus 5.5</h3><p>Stage 1：Devin CLI · Stage 2：Devin → Claude Code</p><a class="play" href="./play/opus/">Stage 1 <span>↗</span></a><a class="play" href="./play/opus-stage2/">Stage 2 <span>↗</span></a></div></article>
-    <article><a class="shot" href="./play/astra/" aria-label="試玩 GPT-6 Astra Stage 1"><img src="./images/astra.png" alt="Astra Stage 1 實際戰鬥畫面" loading="lazy" width="390" height="844"></a><div class="card-body"><span class="badge">STAGE 1 · REASONING: HIGH</span><h3>GPT-6 Astra</h3><p>Codex · 獨立 task</p><a class="play" href="./play/astra/">Stage 1 <span>↗</span></a><a class="play" href="./play/astra-stage2/">Stage 2 <span>↗</span></a></div></article>
-    <article><a class="shot" href="./play/sol/" aria-label="試玩 GPT-6 Sol Stage 1"><img src="./images/sol.png" alt="Sol Stage 1 實際戰鬥畫面" loading="lazy" width="390" height="844"></a><div class="card-body"><span class="badge">STAGE 1 · REASONING: HIGH</span><h3>GPT-6 Sol</h3><p>Codex · 獨立 task</p><a class="play" href="./play/sol/">Stage 1 <span>↗</span></a><a class="play" href="./play/sol-stage2/">Stage 2 <span>↗</span></a></div></article>
-  </div><details class="controls"><summary>第一次玩？睇操作</summary><p>喺下方固定圓內短按放手出普攻；按住持續拖動就移動，停指就停步；快掃後放手翻滾。人物保留當前面向，唔會自動追住 Boss。Stage 1 未加入蓄力同技能。遊戲內保持簡潔，冇教學遮住畫面。</p><p>用瀏覽器「上一頁」返嚟揀另一組。若切換程式或轉橫屏後暫停，按「繼續」。</p></details>
-  </section>
-  <section id="brief" class="brief"><div><p class="eyebrow">02 / THE BRIEF</p><h2>一個場，一隻 Boss。<br>操作先係主角。</h2><p>我想試嘅係：AI 可唔可以由一份清楚規格，整出有遊戲感、手機單手玩到嘅 3D 小品？唔只係一張靚截圖。</p></div><div class="stages"><article><span>STAGE 1</span><h3>先整到好好玩</h3><p>固定視角 3D 競技場、八方向移動、翻滾、三連普攻。Boss 會追人，有橫掃同重砸，出招前顯示危險範圍。加上血量、體力、暫停、勝負與重試。</p></article><article><span>STAGE 2 · 後續擴充</span><h3>再加深度與畫面</h3><p>兩段蓄力、三招技能與冷卻、多條 Boss 血量、第二階段變化、PWA，同一套更強嘅造型、光影、動作及鏡頭要求。三組 Stage 2 已提供試玩。Opus 因 Devin 額度中斷，改由 Claude Code Opus 5.5 High 接續原有程式及測試；屬跨工具接續，並非一次不中斷完成。</p></article></div></section>
-  <section id="method"><p class="eyebrow">03 / THE METHOD</p><h2>規則先定，作品後睇。</h2><div class="method-grid"><article><b>01</b><h3>同一份輸入</h3><p>三組用相同 Stage 1 prompt。各自由獨立對話與工作目錄開始；完成前唔睇其他組成果。</p></article><article><b>02</b><h3>自行檢查與修正</h3><p>一次輸入包含修正循環。模型可以自己測試、修復；總控唔追加遊戲設計提示，亦唔代改遊戲程式。</p></article><article><b>03</b><h3>先分開評，後對答案</h3><p>總控先保存獨立觀察，Ken 再親手試玩，之後先比較兩份評測。公開頁列明模型名稱，所以唔係盲測。</p></article></div>
-  <details><summary>公平性、用時同驗證限制</summary><p>呢次係每個模型各一次嘅個人實驗，唔係統計 benchmark。三組都選 High，但唔代表相同推理量。Opus 用 Devin CLI，另外兩組用 Codex，工具介面與上下文條件有差異。</p><p>Astra 同 Sol 平行執行，共用本機資源；Opus Stage 1 較早獨立執行。工具批准等待會另列，唔可以用總經過時間直接判速度勝負。帳號額度亦唔等於單次 token 或實付成本。</p><p>總控已在桌面瀏覽器模擬手機尺寸試過操作與戰鬥流程；真手機觸感仍待實玩。Astra／Sol 勝利流程曾用診斷模式降低 Boss 血量驗證，唔代表已正常打完整場。呢度提供正常 production build，冇預設開作弊。</p><p>Stage 1 只調整 HTML 資源路徑；Stage 2 另調整 PWA、service worker 同註冊網址至各自子目錄。遊戲邏輯保持原版，原始及部署檔案 hash 分別保存。</p></details></section>
-  <section id="results" class="results"><p class="eyebrow">04 / WORK IN PROGRESS</p><h2>先玩，評分遲啲揭曉。</h2><p>三組 Stage 1 已完成。完整評分、個人手感、用量紀錄與 Stage 2 進展會喺評測完成後更新到呢度；目前未公布排名。</p><a href="#play" class="button">返去揀遊戲 <span>↑</span></a></section>
-</main><footer><a href="../../">異相工作室 / Out of Phase Studio</a><p>香港工程師嘅放工後實驗。<br>由想法，做到可以親手試。</p><a href="https://github.com/Moonlightengineer/Moonlight-playground">GitHub ↗</a></footer>
-</body></html>
+<html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#101b1d">
+<title>一個 Prompt，三個 Boss 戰｜3D 遊戲實測｜異相工作室</title>
+<meta name="description" content="Opus 5.5、GPT-6 Astra、GPT-6 Sol：同一規格的 3D 遊戲實測。完整評分、原始提示詞與六款手機觸控試玩。">
+<meta property="og:title" content="同一規格，三款 AI 的 3D 遊戲差多少？"><meta property="og:description" content="比較造型、動作與特效。查看人工評分、原始提示詞，使用手機瀏覽器親自試玩。"><meta property="og:type" content="article"><meta property="og:url" content="https://moonlightengineer.github.io/Moonlight-playground/games/boss-model-comparison/"><meta property="og:image" content="https://moonlightengineer.github.io/Moonlight-playground/games/boss-model-comparison/images/astra.png">
+<link rel="stylesheet" href="./style.css"><link rel="icon" href="../../assets/coulomb-type.svg" type="image/svg+xml"></head>
+<body><a class="skip" href="#play">跳到試玩</a><header><a class="brand" href="../../">異相工作室</a><span>FIELD NOTES / 001</span></header><main>
+<section class="hero"><div class="intro"><p class="eyebrow">AI × 3D GAME · 2026.09.25</p><h1>同一份規格，<br>三種 <em>3D 表現。</em></h1><p class="lede">一個 Prompt，三個 Boss 戰。<br>從人物造型、攻擊動作到戰鬥特效，<br>用實際遊玩比較 AI 的視覺完成度。</p><a class="button" href="#results">查看評測結果 ↘</a><p class="byline">庫倫 Coulomb · 個人實玩評測</p></div><div class="hero-art"><img src="./images/astra.png" alt="Astra Stage 1 的實際遊戲畫面" width="390" height="844"><div class="art-label">文字規格，<br>能變成多完整的遊戲？<small>STAGE 1 · ASTRA · 實際截圖</small></div></div></section>
+<nav class="contents" aria-label="文章章節"><a href="#results">01 評測結論</a><a href="#play">02 手機試玩</a><a href="#prompts">03 原始提示詞</a><a href="#method">04 方法與限制</a></nav>
+<section id="results"><p class="eyebrow">01 / RESULTS</p><h2>這次實測，Opus 的視覺完成度領先。</h2><p>測試的起點，是想了解 AI 能否把一至兩份提示詞，轉化為造型合理、動作自然，而且真正可以遊玩的 3D 遊戲。比較重點是模型、關節與武器姿勢、動畫、場景光影、鏡頭及特效；操作與戰鬥則用來檢視畫面動起來後是否仍然合理。</p><p>Ken 使用 iPhone／Safari，以手機觸控操作，每款每階段試玩約 3–5 分鐘。以下為個人評分，不是模型的通用能力排名。</p><div class="table-wrap" tabindex="0" role="region" aria-label="Stage 2 人工評分"><table><caption>Stage 2 人工評分</caption><thead><tr><th scope="col">模型</th><th scope="col">3D、美術及回饋 /25</th><th scope="col">整體 /100</th></tr></thead><tbody><tr><th scope="row">Opus 5.5</th><td>23</td><td>93</td></tr><tr><th scope="row">GPT-6 Astra</th><td>16</td><td>68*</td></tr><tr><th scope="row">GPT-6 Sol</th><td>14</td><td>63</td></tr></tbody></table></div>
+<p class="note">* Astra 的第 3、12、20 題未充分實測，本輪暫填 3 分；68 分包含暫填項，不代表已確認這三項有故障。視覺分項包含鏡頭及特效，並非純粹的模型精細度評分。</p>
+<div class="method-grid"><article><h3>Opus 5.5</h3><p>Stage 2 的模型、光影、特效與鏡頭有明顯提升。Boss 變身及技能效果突出，普攻第三段已有不同動作。部分關節與握武器姿勢仍不自然，第二階段部分招式較難閃避，但整體呈現最完整。</p></article><article><h3>GPT-6 Astra</h3><p>Stage 1 的受擊回饋有亮點，Stage 2 的技能、Boss 變身與流程也能運作。不過模型及畫質未見明顯提升，部分揮斬不自然；加入蓄力後，移動與閃避出現操作衝突。觸控問題的技術根因尚未確認。</p></article><article><h3>GPT-6 Sol</h3><p>UI 框架與部分模型細節有優點，但攻擊姿勢、武器位置與翻滾穿模影響表現。Stage 2 未見明顯畫質提升；Ken 在 iPhone 觀察到蓄力後放手，未出現實際攻擊、特效或傷害。</p></article></div>
+<details><summary>Stage 2：完整分項及 20 題評分</summary><p>0＝缺少／不能用；1＝大部分失效；2＝明顯大問題；3＝可用但有問題；4＝少量問題；5＝本輪試玩中表現完整。</p><div class="table-wrap" tabindex="0" role="region" aria-label="Stage 2 分項"><table><caption>Stage 2 分項</caption><thead><tr><th scope="col">項目</th><th scope="col">Opus</th><th scope="col">Astra</th><th scope="col">Sol</th></tr></thead><tbody><tr><th scope="row">手勢及蓄力 /20</th><td>18</td><td>12</td><td>7</td></tr><tr><th scope="row">三招技能 /20</th><td>20</td><td>16</td><td>16</td></tr><tr><th scope="row">Boss 及戰鬥 /20</th><td>17</td><td>13</td><td>16</td></tr><tr><th scope="row">3D、美術及回饋 /25</th><td>23</td><td>16</td><td>14</td></tr><tr><th scope="row">手機操作及完整流程 /15</th><td>15</td><td>11</td><td>10</td></tr></tbody></table></div><div class="table-wrap" tabindex="0" role="region" aria-label="Stage 2：每題 0–5 分"><table><caption>Stage 2：每題 0–5 分</caption><thead><tr><th scope="col">評分題目</th><th scope="col">Opus</th><th scope="col">Astra</th><th scope="col">Sol</th></tr></thead><tbody><tr><th scope="row">1. 原有移動、停止、翻滾及普攻三連段</th><td>5</td><td>4</td><td>2</td></tr><tr><th scope="row">2. 停止蓄力、兩段蓄力及面向控制</th><td>4</td><td>3</td><td>2</td></tr><tr><th scope="row">3. 放手依蓄力級別／方向正確出招</th><td>4</td><td>3*</td><td>1</td></tr><tr><th scope="row">4. 移動／受擊／翻滾取消及動作差異</th><td>5</td><td>2</td><td>2</td></tr><tr><th scope="row">5. 突進</th><td>5</td><td>4</td><td>4</td></tr><tr><th scope="row">6. 旋風斬</th><td>5</td><td>4</td><td>4</td></tr><tr><th scope="row">7. 治療</th><td>5</td><td>4</td><td>4</td></tr><tr><th scope="row">8. CD、誤觸、暫停／重試狀態</th><td>5</td><td>4</td><td>4</td></tr><tr><th scope="row">9. 三條血量及第二階段變身</th><td>5</td><td>4</td><td>4</td></tr><tr><th scope="row">10. 橫掃／第二階段雙掃</th><td>4</td><td>3</td><td>4</td></tr><tr><th scope="row">11. 重砸／第二階段外圈攻擊</th><td>4</td><td>3</td><td>4</td></tr><tr><th scope="row">12. 衝撞／擴散衝擊波</th><td>4</td><td>3*</td><td>4</td></tr><tr><th scope="row">13. 玩家／Boss 模型、關節及握武器</th><td>4</td><td>3</td><td>2</td></tr><tr><th scope="row">14. 場景、材質及光影</th><td>5</td><td>3</td><td>3</td></tr><tr><th scope="row">15. 鏡頭及戰鬥區呈現</th><td>5</td><td>4</td><td>4</td></tr><tr><th scope="row">16. 行走、連段、翻滾、蓄力及 Boss 動作</th><td>4</td><td>2</td><td>2</td></tr><tr><th scope="row">17. 命中、蓄力、技能及第二階段特效</th><td>5</td><td>4</td><td>3</td></tr><tr><th scope="row">18. 單手操作、技能鍵及配置</th><td>5</td><td>3</td><td>2</td></tr><tr><th scope="row">19. 啟動、勝負／重試、暫停／恢復</th><td>5</td><td>5</td><td>4</td></tr><tr><th scope="row">20. PWA 離線及重試</th><td>5</td><td>3*</td><td>4</td></tr></tbody></table></div></details>
+<details><summary>Stage 1：原始評分與觀察</summary><div class="table-wrap" tabindex="0" role="region" aria-label="Stage 1 人工評分"><table><caption>Stage 1 人工評分</caption><thead><tr><th scope="col">模型</th><th scope="col">逐項合計 /100</th><th scope="col">原填總分</th></tr></thead><tbody><tr><th scope="row">Opus 5.5</th><td>90</td><td>90</td></tr><tr><th scope="row">GPT-6 Astra</th><td>82</td><td>82</td></tr><tr><th scope="row">GPT-6 Sol</th><td>65</td><td>67（待確認）</td></tr></tbody></table></div><p>Sol 原填總分為 67，但逐題及分項均合計 65；保留差異，尚未由評分者確認。兩階段評分範圍不同，不應用分數差計算提升百分比。</p><p>Opus 操作與流程最完整，玩家動作及翻滾效果較好，但 Boss 握槌姿勢不自然。Astra 的命中／受擊回饋最好，光影有優勢，但模型偏方塊化，Safari 雙擊放大影響操作。Sol 的 UI 表現突出，模型有細節，但動作、攻擊範圍、翻滾及體力機制影響遊玩。</p><div class="table-wrap" tabindex="0" role="region" aria-label="Stage 1：每題 0–5 分"><table><caption>Stage 1：每題 0–5 分</caption><thead><tr><th scope="col">評分題目</th><th scope="col">Opus</th><th scope="col">Astra</th><th scope="col">Sol</th></tr></thead><tbody><tr><th scope="row">1. 八方向移動準確</th><td>5</td><td>5</td><td>4</td></tr><tr><th scope="row">2. 停止時沒有漂移</th><td>5</td><td>5</td><td>4</td></tr><tr><th scope="row">3. 快速滑動翻滾可靠</th><td>5</td><td>5</td><td>2</td></tr><tr><th scope="row">4. 慢拖不誤觸翻滾</th><td>5</td><td>5</td><td>4</td></tr><tr><th scope="row">5. 普攻及三連段</th><td>4</td><td>4</td><td>3</td></tr><tr><th scope="row">6. 固定操作圓點</th><td>4</td><td>3</td><td>4</td></tr><tr><th scope="row">7. 攻擊方向及距離</th><td>5</td><td>4</td><td>2</td></tr><tr><th scope="row">8. 翻滾體力及避傷</th><td>5</td><td>5</td><td>1</td></tr><tr><th scope="row">9. Boss 追近及攻擊銜接</th><td>5</td><td>4</td><td>4</td></tr><tr><th scope="row">10. Boss 橫掃預警及判定</th><td>5</td><td>4</td><td>3</td></tr><tr><th scope="row">11. Boss 重砸預警及判定</th><td>5</td><td>4</td><td>3</td></tr><tr><th scope="row">12. 出招前後停頓</th><td>4</td><td>4</td><td>3</td></tr><tr><th scope="row">13. 玩家造型</th><td>4</td><td>3</td><td>4</td></tr><tr><th scope="row">14. Boss 造型</th><td>3</td><td>3</td><td>4</td></tr><tr><th scope="row">15. 場景及光影</th><td>3</td><td>4</td><td>3</td></tr><tr><th scope="row">16. 移動／攻擊／翻滾動作</th><td>4</td><td>3</td><td>1</td></tr><tr><th scope="row">17. 命中特效及危險範圍</th><td>4</td><td>5</td><td>3</td></tr><tr><th scope="row">18. 手機右手單手操作</th><td>5</td><td>3</td><td>5</td></tr><tr><th scope="row">19. 勝利／死亡／重試流程</th><td>5</td><td>5</td><td>4</td></tr><tr><th scope="row">20. 啟動及穩定性</th><td>5</td><td>4</td><td>4</td></tr></tbody></table></div></details>
+<details><summary>AI 輔助評分與真人評測的差異</summary><div class="table-wrap" tabindex="0" role="region" aria-label="AI 評分紀錄；方法不同，不與人工分數平均"><table><caption>AI 評分紀錄；方法不同，不與人工分數平均</caption><thead><tr><th scope="col">階段</th><th scope="col">Opus</th><th scope="col">Astra</th><th scope="col">Sol</th></tr></thead><tbody><tr><th scope="row">Stage 1</th><td>91</td><td>69</td><td>77</td></tr><tr><th scope="row">Stage 2</th><td>79</td><td>71</td><td>72</td></tr></tbody></table></div><p>AI 評測使用桌面瀏覽器、受控診斷及既有畫面證據，未以相同 iPhone 完整驗證所有項目。Opus Stage 1 為較早封存紀錄，其餘有後續補測，並非六組同步、同條件盲測。</p><p>AI 未充分驗證 Sol 蓄力釋放後的實際傷害，未捕捉 Ken 在手機觀察到的關鍵問題。因此本頁以真人實玩為主，AI 分數只作輔助，不以數字接近推論兩者觀察一致。</p></details></section>
+<section id="play"><div class="heading"><div><p class="eyebrow">02 / PLAY</p><h2>親自試玩，再比較。</h2></div><p>三款模型 × 兩個階段<br>全部保留原始遊戲邏輯</p></div><aside class="mobile-notice"><strong>請使用手機瀏覽器開啟</strong><p>遊戲採用手機觸控手勢操作，不支援電腦操作。建議直向畫面，一次開啟一款遊戲。電腦可閱讀本頁評測與提示詞。</p></aside><div class="games"><article><a class="shot" href="./play/opus/" aria-label="手機試玩 Opus 5.5 Stage 1"><img src="./images/opus.png" alt="Opus 5.5 Stage 1 實際遊戲截圖" loading="lazy" width="390" height="844"></a><div class="card-body"><span class="badge">STAGE 1 截圖</span><h3>Opus 5.5</h3><p>Devin CLI → Claude Code</p><a class="play" href="./play/opus/">手機試玩 Stage 1 ↗</a><a class="play" href="./play/opus-stage2/">手機試玩 Stage 2 ↗</a></div></article><article><a class="shot" href="./play/astra/" aria-label="手機試玩 GPT-6 Astra Stage 1"><img src="./images/astra.png" alt="GPT-6 Astra Stage 1 實際遊戲截圖" loading="lazy" width="390" height="844"></a><div class="card-body"><span class="badge">STAGE 1 截圖</span><h3>GPT-6 Astra</h3><p>Codex · High</p><a class="play" href="./play/astra/">手機試玩 Stage 1 ↗</a><a class="play" href="./play/astra-stage2/">手機試玩 Stage 2 ↗</a></div></article><article><a class="shot" href="./play/sol/" aria-label="手機試玩 GPT-6 Sol Stage 1"><img src="./images/sol.png" alt="GPT-6 Sol Stage 1 實際遊戲截圖" loading="lazy" width="390" height="844"></a><div class="card-body"><span class="badge">STAGE 1 截圖</span><h3>GPT-6 Sol</h3><p>Codex · High</p><a class="play" href="./play/sol/">手機試玩 Stage 1 ↗</a><a class="play" href="./play/sol-stage2/">手機試玩 Stage 2 ↗</a></div></article></div><details class="controls"><summary>觸控操作方式</summary><p>在下方固定圓點短按放手：普通攻擊；持續按住並拖動：移動；快速滑動後放手：翻滾。Stage 2 按住且手指不移動時可蓄力，允許少量抖動；人物維持當前面向，放手釋放攻擊。三個技能按鈕分別使用突進、旋風斬與治療。</p><p>Stage 1 沒有蓄力、三招技能、Boss 第二階段及 PWA 要求。使用瀏覽器返回功能可切換其他作品。</p></details></section>
+<section id="prompts"><p class="eyebrow">03 / PROMPTS</p><h2>公開原始提示詞。</h2><p>Stage 1 用一份完整提示詞建立基本遊戲；Stage 2 再用一份共用提示詞擴充。每階段都允許模型自行測試及修正。下方保留當時的原始文字，未依評測結果改寫。</p><details><summary>Stage 1 完整提示詞</summary><p><a href="./prompts/stage-1.md" download>下載原始 Markdown</a></p><pre># 《裂甲守衛》Stage 1：手機單手 3D Boss 戰
+
+你是唯一製作者。在分配給你的獨立目錄內，直接完成以下可玩遊戲，不停在計劃／骨架。這是一次完整輸入，不回問、不等待人手測試、不要求人提供素材或執行命令。未指定的內部實作／美術細節自行決定，不能改動核心操作或省略功能。
+
+## 執行邊界
+
+使用當前模型及已提供工具，不啟動其他模型或子代理、不讀其他參賽組成果。可安裝公開套件；不新增付費服務／帳號，不讀秘密，不動無關檔案，不停止他人服務，不push／部署。不設時間上限，但完成必要檢查後停止，不無限美化。相同阻礙連續三次實質嘗試無進展時記錄限制、繼續可做部分，不重複空轉。工具拒絕時使用合法替代路徑，不繞過安全限制。
+
+## 成品與美術
+
+TypeScript + Vite + Three.js；真3D模型／場景、固定斜俯視鏡頭、地面八方向玩法。古代圓形競技場半徑10m，持劍玩家約1.7m、巨型石甲守衛約3.6m。角色有可辨頭身四肢與武器；有完整待機、走路、出招、受擊、翻滾及死亡動作，可用分件關節動畫。不以無動畫膠囊／方塊作最終角色。
+
+Stylized game taste：石材、金屬、發光裂紋、接地陰影、克制粒子與打擊回饋。玩家冷色、Boss暖色、地面預警橙紅兼具邊界／紋理。自行以程序化幾何或已可用Blender製作；不下載成品角色／素材包，不使用外部生成服務。資產全本機，無runtime CDN依赖。
+
+一個場、一個Boss、單一Boss血條、一種玩家武器。初始玩家在畫面下半部朝Boss，Boss上半部朝玩家。相機不自動旋轉，整個可行走場地保持可見。人物／場邊有碰撞，無接觸傷害。無教學、無操作說明、無常駐提示文字，除錯資訊預設隱藏。只保留遊戲必要HUD、開始、暫停及重試介面。
+
+## 右手單手控制與畫面
+
+直屏優先，右拇指只操作中下方固定圓形區域，毋須第二手指或鍵盤。以扣除safe-area後可用W×H計算：
+
+- 直屏頂部資訊列80px、底部控制面板180px，其間為獨立3D戰鬥視窗。底面板內圓心(0.56W,90)、半徑58px、中心點半徑6px。底座固定不漂移，方向只在圈緣提示。不要預留未實作技能的灰掣。
+- 橫屏或H&lt;640：上列64px、右控制面板180px，圓心在右面板內(90,H−86)、半徑48px；左側為戰場。可用H&lt;280時安全暫停並顯示簡短調整視窗訊息。
+- 頂部Boss名稱／HP，玩家HP／體力，右上44×44暫停掣，互不重疊。只用必要數字／圖形，無說明段落。開始頁只要遊戲名與開始掣。
+- 支援390×844、844×390及360px窄屏，不裁掉場地、控件不貼系統邊緣。camera aspect取戰鬥視窗而非整頁。控制面板不覆蓋地面預警。
+
+## 固定圓手勢（不可換成普通搖桿）
+
+僅在圓內pointer-down開始操作；捕獲後可拖出圈外直到釋放。圈外按下不啟動。滑鼠能重現同一按／拖／放規則，便於本機試玩。
+
+1. 短按≤220ms且位移≤10 CSS px，放手才出普攻；按下不能先出刀。
+2. 按住持續拖動，超過10px開始走位。用最近100ms有效手指移動向量，對應畫面八方向，固定4m/s。底座不隨touch移動，不用『離中心偏移量』令角色永遠行。
+3. 手指停在8px抖動容差內180ms，角色停步、保留最後面向。容差用穩定區錨點，不能逐event重設。停在圈外亦同樣停步。長按停住只待機，不蓄力、不自動攻擊。
+4. 放手前140ms內尾段淨位移≥32px、平均速度≥0.35px/ms、最後有效移動距放手≤80ms，朝尾段方向翻滾。全程按住不翻滾；普通慢拉放手／快拉後停定再放手只停步。
+5. 釋放優先：合格快掃嘗試翻滾；否則合格短按且本次未拖動才普攻；其他待機。體力不足的快掃不可變普攻。長按鬆手不補斬。
+6. 攻擊鎖定期間不移動；仍收pointer events以支持可取消時段翻滾及有限普攻buffer，不把過期手勢留到稍後執行。
+7. pointercancel／失焦／切App／旋轉：清空輸入並暫停，不模擬放手出招；點繼續後需新按下。控制區禁原生滑動／縮放，UI按鈕不觸發戰鬥。
+
+## 玩家戰鬥
+
+HP100、體力100、碰撞半徑0.35m；方向只由移動／翻滾改變，不自動朝Boss。受傷後0.65s無敵、短受擊反應；取消普攻前搖，已開始判定／後搖不因受擊解除鎖定但仍扣血。死亡立即優先。
+
+三段點按連擊：傷害18／22／32；前搖／命中窗口／後搖分別(0.12,0.10,0.20)、(0.14,0.10,0.23)、(0.23,0.12,0.35)秒。面前扇形半徑1.8／1.9／2.2m，角度100／110／70度。每子攻擊對Boss只命中一次，落空不扣血；動畫與時機相符。上一段完成後0.65s內點按接下一段；只保留一個0.18s普攻buffer。超時、受擊或翻滾重設連段。
+
+翻滾耗35體力、距離2.4m、歷時0.42s；開始後0.06–0.32s無敵，結束0.12s恢復。最後翻滾0.8s後體力30/s回復。可取消待機、移動或普攻後搖；不可取消普攻前搖／判定，不排隊。不得穿Boss或場邊；無敵外受擊中止翻滾。以殘影／動作表示，不靠文字解說。
+
+## Boss：追人＋兩招
+
+Boss HP900、碰撞半徑1.1m、追蹤速度1.6m/s。只在中立／追蹤時朝向玩家。距離≤3.5m且上一招冷卻完成才出招；交替橫掃→重砸。招後有後搖再加0.60s中立時間，給反擊機會；距離太遠就繼續追蹤，不原地連放招。Boss不能與玩家重疊或推穿牆。
+
+- 橫掃：舉起大武器，前方110度／半徑4m扇形提示，前搖開始即鎖方向；0.90s前搖、0.16s判定、0.85s後搖，22傷害。
+- 重砸：武器高舉，前搖开始锁定玩家当时位置，半徑2.4m圓提示；1.20s前搖、0.18s判定、1.10s後搖，32傷害。武器／能量落點必須對準提示位置，不允許地面一處發光而另一處扣血。
+- 提示由淡到實，active開始閃一下、結束消失；顯示與hit region共用同一幾何。傷害判定用玩家碰撞圓相交，同招最多一次；不在判定前扣血、不最後瞬間追蹤。
+
+## 基本系統
+
+開始→短開場→戰鬥→勝利／死亡→重試。結算只顯示結果、用時、重試。雙方同一步致死判玩家失敗。重試重置HP／體力／AI／timer／pointer／特效／連段，Boss回完整初始狀態。暫停與背景不跑CD、傷害、AI、時間；回來不補跑。模擬採受控步長避免卡頓穿透。
+
+揮劍、命中、翻滾、Boss攻擊、勝負有简洁音效，可程序化生成；首次操作後啟動audio，提供靜音。輕微閃光／小震屏不遮預警。無登入／後端／存檔要求，無PWA、蓄力、技能、額外Boss階段；不要提前增加這些功能。
+
+## 自主修正循環與必要檢查
+
+自行安裝／build／啟動 → 用已有瀏覽器工具實際開頁與操作 → 列出失敗 → 修正 → 重測受影響項。優先啟動、手勢、戰鬥、流程、佈局，再外觀；不可要求追加prompt才修。只做必要檢查，不建立大型測試體系。
+
+檢查五組：
+1. build與實際頁面可啟動；直／橫屏可見、沒有阻塞錯誤。
+2. 點按三連、拖拉八向、停指停步、掃放翻滾、慢放不誤觸、圓外按下無作用。
+3. 命中／落空、體力、無敵、後搖與一次命中規則。
+4. Boss追人、兩招預警與判定、收招空隙，無永久卡住。
+5. 勝負／重試／暫停可以操作且乾淨重置。
+
+可用隱藏development診斷及临时HP設定檢查勝負，但交付預設關閉作弊，至少操作一次正常戰鬥。不能以HTTP200或build代替畫面／互動驗證。工具無法驗的項目列未驗，不偽造通過；合法替代測試可做，但不聲稱真機。完成五組後停止，不自行追加範圍。
+
+## 交付與強制停止點
+
+交source、lockfile、本機資產、README啟動命令、實際可玩URL、五組檢查結果及已知限制；保留server供玩。完成後立刻停止實作，不自動續做。
+
+總控會另行唯讀評測，Ken會親自玩一次，再決定下一階段或今次test完結。未收到下一階段明確輸入前不可修改交付原版；評測意見或沉默不是繼續授權。不要自行宣布比較勝負。
+</pre></details><details><summary>Stage 2 完整提示詞</summary><p><a href="./prompts/stage-2.md" download>下載原始 Markdown</a></p><pre># 《裂甲守衛》Stage 2：戰鬥深化與畫面完成度
+
+只有Ken完成第一階段試玩並明確選擇繼續後，總控才會送出此輸入。收到後在分配給你的第一階段副本接續，保留原版不修改。先讀取現有程式，保留古代競技場、持劍玩家與石甲守衛的題材、右手固定圓手勢與基本戰鬥；可重製模型、材質、光影、動畫及鏡頭構圖，不必保留第一階段的粗略美術。不要重寫成別種遊戲。使用當前模型，不回問、不用其他模型／子代理、不新增付費服務／外部資產、不push／部署。
+
+本階段無時間上限；自行實作、啟動、操作、修正直至以下必要功能可用。相同阻礙三次實質嘗試無進展則保存限制，不無限空轉。沒有人工追加提示，不要求使用者先測試。未指定細節保留原有設計。
+
+## 畫面目標：可直接試玩的完整風格化3D遊戲
+
+畫面提升與新增戰鬥功能同樣屬於本階段交付。目標是有一致美術方向、清楚角色輪廓、可信重量及克制特效的手機Boss戰。美術成果必須出現在實際遊玩鏡頭，不用獨立展示頁或放大特寫代替遊戲內效果。自行定下統一造型語言後貫徹，避免每件物件各用一種風格。
+
+### 鏡頭與視覺主次
+
+- 保留固定斜俯視角與畫面八方向對應；不自動旋轉，不用電影運鏡干擾輸入。**本階段可取代第一階段「全場永遠入鏡」限制**：允許平滑跟隨及有限縮放，以玩家、Boss、當前危險範圍為構圖主體。相機不得突然跳動或每次出招抽動。
+- 390px直屏、一般近戰距離時，玩家投影高度以約48–64 CSS px、Boss約90–130px為構圖目標，按實際戰鬥視窗調整，並非硬性像素驗收。拉遠時優先保留双方及逃生方向；不要為追求大模型裁掉腳下預警。場邊接近時讓邊界可見，Boss即將出招時其身體和相關預警須在畫面內。
+- 第一眼看清玩家位置與面向，第二眼看清Boss動作與危險範圍，再看環境。不要靠滿屏高亮、巨大HUD或常駐箭嘴補救構圖。控制面板仍與戰場分離，既定單手按鈕位置不變。
+
+### 模型、材質與場景
+
+- 玩家有明確頭盔／面部區、肩甲、軀幹、手臂、腿及持劍輪廓；用比例、層次、切面和少量不對稱設計形成辨識度。Boss有獨特肩背剪影、分層石甲、關節空隙、核心與一眼可辨的大武器。程序化幾何可用，但不能只把同形方塊堆成人形便當完成。
+- 模型細節以正常手機視角仍可辨的主形為先，輪廓與關節動作優先於微小裝飾。裝甲與身體有視覺分層，持劍／握錘與手部位置一致；避免肢體長期互穿、武器漂浮、腳底離地。
+- 石材、金屬、布料、發光核心須有可辨的明暗、粗糙度及色彩差異。用程序化紋理、頂點色或局部磨損表現材質；不能全場只靠純色加emissive。亮面要有層次，不要把金屬全做成塑膠。
+- 競技場有清楚可行走地面、低干擾鋪面紋理、邊界與少量有節奏的環境物件。裝飾只在周邊建立深度及場景氣氛，不遮玩家、Boss或預警；不得為美術新增碰撞障礙。避免把可走地面壓成全黑。
+- 使用有方向的主光、適量環境補光、接地陰影及必要輪廓光分開角色與背景。玩家冷色、Boss暖色、危險區橙紅的語言一致；P2紫紅核心也要與傷害範圍區分。控制曝光和bloom，發光處仍有形狀，不可整片白色。
+
+### 動作、打擊及特效
+
+- 待機有呼吸／重心，走路有腳步交替、身體跟進；三段普攻有不同起手、劍路與收招，不能只改特效顏色。翻滾要看得到身體翻轉、位移與落地恢復，不是站立滑行。
+- 兩段蓄力在姿勢、劍光形狀、粒子運動與釋放動作上均有區別。Boss舉武器時有重心預備，出手時軀幹跟進，落點和後搖有重量；P2變化要能從石甲結構、核心及站姿辨認，不能只換HP條顏色。
+- 前搖、active、後搖各有可讀的動作節奏，與本文既定數值及判定同步。用劍弧、命中閃光、少量碎屑、局部衝擊環和聲音建立打擊感；命中特效只在真命中時發生，落空不能播放同樣的命中回饋。可做輕微視覺震動，但不改模擬時間或遮住下一次預警。
+- 招式特效靠形狀、範圍與節奏區分，不只靠顏色。所有地面危險區有清楚外緣、填充層次及由前搖到爆發的進度感；預警必須貼地、不閃爍、不被粒子或角色光暈蓋過。效果消退乾淨，不殘留成另一個假危險區。
+
+### HUD與手機效能
+
+- HUD像遊戲介面：統一字體層級、邊框、圖示、血條與CD視覺；Boss血條、玩家狀態、兩格蓄力及三技能保持清楚而簡潔。保留必要短名與數字，不增加教學、说明段落、設定大廳或展示面板。
+- 在現有Three.js架構內選擇有效且可維護的做法；重複環境物件可共用幾何／材質或instancing，限制即時陰影、粒子與透明層成本，合理限制pixel ratio。資產仍全部本機，不新增成品素材包、外部生成服務或runtime CDN。不要為增加細節而令手機操作明顯卡頓。
+- 若需要降低畫質，先減少背景装飾、粒子量、bloom與陰影成本，保留角色輪廓、動作、預警和輸入反應。只陳述實際觀察到的效能，不承諾未實測裝置達到指定FPS。
+
+## 追加操作與兩段蓄力
+
+保留點按普攻、持續拖拉走位、快掃放手翻滾。停指8px容差內180ms後停步並開始蓄力，面向鎖定；0.65s第一段、1.50s第二段，計時從停指成立後起算。滿蓄維持不自動出招；重新拖動取消；放手出當前段。未滿第一段的長按釋放不攻擊。放手仍優先判定快掃翻滾。
+
+- 第一段：琥珀劍光、壓低身體，65傷害，面前半徑2.5m／100度；前搖0.20／判定0.12／後搖0.45秒。
+- 第二段：藍白聚光、雙光環、舉劍，125傷害，面前寬2.4m／長5m裂地帶；前搖0.35／判定0.15／後搖0.80秒。
+- 每招只命中一次，動畫与实际方向／判定一致。受擊取消蓄力。翻滾可取消蓄力及重擊前搖，不能取消重擊判定／後搖。滿蓄提示只播放一次；不自動瞄準。
+
+## 三技能與單手布局
+
+直屏上列104px、底控制面板232px，圓心(0.52W,142)、半徑58。技能直徑56，相對圓心：突刺(−46,−100)、旋風(+46,−100)、治療(+105,−18)。橫屏上列72px、右面板220px，圓心(94,H−86)、半徑48，技能相對(−38,−88)、(+38,−88)、(+91,−8)。W/H扣safe-area。控制面板不覆蓋戰場，三掣不重疊，保留固定底座。
+
+用右拇指先放開手勢再按技能即可；不要求兩指同時按。由手勢區拖到按鈕放手不能觸發技能。技能要獨立pointer-down／up，移出按鈕取消。成功施放取消蓄力／連段；原手指之後放手不補斬。無效技能不取消原狀態。按鈕顯示圖示／短名／CD暗罩與向上取整秒數。上方加兩格蓄力資訊，不增加教學或說明文字。
+
+| 技能 | 效果 | CD與動作 |
+|---|---|---|
+| 破風突刺 | 沿當前面向前進最多3m，寬1m，55傷害，受碰撞阻擋 | CD8s；前搖0.15s，總鎖定0.50s |
+| 旋風斬 | 自身半徑2.8m，75傷害，一次命中 | CD12s；前搖0.20／判定0.15／後搖0.40s |
+| 回復脈衝 | +30HP，上限100；滿血拒絕不耗CD | CD20s；前搖0.35／立即生效／後搖0.25s |
+
+技能只在待機／移動／蓄力施放，不buffer、不自動朝Boss。開始即耗CD，受擊中斷前搖時不退CD、不出效果。技能鎖定不能翻滾取消。暫停停止CD，重試清零。
+
+## Boss 三條血與兩階段
+
+總HP1800，每條600，顯示當前條與×3／×2／×1；溢出傷害跨條不能吞掉。HP≤900一次性進P2，當前整招及後搖結束才轉，致死直接死亡。
+
+變身1.8s：雙方不能出招、無敵，CD／體力暫停；石甲明顯裂開／移位，核心紫紅。結束1s安全時間後才前搖。先保留P1兩招，P2擴充：
+
+- 橫掃在第一擊後0.60s反手追擊，另有新扇形預警與方向鎖定，22傷害。
+- 重砸在原判定後0.70s追加半徑2.4–4m外環，24傷害；另畫環形預警，內圈安全。
+- 破陣衝撞：P2新增，寬2.2m、最長8m鎖線預警，前搖1.10／衝撞0.55／後搖1.00s，28傷害；碰場邊／玩家停下，不推穿牆。
+- 核心震波：1.30s預警，以Boss為心，半徑1.5m起、寬0.8m環以3m/s擴至8.5m，26傷害，後搖1.20s；環內外安全，可翻滾穿過。
+
+P1仍交替橫掃／重砸；P2循環雙橫掃→震波→衝撞→重砸外環。追擊完成才算整招；每招後保留0.60s中立。近戰前需追到距離，追蹤最多3s仍太遠可跳下一招，避免卡住。每個子攻擊一次判傷，所有提示與hit geometry一致。
+
+## PWA及回歸
+
+追加manifest、icon、service worker，核心資產全本機；首次快取完成後可離線開局／重試。只要求localhost可行檢查，不要求部署、實機安裝、錄影、效能證書。保留簡潔遊戲介面、靜音、勝負重試、背景暫停及乾淨狀態重置，不添加設定大廳或教學。
+
+自主循環：build→開頁→試玩→列失敗→修正→重測。必要檢查：原手勢／普攻不倒退；兩段蓄力的方向／取消／後搖；三技能效果／CD；P2門檻、動畫及各招；勝負／重試／暫停；直橫屏布局；本機PWA。畫面檢查合併在同一輪試玩：實際查看正常戰鬥、二段蓄力及P2出招畫面，確認角色／動作可辨、危險區可讀、特效不遮操作，發現問題自行修正；不用另建美術測試系統、錄影或提交大量截圖。工具不支援的操作列未驗，不假報完成；不得用刪功能方式過測。
+
+交付source、啟動URL、檢查結果與限制，保留server。完成後停止，等待Ken最終試玩，不修改封存的第一階段成果。
+</pre></details></section>
+<section id="method"><p class="eyebrow">04 / METHOD & NOTES</p><h2>如何測試，以及如何解讀。</h2><details open><summary>題目、工具與人工介入</summary><p>同一題材：古代圓形競技場、持劍玩家與石甲 Boss。Stage 1 包含移動、翻滾、三連普攻、追擊、橫掃及重砸；Stage 2 加入蓄力、三招技能、多條血量、第二階段、PWA，以及更強的 3D 畫面要求。</p><p>各組在獨立對話及目錄執行。Astra／Sol 使用 Codex High；Opus 使用 Devin，Stage 2 因額度及執行中斷，改由 Claude Code Opus 5.5 High 接續。總控處理工具批准與執行恢復，不追加遊戲設計提示、不代改遊戲邏輯。因此是單份 prompt 配合自主修正，並非完全零人工介入，也不是完全相同工具環境的受控 benchmark。</p><p>部署僅作資源路徑及 PWA 子目錄包裝，原始與部署產物分別封存。原規格要求遊戲內不設教學，因此不把缺少教學視為未完成規格。</p></details>
+<details><summary>價格、發布背景與結論範圍</summary><p>GPT-6 Sol 與 Opus 5.5 於 2026 年 9 月 22 日發布；GPT-6 Astra 較早於 9 月 3 日發布。Anthropic 提及外部測試者比較多款 Claude 的單 prompt 遊戲，Opus 5.5 的畫面與完成度獲較高評價；這不是官方與 GPT-6 的 3D 對照測試。</p><p>截至本次核對，Sol 標準 API 每百萬輸入／輸出 tokens 為 US$2／US$10（提示長度至 272K），Opus 5.5 為 US$4／US$20。這兩項單價是其一半；快取、總用量及訂閱另計，不能推論實際任務成本也減半。</p><p>每模型只有一組作品，結論反映本次成品與個人試玩感受。文字到 3D 遊戲的生成表現，不等於已獨立測量圖像輸入理解能力。工具等待、額度中斷及總控用量不能當作模型推理速度或成本。</p><p>來源：<a href="https://developers.openai.com/api/docs/changelog">OpenAI 更新與定價紀錄</a> · <a href="https://www.anthropic.com/claude-opus-5-5">Anthropic Opus 5.5 發布文</a></p></details></section>
+</main><footer><a href="../../">異相工作室 / Out of Phase Studio</a><p>庫倫 Coulomb · 從想法到可試玩的實驗。</p><a href="https://github.com/Moonlightengineer/Moonlight-playground">GitHub ↗</a></footer></body></html>
