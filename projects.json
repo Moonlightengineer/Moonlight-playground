@@ -26,11 +26,11 @@
       "title": "一個 Prompt，三個 Boss 戰",
       "category": "game",
       "status": "experiment",
-      "description": "同一規格比較三款 AI 的 3D 造型、動作與特效。完整評分、原始提示詞及手機觸控試玩。",
+      "description": "用手機挑戰三款 AI 製作的 Boss 戰，再比較造型、動作與特效。附評測與提示詞。",
       "path": "./games/boss-model-comparison/",
       "cover": "./games/boss-model-comparison/cover.svg",
       "coverAlt": "三模型 Boss 戰比較",
-      "actionLabel": "試玩與評測",
+      "actionLabel": "選擇遊戲",
       "tags": [
         "三模型比較",
         "手機觸控限定",
