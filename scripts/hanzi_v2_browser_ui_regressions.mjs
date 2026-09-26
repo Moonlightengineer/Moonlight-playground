@@ -177,7 +177,7 @@ async function verifyResetFlows(page) {
   });
 
   const before = await storageSnapshot(page);
-  await page.locator('#orders [data-action="open-help"]').click();
+  await page.locator('.game-header [data-action="open-help"]').click();
   await acceptNextDialog(page);
   await page.locator('#help-panel [data-action="restart-expedition"]').click();
   await page.waitForFunction(() => document.querySelector('#v2-game-app')?.dataset.status === 'expedition-map');
@@ -289,7 +289,7 @@ async function run() {
     await measureOverflow(page, 'start');
 
     await page.getByRole('button', { name: '開始下一戰', exact: true }).click();
-    await page.getByRole('button', { name: '抽牌', exact: true }).click();
+    await page.getByRole('button', { name: /^抽牌 \d+\/1$/ }).click();
 
     for (const symbol of ['張', '飛']) {
       const wrap = await handWrapBySymbol(page, symbol);

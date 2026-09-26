@@ -15,6 +15,7 @@ import {
   recordBattleEvents,
 } from '../report/battle-report.js';
 import { generateRewardOffer } from '../reward/reward-flow.js';
+import { CONFIGURATION_DRAWS_PER_PHASE } from '../core/draw-budget.js';
 import { gameEvent } from '../core/events.js';
 
 function success(state, events = []) {
@@ -114,6 +115,8 @@ export function startBattle(game) {
       phaseIndex: 0,
       phaseCount: 3,
       ordersRemaining: TUNING.ordersPerBattle,
+      drawsRemaining: CONFIGURATION_DRAWS_PER_PHASE,
+      redeployUsed: false,
     },
     currentBattleResult: null,
     nextStageId: null,
@@ -141,6 +144,7 @@ export function startPhase(game) {
       wallHp: game.wallHp,
       phaseIndex: game.currentBattle.phaseIndex,
       ordersRemaining: game.currentBattle.ordersRemaining,
+      redeployUsed: game.currentBattle.redeployUsed,
       tactics: game.tactics,
     });
     return success({
@@ -234,7 +238,13 @@ export function finishPhase(game, combat, events = []) {
     ...prepared,
     status: 'configuration',
     combat: null,
-    currentBattle: { ...prepared.currentBattle, phaseIndex, ordersRemaining: combat.ordersRemaining },
+    currentBattle: {
+      ...prepared.currentBattle,
+      phaseIndex,
+      ordersRemaining: combat.ordersRemaining,
+      drawsRemaining: CONFIGURATION_DRAWS_PER_PHASE,
+      redeployUsed: Boolean(combat.redeployUsed),
+    },
     legalCells: listCells(prepared.board).filter((cell) => {
       const key = `${cell.column},${cell.row}`;
       return !prepared.boardCards[key]

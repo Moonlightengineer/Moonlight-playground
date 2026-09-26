@@ -111,7 +111,7 @@ async function deploy(page, recipe) {
 }
 
 async function preparePhase(page) {
-  const draw = page.getByRole('button', { name: '抽牌', exact: true });
+  const draw = page.getByRole('button', { name: /^抽牌 \d+\/1$/ });
   if (await visible(draw) && !await draw.isDisabled()) await draw.click();
 
   let attempts = 0;
