@@ -1,0 +1,20 @@
+/* Subsets of SIL Open Font License fonts (see OFL.txt): only the glyphs the
+   film and page use. Regenerate with render/fonts.py after changing text. */
+@font-face {
+  font-family: "HW Mono";
+  src: url("jetbrains-mono-400-subset.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "HW Sans TC";
+  src: url("noto-sans-tc-400-subset.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+@font-face {
+  font-family: "HW Serif TC";
+  src: url("noto-serif-tc-600-subset.woff2") format("woff2");
+  font-weight: 600;
+  font-display: block;
+}

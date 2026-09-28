@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1019">
+<title>Hello, World｜30 秒純程式短片｜異相工作室</title>
+<meta name="description" content="一段 30 秒短片：冇攝影機、冇拍攝素材、冇 AI 影片生成器。每一格畫面、每一個音，都由一份程式碼計算出嚟，仲可以喺你部機即時重算一次。">
+<meta property="og:title" content="Hello, World｜每一格都係程式計出嚟嘅 30 秒短片">
+<meta property="og:description" content="四行程式碼起出一座城，游標升上天變成月亮。畫面、鏡頭、配樂全部由程式計算。">
+<meta property="og:type" content="video.other">
+<meta property="og:url" content="https://moonlightengineer.github.io/Moonlight-playground/tools/hello-world-film/">
+<meta property="og:image" content="https://moonlightengineer.github.io/Moonlight-playground/tools/hello-world-film/poster.jpg">
+<link rel="icon" href="../../assets/coulomb-type.svg" type="image/svg+xml">
+<link rel="stylesheet" href="../../assets/styles.css">
+<link rel="stylesheet" href="./fonts/fonts.css">
+<link rel="stylesheet" href="./page.css">
+</head>
+<body class="film-page">
+<a class="skip-link" href="#film">跳到影片</a>
+<header class="site-header">
+  <a class="brand" href="../../" aria-label="返回異相工作室首頁">
+    <strong>異相工作室<span class="brand-dot" aria-hidden="true">.</span></strong>
+    <small>OUT OF PHASE STUDIO</small>
+  </a>
+  <nav class="header-nav" aria-label="頁面導覽">
+    <a href="#film">影片</a><a href="#live">即時運算</a><a href="#how">點樣做</a>
+  </nav>
+</header>
+
+<main>
+  <section class="film-hero" aria-labelledby="title">
+    <p class="eyebrow">異相實驗室 ／ AI 製片實驗</p>
+    <h1 id="title">Hello, World<span class="cursor" aria-hidden="true"></span></h1>
+    <p class="hero-lede">一段 30 秒嘅短片。冇攝影機、冇拍攝素材、冇 AI 影片生成器、冇現成模型或音效庫——每一格畫面、每一個音，都係由一份程式碼逐格計出嚟。</p>
+  </section>
+
+  <figure class="player" id="film">
+    <video controls playsinline preload="metadata" poster="./poster.jpg" width="1920" height="1080">
+      <source src="./film.mp4" type="video/mp4">
+      你嘅瀏覽器唔支援影片播放，可以<a href="./film.mp4">直接下載 MP4</a>。
+    </video>
+    <figcaption>1920×1080・24 fps・立體聲。四行程式碼起出一座城，游標升上天變成月亮，城市最後自己印出 <code>hello, world</code>。建議開聲、全螢幕睇。</figcaption>
+  </figure>
+
+  <section class="live" id="live" aria-labelledby="live-title">
+    <p class="eyebrow">LIVE</p>
+    <h2 id="live-title">唔信？喺你部機即時計一次。</h2>
+    <p>下面個掣會喺你部手機或電腦即時運行同一套程式：畫面由你部機嘅顯示卡逐格計，配樂亦即場合成。效果會比上面影片粗糙少少（即時版每格只計一次，冇動態模糊同景深），但每一格都係現場計出嚟嘅。</p>
+    <div class="live-controls">
+      <button type="button" class="live-button" id="live-start">▶ 即時運算</button>
+      <div class="mode-group" role="group" aria-label="拆解模式">
+        <button type="button" class="mode-button" data-mode="final" aria-pressed="true">成品</button>
+        <button type="button" class="mode-button" data-mode="raw" aria-pressed="false">冇後期</button>
+        <button type="button" class="mode-button" data-mode="geometry" aria-pressed="false">純幾何</button>
+      </div>
+    </div>
+    <div class="live-stage" id="live-stage" hidden>
+      <canvas id="live-canvas" aria-label="即時運算畫面"></canvas>
+    </div>
+    <p class="live-status" id="live-status" role="status" aria-live="polite"></p>
+    <p class="fine-print">需要支援 WebGL2 嘅瀏覽器。「冇後期」拎走泛光、調色同顆粒；「純幾何」只顯示大廈嘅形狀同方向，睇清楚城市點樣由格仔砌出嚟。舊手機可能會慢，程式會自動降低解像度。</p>
+  </section>
+
+  <section class="how" id="how" aria-labelledby="how-title">
+    <p class="eyebrow">BEHIND THE FRAMES</p>
+    <h2 id="how-title">點樣做出嚟？</h2>
+    <ol>
+      <li><h3>劇本就係程式碼</h3><p>片中四行 <code>city = build(code);</code>、<code>moon = rise(cursor);</code>、<code>light(city, moon);</code>、<code>run(world);</code> 就係分鏡：起城、游標變月亮、全城亮燈、城市運行。最後城市自己印出輸出 <code>hello, world</code>。</p></li>
+      <li><h3>每一點都係一座大廈</h3><p>字型係手砌嘅 5×7 點陣字，每一點變成一座大廈：678 座「字」大廈，加兩萬幾格普通城市。有 b、d、h、l 呢啲高筆劃嘅字母，就變成天際線上最高嗰幾座。</p></li>
+      <li><h3>每個像素射一條光線</h3><p>畫面每一個像素都向城市射出一條「光線」，計佢撞到大廈、海面定天空，再計窗燈、月光、海面倒影同霧氣。呢種做法叫光線追蹤（ray tracing），所有形狀都係數學公式，唔係 3D 模型檔。</p></li>
+      <li><h3>模擬真實鏡頭</h3><p>全片得兩個長鏡頭（一鏡到底），用曲線設計推軌、俯衝、轉彎同升空。再模擬電影鏡頭嘅景深、180° 快門動態模糊、變形寬銀幕光暈、菲林顆粒同調色。</p></li>
+      <li><h3>配樂都係計出嚟</h3><p>冇錄音、冇音色庫。每秒 48,000 個數字由振盪器、濾波器同殘響嘅公式計出；打字時每個 token 一粒音，第 10 秒「全城亮燈」有香港電網嘅 50 Hz 嗡嗡聲，燈光跟住大鼓閃。</p></li>
+      <li><h3>冇顯示卡都照渲染</h3><p>雲端電腦冇 GPU，就用 4 粒 CPU 模擬顯示卡。每格畫面計 12 至 32 次再平均，得出動態模糊、景深同平滑邊緣，全片超過 190 億條光線。</p></li>
+    </ol>
+  </section>
+
+  <section class="numbers" aria-labelledby="numbers-title">
+    <p class="eyebrow">NUMBERS</p>
+    <h2 id="numbers-title">數字</h2>
+    <dl>
+      <div><dt>畫面</dt><dd>720 格</dd></div>
+      <div><dt>每格取樣</dt><dd>12–32 次</dd></div>
+      <div><dt>主光線</dt><dd>190 億+</dd></div>
+      <div><dt>音訊取樣</dt><dd>288 萬</dd></div>
+      <div><dt>圖片／影片／聲音素材</dt><dd>0</dd></div>
+      <div><dt>CPU 渲染時間</dt><dd id="render-time">約 3 小時</dd></div>
+    </dl>
+  </section>
+
+  <section class="credits" aria-labelledby="credits-title">
+    <h2 id="credits-title">製作說明</h2>
+    <p>程式、城市、鏡頭、配樂、剪接及調色：由 Claude（Anthropic 開發嘅 AI）按異相工作室要求，喺一次對話入面寫程式完成；人手冇畫過、拍過或錄過任何素材。標題字型為 JetBrains Mono、Noto Sans TC、Noto Serif TC 子集（SIL Open Font License，見 <a href="./fonts/OFL.txt">OFL.txt</a>）。</p>
+    <p>源碼同重現步驟：見 <a href="https://github.com/Moonlightengineer/Moonlight-playground/tree/main/tools/hello-world-film">GitHub 資料夾</a>。片中城市、代碼同 <code>hello, world</code> 為虛構創作，唔代表任何真實地點或項目。</p>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div><strong>庫倫 Coulomb × 異相工作室</strong><p>個人創作與實驗，不代表任何僱主、客戶或項目。</p></div>
+  <p><a href="../../">返回作品列表</a></p>
+</footer>
+
+<script type="module">
+import { createLive, supportsLive } from './live.js';
+
+const startButton = document.getElementById('live-start');
+const stage = document.getElementById('live-stage');
+const status = document.getElementById('live-status');
+const modeButtons = [...document.querySelectorAll('.mode-button')];
+const fonts = {
+  mono: '"HW Mono", ui-monospace, monospace',
+  cjk: '"HW Sans TC", "PingFang HK", "Noto Sans TC", sans-serif',
+  cjkTitle: '"HW Serif TC", "HW Sans TC", serif',
+};
+let live = null;
+
+if (!supportsLive()) {
+  startButton.disabled = true;
+  status.textContent = '呢部裝置唔支援 WebGL2 浮點渲染，請睇上面影片。';
+}
+
+startButton.addEventListener('click', async () => {
+  if (live?.running) { live.stop(); startButton.textContent = '▶ 即時運算'; return; }
+  startButton.disabled = true;
+  stage.hidden = false;
+  try {
+    // canvas-only fonts are never requested by the page itself: load them explicitly
+    await Promise.all([
+      document.fonts.load('22px "HW Mono"'),
+      document.fonts.load('22px "HW Sans TC"', '世界'),
+      document.fonts.load('600 22px "HW Serif TC"', '世界'),
+    ]);
+    document.querySelector('.player video')?.pause();
+    live ??= createLive({
+      canvas: document.getElementById('live-canvas'),
+      fonts,
+      onStatus: (s) => { status.textContent = s; },
+      onEnd: () => { startButton.textContent = '↻ 再計一次'; status.textContent = '完。每一格都係啱啱喺你部機計出嚟嘅。'; },
+    });
+    const active = modeButtons.find((b) => b.getAttribute('aria-pressed') === 'true');
+    live.setMode(active.dataset.mode);
+    await live.start();
+    startButton.textContent = '■ 停止';
+  } catch (error) {
+    status.textContent = `未能啟動即時運算：${error.message || error}`;
+  } finally {
+    startButton.disabled = false;
+  }
+});
+
+for (const button of modeButtons) {
+  button.addEventListener('click', () => {
+    for (const b of modeButtons) b.setAttribute('aria-pressed', String(b === button));
+    live?.setMode(button.dataset.mode);
+  });
+}
+</script>
+</body>
+</html>

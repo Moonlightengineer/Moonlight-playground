@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Hello, World — offline render harness</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>html,body{margin:0;background:#000}canvas{display:block}</style>
+</head>
+<body>
+<canvas id="film"></canvas>
+<script type="module">
+import { Film } from './film.js';
+import { drawOverlay, FPS } from './timeline.js';
+
+// Driven by render/render.mjs through Playwright. Every frame is a pure
+// function of its index, so chunks can be rendered in any order.
+const fonts = {
+  mono: '"HW Mono", "DejaVu Sans Mono", monospace',
+  cjk: '"HW Sans TC", "WenQuanYi Zen Hei", sans-serif',
+  cjkTitle: '"HW Serif TC", "HW Sans TC", serif',
+  credit: new URLSearchParams(location.search).get('credit') || undefined,
+};
+let film, overlay, octx;
+
+window.api = {
+  async init({ width = 1920, height = 1080, scale = 1 } = {}) {
+    await Promise.all([document.fonts.load(`22px ${fonts.mono}`), document.fonts.load(`22px ${fonts.cjk}`, '世界'), document.fonts.load(`600 22px ${fonts.cjkTitle}`, '世界')]);
+    overlay = document.createElement('canvas');
+    overlay.width = width; overlay.height = height;
+    octx = overlay.getContext('2d');
+    film = new Film(document.getElementById('film'), { width, height, scale, overlay });
+    return { floatBlend: film.floatBlend, vw: film.vw, vh: film.vh, towers: film.city.towers.length };
+  },
+  setDebug(d, raw = false) { film.debug = d; film.raw = raw; },
+  setFeatures(f) { film.forceFeatures = f; },
+  plates: false,     // true: render without titles (they are composited later)
+  render(t, samples = 1, frame = 0, shutter = 0.5) {
+    if (this.plates) octx.clearRect(0, 0, overlay.width, overlay.height);
+    else drawOverlay(octx, t, overlay.width, overlay.height, fonts);
+    film.render(t, { samples, frame, shutter: shutter / FPS });
+  },
+  overlayPNG(i) {
+    drawOverlay(octx, i / FPS, overlay.width, overlay.height, fonts);
+    return overlay.toDataURL('image/png');
+  },
+  frameRGBA(i, samples, shutter = 0.5) {
+    const t = i / FPS;
+    this.render(t, samples, i, shutter);
+    const px = film.readPixels();
+    let s = '';
+    const CH = 0x8000;
+    for (let k = 0; k < px.length; k += CH) s += String.fromCharCode.apply(null, px.subarray(k, k + CH));
+    return btoa(s);
+  },
+  png(t, samples = 1, frame = 0) {
+    this.render(t, samples, frame);
+    return document.getElementById('film').toDataURL('image/png');
+  },
+};
+window.ready = true;
+</script>
+</body>
+</html>

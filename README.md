@@ -17,6 +17,7 @@ Repo 及 GitHub Pages 路徑沿用 `Moonlight-playground`，避免破壞既有�
 | 項目 | 類別 | 狀態 | 公開路徑 |
 |---|---|---|---|
 | 字陣無雙 | 網頁遊戲 | 可遊玩 | `games/hanzi-generals/` |
+| Hello, World｜30 秒純程式短片 | 影片 | 試驗中 | `tools/hello-world-film/` |
 
 ## 首頁品牌與發布邊界
 
@@ -35,7 +36,7 @@ Moonlight-playground/
 ├─ projects.json                      # 首頁項目登記
 ├─ assets/                            # 首頁介面資源
 ├─ games/<slug>/                      # 各個獨立網頁遊戲
-├─ tools/<slug>/                      # 各個獨立實用工具
+├─ tools/<slug>/                      # 各個獨立實用工具及影片實驗
 ├─ site-packages/                     # 首次匯入大型單檔作品的傳輸封裝
 ├─ scripts/build_site.py              # 建置及完整性驗證
 ├─ tests/homepage_browser.py          # 可選的離線首頁 browser smoke test
@@ -130,3 +131,7 @@ Vertical Slice 完成後由以下路徑提供指定測試者使用：
 
 `games/boss-model-comparison/` 是評測介紹、三組 Stage 1 及 Astra／Sol Stage 2 production 成品。整合 PR #21 品牌首頁，新增評測入口。遊戲邏輯不改；Stage 1 調整 HTML asset URL，Stage 2 額外限定 PWA manifest、service worker 與註冊 URL 至各自子目錄，包裝 hash 見 `docs/boss-comparison/packaging.json`。評分未公開。
 
+
+## Hello, World 純程式短片
+
+`tools/hello-world-film/` 是一段 30 秒、1920×1080 的短片及其完整源碼：畫面、鏡頭、配樂全部由程式計算，沒有拍攝素材、素材庫或 AI 影片生成器；頁面同時提供瀏覽器即時運算版及「冇後期／純幾何」拆解模式。首頁新增「影片」分類承載此作品。製作過程、工具、限制及重現步驟見該資料夾的 `README.md`。`scripts/build_site.py` 會檢查影片頁必要檔案及 `film.mp4` 大小。

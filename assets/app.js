@@ -8,7 +8,7 @@ let projects = [];
 let loaded = false;
 
 const labels = {
-  category: { game: '網頁遊戲', tool: '實用工具', archive: '封存' },
+  category: { game: '網頁遊戲', tool: '實用工具', film: '影片', archive: '封存' },
   status: { experiment: '試驗中', playable: '可遊玩', paused: '暫停', graduated: '已升級' },
 };
 
