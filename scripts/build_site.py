@@ -98,9 +98,27 @@ def build() -> None:
         shutil.copytree(comparison, OUTPUT / "games" / "boss-model-comparison", dirs_exist_ok=True)
         require_text(OUTPUT / "games" / "boss-model-comparison" / "index.html", "三個 Boss 戰")
 
+    film_copied = False
+    if any(p.get("id") == "hello-world-film" for p in projects):
+        film = ROOT / "tools" / "hello-world-film"
+        for name in ("index.html", "film.mp4", "poster.jpg", "cover.jpg", "fonts/fonts.css", "fonts/OFL.txt"):
+            if not (film / name).is_file():
+                raise RuntimeError(f"Hello, World film is missing {name}")
+        video_bytes = (film / "film.mp4").stat().st_size
+        if not 1_000_000 < video_bytes < 20_000_000:
+            raise RuntimeError(f"Unexpected film.mp4 size: {video_bytes} bytes")
+        require_text(film / "index.html", "Hello, World")
+        shutil.copytree(
+            film,
+            OUTPUT / "tools" / "hello-world-film",
+            dirs_exist_ok=True,
+            ignore=shutil.ignore_patterns("node_modules", "*.mkv", "*.wav"),
+        )
+        film_copied = True
+
     print(
         "SITE_VERIFY_OK "
-        f"projects={len(projects)} game_bytes={len(game_html)} v2={int(v2_copied)}"
+        f"projects={len(projects)} game_bytes={len(game_html)} v2={int(v2_copied)} film={int(film_copied)}"
     )
 
 

@@ -122,7 +122,7 @@ class HomepageContractTest(unittest.TestCase):
         filters = next(attrs for _, attrs in self.nodes if attrs.get("id") == "project-filters")
         self.assertIn("hidden", filters)
         buttons = [attrs for tag, attrs in self.nodes if tag == "button" and "data-filter" in attrs]
-        self.assertEqual(len(buttons), 3)
+        self.assertEqual(len(buttons), 4)
         self.assertTrue(all("disabled" in attrs and "aria-pressed" in attrs for attrs in buttons))
 
     def test_assets_and_canonical_route(self):

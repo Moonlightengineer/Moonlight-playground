@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-25",
+  "updatedAt": "2026-09-27",
   "projects": [
     {
       "id": "hanzi-generals",
@@ -37,6 +37,25 @@
         "完整評分與提示詞"
       ],
       "createdAt": "2026-09-24",
+      "featured": false,
+      "published": true
+    },
+    {
+      "id": "hello-world-film",
+      "title": "Hello, World｜30 秒純程式短片",
+      "category": "film",
+      "status": "experiment",
+      "description": "冇攝影機、冇素材、冇 AI 影片生成器：四行程式碼起出一座城，每一格畫面同每一個音都由程式計算。附即時運算同拆解模式。",
+      "path": "./tools/hello-world-film/",
+      "cover": "./tools/hello-world-film/cover.jpg",
+      "coverAlt": "由發光點陣字大廈組成嘅夜景城市，月亮同探照燈照住海港",
+      "actionLabel": "觀看影片",
+      "tags": [
+        "30 秒短片",
+        "全程式生成",
+        "可即時運算"
+      ],
+      "createdAt": "2026-09-27",
       "featured": false,
       "published": true
     }
