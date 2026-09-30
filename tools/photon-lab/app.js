@@ -338,8 +338,8 @@ function peGraphDraw() {
 
   for (const metal of P.METALS) {
     const selected = metal.id === pe.metal.id;
-    const f0 = (metal.phi * P.E_CHARGE) / P.H;
-    const ke = (f) => (P.H * f) / P.E_CHARGE - metal.phi;
+    const f0 = P.thresholdHz(metal.phi);
+    const ke = (f) => P.keMaxLine(f, metal.phi);
     ctx.strokeStyle = selected ? '#7d97ff' : 'rgba(170, 180, 210, 0.35)';
     ctx.lineWidth = selected ? 3 : 1.5;
     ctx.setLineDash([5, 5]);
@@ -469,7 +469,7 @@ function hTable() {
   }
   for (const gap of P.gapsFrom(h.level)) {
     const row = body.insertRow();
-    if (Math.abs(gap.energy - h.energy) <= P.MATCH_TOLERANCE_EV) row.className = 'match';
+    if (P.matchesGap(gap.energy, h.energy)) row.className = 'match';
     row.insertCell().textContent = `n = ${h.level} → ${gap.upper}`;
     row.insertCell().textContent = eV(gap.energy);
     row.insertCell().textContent = `${nmText(gap.nm)} ${regionShort[gap.region]}`;

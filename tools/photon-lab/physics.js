@@ -19,6 +19,12 @@ export const photonEnergyEV = (nm) => HC_EV_NM / nm;
 export const wavelengthNm = (eV) => HC_EV_NM / eV;
 export const frequencyHz = (nm) => C / (nm * 1e-9);
 
+export const thresholdHz = (phi) => (phi * E_CHARGE) / H;
+
+// Straight line of the KE_max–f graph, hf − φ. Negative below the threshold
+// (the dashed extension to −φ); photoelectric() clamps it for real emission.
+export const keMaxLine = (fHz, phi) => (H * fHz) / E_CHARGE - phi;
+
 export function photoelectric(nm, phi) {
   const energy = photonEnergyEV(nm);
   const surplus = energy - phi;
@@ -28,7 +34,7 @@ export function photoelectric(nm, phi) {
     emits,
     keMax: emits ? Math.max(0, surplus) : 0,
     shortBy: emits ? 0 : -surplus,
-    thresholdHz: (phi * E_CHARGE) / H,
+    thresholdHz: thresholdHz(phi),
     thresholdNm: wavelengthNm(phi),
   };
 }
@@ -44,6 +50,11 @@ export const IONISATION_EV = 13.6;
 export const MAX_LEVEL = 6;
 // Real spectral lines have a small width; the simulator accepts photons within this range.
 export const MATCH_TOLERANCE_EV = 0.02;
+
+// Small epsilon keeps a value exactly on the tolerance edge (e.g. 10.22 eV) from
+// being rejected by floating-point rounding.
+export const matchesGap = (gapEnergy, energy) =>
+  Math.abs(gapEnergy - energy) <= MATCH_TOLERANCE_EV + 1e-9;
 
 export const levelEnergy = (n) => -IONISATION_EV / (n * n);
 export const ionisationFrom = (n) => IONISATION_EV / (n * n);
@@ -68,7 +79,7 @@ export function hitAtom(n, energy) {
   if (energy >= ionisation - 1e-9) {
     return { type: 'ionise', ionisation, ke: Math.max(0, energy - ionisation) };
   }
-  const match = gapsFrom(n).find((gap) => Math.abs(gap.energy - energy) <= MATCH_TOLERANCE_EV);
+  const match = gapsFrom(n).find((gap) => matchesGap(gap.energy, energy));
   if (match) return { type: 'excite', to: match.upper, gap: match.energy };
   return { type: 'none', ionisation };
 }

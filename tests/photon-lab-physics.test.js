@@ -47,3 +47,39 @@ test('single photon on a hydrogen atom', () => {
   assert.equal(P.hitAtom(2, 3.4).type, 'ionise');
   assert.equal(P.hitAtom(2, 1.89).to, 3);
 });
+
+test('absorption tolerance edges (±0.02 eV around 10.20 eV)', () => {
+  // Gap n=1→2 is 13.6 × 3/4 = 10.20 eV, derived by hand.
+  assert.equal(P.hitAtom(1, 10.18).type, 'excite');
+  assert.equal(P.hitAtom(1, 10.22).type, 'excite');
+  assert.equal(P.hitAtom(1, 10.17).type, 'none');
+  assert.equal(P.hitAtom(1, 10.23).type, 'none');
+  // Gap n=2→3 is 13.6 × (1/4 − 1/9) = 1.8889 eV.
+  assert.equal(P.hitAtom(2, 1.87).type, 'excite');
+  assert.equal(P.hitAtom(2, 1.86).type, 'none');
+});
+
+test('ionisation threshold edges', () => {
+  assert.equal(P.hitAtom(1, 13.59).type, 'none');
+  assert.equal(P.hitAtom(1, 13.6).type, 'ionise');
+  assert.equal(P.hitAtom(1, 13.6).ke, 0);
+  assert.equal(P.hitAtom(3, 1.5).type, 'none');
+  assert.equal(P.hitAtom(3, 1.52).type, 'ionise'); // 13.6 / 9 = 1.511 eV
+});
+
+test('photoelectric exactly at threshold emits with zero KE', () => {
+  const atThreshold = P.photoelectric(P.wavelengthNm(2.3), 2.3);
+  assert.equal(atThreshold.emits, true);
+  close(atThreshold.keMax, 0, 1e-9, 'KE_max at threshold');
+});
+
+test('KE_max graph line matches the emission calculation', () => {
+  // Line crosses zero at f0 and meets −φ at f = 0.
+  close(P.keMaxLine(0, 4.3), -4.3, 1e-12, 'y-intercept');
+  close(P.keMaxLine(P.thresholdHz(4.3), 4.3), 0, 1e-9, 'x-intercept');
+  close(P.thresholdHz(4.3), 1.0377e15, 0.001e15, 'zinc f0 by hand: 4.3×1.6e-19/6.63e-34');
+  for (const nm of [150, 250, 400]) {
+    const line = P.keMaxLine(P.frequencyHz(nm), 2.3);
+    close(line, P.photoelectric(nm, 2.3).keMax, 1e-9, `line vs emission at ${nm} nm`);
+  }
+});
