@@ -98,6 +98,16 @@ def build() -> None:
         shutil.copytree(comparison, OUTPUT / "games" / "boss-model-comparison", dirs_exist_ok=True)
         require_text(OUTPUT / "games" / "boss-model-comparison" / "index.html", "三個 Boss 戰")
 
+    for project in projects:
+        path = str(project.get("path", ""))
+        if not path.startswith("./tools/"):
+            continue
+        source = ROOT / path.removeprefix("./")
+        require_text(source / "index.html", "<title>")
+        if not (ROOT / str(project.get("cover", "")).removeprefix("./")).is_file():
+            raise RuntimeError(f"Missing cover for {project.get('id')}")
+        shutil.copytree(source, OUTPUT / path.removeprefix("./"), dirs_exist_ok=True)
+
     print(
         "SITE_VERIFY_OK "
         f"projects={len(projects)} game_bytes={len(game_html)} v2={int(v2_copied)}"

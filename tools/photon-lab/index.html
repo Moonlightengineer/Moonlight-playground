@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Photon Lab</title>
+  <meta name="description" content="Interactive simulators for the photoelectric effect and the Bohr model of hydrogen, written for HKDSE Physics (Atomic World).">
+  <link rel="icon" href="../../assets/coulomb-type.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap header-row">
+      <a class="back-link" href="../../">← Playground</a>
+      <button type="button" class="ghost-button" id="projector-toggle" aria-pressed="false">Projector mode</button>
+    </div>
+    <div class="wrap">
+      <p class="eyebrow">HKDSE Physics · Atomic World</p>
+      <h1 id="photon-lab-title">Photon Lab</h1>
+      <p class="lede">When can <strong>one photon</strong> knock out an electron, lift it to a higher level, or tear it away from the atom? Change the photon and watch what happens.</p>
+    </div>
+  </header>
+
+  <main id="main" class="wrap">
+    <section class="rules" aria-labelledby="rules-title">
+      <h2 id="rules-title" class="visually-hidden">Three rules for one photon</h2>
+      <article class="rule">
+        <span class="rule-tag">Metal surface</span>
+        <h3>Photoelectric emission</h3>
+        <p class="formula">hf ≥ φ</p>
+        <p>One photon gives <em>all</em> its energy to <em>one</em> electron. It escapes only if the photon energy is at least the work function. KE<sub>max</sub> = hf − φ.</p>
+      </article>
+      <article class="rule">
+        <span class="rule-tag">Hydrogen atom</span>
+        <h3>Jump to a higher level</h3>
+        <p class="formula">hf = E<sub>upper</sub> − E<sub>lower</sub></p>
+        <p>The photon is absorbed only if its energy <em>exactly</em> matches the gap between two energy levels. Otherwise it passes straight through.</p>
+      </article>
+      <article class="rule">
+        <span class="rule-tag">Hydrogen atom</span>
+        <h3>Ionisation</h3>
+        <p class="formula">hf ≥ 13.6 / n² eV</p>
+        <p>Any photon with at least the ionisation energy removes the electron completely. The extra energy becomes the free electron's kinetic energy.</p>
+      </article>
+    </section>
+
+    <div class="tabs" role="tablist" aria-label="Simulator sections">
+      <button type="button" role="tab" id="tab-pe" aria-controls="panel-pe" aria-selected="true">Photoelectric effect</button>
+      <button type="button" role="tab" id="tab-h" aria-controls="panel-h" aria-selected="false" tabindex="-1">Hydrogen atom</button>
+      <button type="button" role="tab" id="tab-quiz" aria-controls="panel-quiz" aria-selected="false" tabindex="-1">Quiz</button>
+    </div>
+
+    <!-- Photoelectric effect -->
+    <section class="panel" id="panel-pe" role="tabpanel" aria-labelledby="tab-pe">
+      <div class="sim-grid">
+        <div class="card stage-card">
+          <canvas id="pe-canvas" class="stage" role="img" aria-label="Animation of photons hitting a metal plate. The text summary below describes what happens."></canvas>
+          <p class="verdict" id="pe-verdict" role="status" aria-live="polite"></p>
+          <div class="energy-bars" aria-hidden="true">
+            <div class="bar-row"><span class="bar-label">Photon energy hf</span><div class="bar-track"><div class="bar bar-photon" id="pe-bar-photon"></div></div></div>
+            <div class="bar-row"><span class="bar-label">Where it goes</span><div class="bar-track"><div class="bar bar-phi" id="pe-bar-phi"></div><div class="bar bar-ke" id="pe-bar-ke"></div></div></div>
+            <p class="bar-legend"><span class="key key-phi"></span><span>Work function φ (energy to escape)</span> <span class="key key-ke"></span><span>KE<sub>max</sub> left over</span></p>
+          </div>
+        </div>
+
+        <div class="card controls">
+          <h2>Controls</h2>
+          <div class="field">
+            <label for="pe-wavelength">Wavelength λ <output id="pe-wavelength-out" for="pe-wavelength"></output></label>
+            <input type="range" id="pe-wavelength" min="100" max="800" step="1" value="450">
+            <div class="spectrum-hint" aria-hidden="true"><span>UV</span><span>Visible</span><span>IR</span></div>
+          </div>
+          <fieldset class="field">
+            <legend>Metal (approximate work function)</legend>
+            <div class="chips" id="pe-metals"></div>
+          </fieldset>
+          <div class="field">
+            <label for="pe-intensity">Intensity <output id="pe-intensity-out" for="pe-intensity"></output></label>
+            <input type="range" id="pe-intensity" min="1" max="10" step="1" value="4">
+            <p class="hint">Higher intensity = more photons per second. Each photon still has energy hf.</p>
+          </div>
+          <div class="button-row">
+            <button type="button" class="primary" id="pe-fire">Fire one photon</button>
+            <button type="button" id="pe-beam" aria-pressed="false">Beam on</button>
+            <button type="button" id="pe-reset">Reset count</button>
+          </div>
+          <dl class="readouts">
+            <div><dt>Photon energy</dt><dd id="pe-energy"></dd></div>
+            <div><dt>Frequency f</dt><dd id="pe-frequency"></dd></div>
+            <div><dt>Work function φ</dt><dd id="pe-phi"></dd></div>
+            <div><dt>Threshold f₀ / λ₀</dt><dd id="pe-threshold"></dd></div>
+            <div><dt>KE<sub>max</sub></dt><dd id="pe-ke"></dd></div>
+            <div><dt>Stopping potential</dt><dd id="pe-vs"></dd></div>
+            <div><dt>Photons / electrons</dt><dd id="pe-count"></dd></div>
+          </dl>
+        </div>
+      </div>
+
+      <div class="sim-grid lower">
+        <div class="card">
+          <h2>KE<sub>max</sub> against frequency</h2>
+          <canvas id="pe-graph" class="graph" role="img" aria-label="Graph of maximum kinetic energy against frequency. Each metal gives a straight line of slope h; the selected metal is highlighted and the current frequency is marked."></canvas>
+          <p class="hint">All lines have the same slope <strong>h</strong>. The x-intercept is the threshold frequency f₀; extending a line back to f = 0 gives −φ.</p>
+        </div>
+        <div class="card">
+          <h2>Try this</h2>
+          <ol class="tasks">
+            <li>
+              <p>Choose <strong>Zinc</strong>, set λ = 500 nm and turn the intensity to 10. Do any electrons escape? Why not?</p>
+              <details><summary>Show answer</summary><p>No. Each photon has only about 2.49 eV, which is less than zinc's 4.3 eV. More photons per second does not help, because one electron cannot collect energy from two photons.</p></details>
+            </li>
+            <li>
+              <p>Find the <strong>longest wavelength</strong> that still ejects electrons from sodium.</p>
+              <details><summary>Show answer</summary><p>λ₀ = hc/φ ≈ 1243 eV nm ÷ 2.3 eV ≈ 540 nm. At 541 nm and above, nothing comes out.</p></details>
+            </li>
+            <li>
+              <p>With sodium at 400 nm, change the intensity. What happens to KE<sub>max</sub> and to the number of electrons?</p>
+              <details><summary>Show answer</summary><p>KE<sub>max</sub> stays the same, because it depends only on f and φ. The number of electrons per second goes up with intensity.</p></details>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- Hydrogen atom -->
+    <section class="panel" id="panel-h" role="tabpanel" aria-labelledby="tab-h" hidden>
+      <div class="sim-grid">
+        <div class="card stage-card">
+          <div class="twin">
+            <figure>
+              <canvas id="h-atom" class="stage square" role="img" aria-label="Bohr model of hydrogen showing electron orbits. The text summary below describes what happens."></canvas>
+              <figcaption>Bohr orbits (not to scale: real radius ∝ n²)</figcaption>
+            </figure>
+            <figure>
+              <canvas id="h-levels" class="stage square" role="img" aria-label="Energy level diagram of hydrogen from n = 1 at −13.6 eV up to 0 eV."></canvas>
+              <figcaption>Energy levels E<sub>n</sub> = −13.6 / n² eV (to scale)</figcaption>
+            </figure>
+          </div>
+          <p class="verdict" id="h-verdict" role="status" aria-live="polite"></p>
+        </div>
+
+        <div class="card controls">
+          <h2>Controls</h2>
+          <div class="field">
+            <label for="h-energy">Photon energy <output id="h-energy-out" for="h-energy"></output></label>
+            <input type="range" id="h-energy" min="0.5" max="16" step="0.01" value="10.2">
+            <div class="inline-input">
+              <input type="number" id="h-energy-number" min="0.5" max="16" step="0.01" value="10.20" aria-label="Photon energy in eV">
+              <span>eV</span>
+            </div>
+          </div>
+          <div class="field">
+            <span class="field-title" id="h-presets-title">Quick values</span>
+            <div class="chips" id="h-presets" role="group" aria-labelledby="h-presets-title"></div>
+          </div>
+          <div class="field">
+            <label for="h-start">Electron starts in</label>
+            <select id="h-start">
+              <option value="1">n = 1 (ground state)</option>
+              <option value="2">n = 2</option>
+              <option value="3">n = 3</option>
+            </select>
+          </div>
+          <div class="button-row">
+            <button type="button" class="primary" id="h-fire">Fire photon</button>
+            <button type="button" id="h-fall" disabled>Let it fall back</button>
+            <button type="button" id="h-reset">Reset atom</button>
+          </div>
+          <label class="check"><input type="checkbox" id="h-all-lines"> Show every possible downward transition</label>
+          <h3>Gaps from the electron's level</h3>
+          <div class="table-wrap">
+            <table class="gap-table">
+              <thead><tr><th scope="col">Jump</th><th scope="col">Photon needed</th><th scope="col">λ</th></tr></thead>
+              <tbody id="h-gaps"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="sim-grid lower">
+        <div class="card">
+          <h2 class="heading-row">Emission spectrum <button type="button" class="ghost-button small" id="h-clear-spectrum">Clear</button></h2>
+          <canvas id="h-spectrum" class="graph short" role="img" aria-label="Emission spectrum from 80 nm to 2000 nm on a log scale. Lines appear when the electron falls to a lower level."></canvas>
+          <ul class="emitted" id="h-emitted" aria-live="polite"></ul>
+        </div>
+        <div class="card">
+          <h2>Try this</h2>
+          <ol class="tasks">
+            <li>
+              <p>Starting from n = 1, fire an <strong>11.00 eV</strong> photon. Is it absorbed?</p>
+              <details><summary>Show answer</summary><p>No. 11.00 eV is more than the 10.20 eV gap to n = 2 but does not match any gap exactly, and it is less than 13.6 eV. The photon cannot give away "just part" of its energy, so it passes through.</p></details>
+            </li>
+            <li>
+              <p>Put the electron in <strong>n = 2</strong>. What is the smallest photon energy that ionises the atom?</p>
+              <details><summary>Show answer</summary><p>13.6 / 2² = 3.40 eV. Try 3.39 eV and 3.40 eV.</p></details>
+            </li>
+            <li>
+              <p>Excite the electron to <strong>n = 4</strong> (12.75 eV from ground) and tick "Show every possible downward transition". How many spectral lines are possible?</p>
+              <details><summary>Show answer</summary><p>6 lines: 4→3, 4→2, 4→1, 3→2, 3→1, 2→1. In general n(n − 1)/2.</p></details>
+            </li>
+            <li>
+              <p>Which downward jumps give <strong>visible</strong> light?</p>
+              <details><summary>Show answer</summary><p>Jumps that end at n = 2 (Balmer series), e.g. 3→2 (red, about 656 nm) and 4→2 (blue-green). Jumps to n = 1 are ultraviolet; jumps to n = 3 are infrared.</p></details>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quiz -->
+    <section class="panel" id="panel-quiz" role="tabpanel" aria-labelledby="tab-quiz" hidden>
+      <div class="card quiz-card">
+        <div class="quiz-head">
+          <h2>DSE-style practice</h2>
+          <p class="score" id="quiz-score" aria-live="polite"></p>
+        </div>
+        <p class="hint">Original questions written in DSE style (not past-paper questions). Use h = 6.63 × 10⁻³⁴ J s, c = 3.0 × 10⁸ m s⁻¹, e = 1.6 × 10⁻¹⁹ C.</p>
+        <ol class="quiz" id="quiz"></ol>
+        <button type="button" id="quiz-restart">Restart quiz</button>
+      </div>
+    </section>
+
+    <section class="notes card" aria-labelledby="notes-title">
+      <h2 id="notes-title">Notes for teachers</h2>
+      <ul>
+        <li>Constants follow the HKDSE data sheet, so hc ≈ 1243 eV nm. Calculated wavelengths can differ from measured values by about 0.3% (e.g. 658 nm instead of the measured 656 nm for 3→2).</li>
+        <li>Work functions are typical textbook values. Your textbook may quote slightly different numbers.</li>
+        <li>Hydrogen levels are shown up to n = 6. The simulator accepts a photon within ±0.02 eV of an energy gap, standing in for the small natural width of real spectral lines.</li>
+        <li>Photoelectrons are drawn leaving at KE<sub>max</sub> speed. In reality many leave with less energy, because some energy is lost before they reach the surface.</li>
+        <li>Collisions with electrons (which can give <em>part</em> of their kinetic energy to the atom) are not simulated here.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer class="site-footer wrap">
+    <p>Photon Lab · a teaching aid from Moonlight Playground. Please check the physics against your own syllabus notes before classroom use.</p>
+  </footer>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

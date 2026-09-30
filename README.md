@@ -17,6 +17,7 @@ Repo 及 GitHub Pages 路徑沿用 `Moonlight-playground`，避免破壞既有�
 | 項目 | 類別 | 狀態 | 公開路徑 |
 |---|---|---|---|
 | 字陣無雙 | 網頁遊戲 | 可遊玩 | `games/hanzi-generals/` |
+| Photon Lab 光子實驗室 | 實用工具（DSE 物理教學） | 試驗中 | `tools/photon-lab/` |
 
 ## 首頁品牌與發布邊界
 

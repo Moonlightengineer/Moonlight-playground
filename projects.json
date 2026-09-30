@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-09-25",
+  "updatedAt": "2026-09-30",
   "projects": [
     {
       "id": "hanzi-generals",
@@ -37,6 +37,25 @@
         "完整評分與提示詞"
       ],
       "createdAt": "2026-09-24",
+      "featured": false,
+      "published": true
+    },
+    {
+      "id": "photon-lab",
+      "title": "Photon Lab 光子實驗室",
+      "category": "tool",
+      "status": "experiment",
+      "description": "DSE 物理「原子世界」互動模擬：一粒光子幾時觸發光電效應、令氫原子電子躍遷，或者完全電離。附英文 DSE 風格練習。",
+      "path": "./tools/photon-lab/",
+      "cover": "./tools/photon-lab/cover.svg",
+      "coverAlt": "Photon Lab：光子射向氫原子軌道的示意圖",
+      "actionLabel": "開始模擬",
+      "tags": [
+        "DSE Physics",
+        "英文介面",
+        "課堂投影／自學"
+      ],
+      "createdAt": "2026-09-30",
       "featured": false,
       "published": true
     }
