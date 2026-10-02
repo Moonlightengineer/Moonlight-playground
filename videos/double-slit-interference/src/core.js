@@ -217,7 +217,8 @@ function runFont(r, size) {
   let weight = r.weight || 400;
   if (fam === F.math) weight = 400;
   else if (fam === F.sans) weight = weight >= 700 ? 800 : weight >= 600 ? 600 : 400;
-  const famCss = fam === F.sans ? `"${F.sans}"` : fam === F.math ? `"${F.math}", "${F.sans}"` : `"${fam}"`;
+  // DSymbols (DejaVu subset) supplies ≪ ≫ ∝ that the Inter and STIX subsets lack
+  const famCss = fam === F.sans ? `"${F.sans}", "DSymbols"` : fam === F.math ? `"${F.math}", "${F.sans}", "DSymbols"` : `"${fam}"`;
   return `${style} ${weight} ${s.toFixed(1)}px ${famCss}`;
 }
 

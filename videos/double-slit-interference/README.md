@@ -59,7 +59,8 @@ src/scenes/*.js       one file per section; timings are local seconds inside eac
 render/server.mjs     tiny static server (no dependencies)
 render/stills.mjs     render chosen times to JPEG for review
 render/render.mjs     parallel frame capture → ffmpeg → MP4
-fonts/                Inter, Space Grotesk, STIX Two Text, JetBrains Mono (SIL OFL, licences included)
+fonts/                Inter, Space Grotesk, STIX Two Text, JetBrains Mono (SIL OFL) and a DejaVu Sans
+                      symbol subset for ≪ ≫ ∝ (Bitstream Vera/DejaVu licence); licences included
 ```
 
 To change wording, edit the `caption(...)` calls in the relevant scene file; each takes a start and end

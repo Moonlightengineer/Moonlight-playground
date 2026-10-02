@@ -41,7 +41,7 @@ async function loadFonts() {
   const specs = [
     '400 40px "Inter"', '600 40px "Inter"', '800 40px "Inter"',
     'italic 400 40px "STIX"', '400 40px "STIX"',
-    '700 40px "Space Grotesk"', '500 40px "Space Grotesk"', '500 40px "JetBrains Mono"',
+    '400 40px "DSymbols"', '700 40px "Space Grotesk"', '500 40px "Space Grotesk"', '500 40px "JetBrains Mono"',
   ];
   await Promise.all(specs.map((s) => document.fonts.load(s, 'AaΔδλθ≈≫→0123')));
   await document.fonts.ready;
