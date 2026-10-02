@@ -12,7 +12,10 @@ const args = Object.fromEntries(
   process.argv.slice(2).reduce((acc, a, i, all) => (a.startsWith('--') ? [...acc, [a.slice(2), all[i + 1]]] : acc), []),
 );
 const workers = Number(args.workers || 4);
-const out = resolve(ROOT, args.out || 'out/double-slit-interference.mp4');
+const partial = args.from !== undefined || args.to !== undefined;
+// A section render never replaces the finished film unless --out is given explicitly.
+const defaultOut = partial ? `out/partial-${args.from ?? 0}-${args.to ?? 'end'}.mp4` : 'out/double-slit-interference.mp4';
+const out = resolve(ROOT, args.out || defaultOut);
 const crf = String(args.crf || 20);
 const tmp = join(ROOT, 'out', '.segments');
 mkdirSync(tmp, { recursive: true });

@@ -303,7 +303,7 @@ export const geometry = {
     caption(ctx, t, 17.8, 24.4, 'Zoom in on the slits. $P$ is so far away that the two paths are practically **parallel**, both at angle $θ$.', RX, cy, o);
     caption(ctx, t, 24.6, 34.0, 'Draw a line from $S_1$ at right angles to the paths. After it, both paths are equally long, so the path difference is the short extra piece:', RX, cy, o);
     caption(ctx, t, 36.0, 44.0, 'Back to the full picture. In the big triangle, $tan θ = y / D$.', RX, cy, o);
-    caption(ctx, t, 44.2, 52.0, 'Fringes are seen at **very small** angles. For small angles, $sin θ ≈ tan θ$.', RX, cy, o);
+    caption(ctx, t, 44.2, 52.0, 'Fringes near the centre have $y ≪ D$, so $θ$ is **very small**. For small angles, $sin θ ≈ tan θ$.', RX, cy, o);
     caption(ctx, t, 52.2, 60.0, 'So the path difference becomes simply:', RX, cy, o);
     caption(ctx, t, 60.2, 68.0, 'A bright fringe needs $δ = mλ$. Solving for its position:', RX, cy, o);
     caption(ctx, t, 68.2, 81.0, 'Neighbouring bright fringes (and dark fringes) are all the same distance apart: the **fringe spacing**.', RX, cy, o);
@@ -343,7 +343,7 @@ export const geometry = {
         richText(ctx, '$λ$ = wavelength', RX + 10, 780, { size: 30, color: C.muted });
         richText(ctx, '$D$ = slit-to-screen distance', RX + 10, 825, { size: 30, color: C.muted });
         richText(ctx, '$d$ = slit separation', RX + 10, 870, { size: 30, color: C.muted });
-        richText(ctx, 'valid when $D ≫ d$ (small angles)', RX + 10, 925, { size: 28, color: C.faint });
+        richText(ctx, 'valid when $D ≫ d$ and $y ≪ D$ (small $θ$)', RX + 10, 925, { size: 28, color: C.faint });
         ctx.restore();
       }
       ctx.restore();

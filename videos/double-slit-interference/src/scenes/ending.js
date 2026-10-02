@@ -87,7 +87,7 @@ export const example = {
 const CARDS = [
   { n: 1, title: 'Superposition', col: C.s1, body: 'Waves **in step** add up: constructive, {bright:**bright**}. Waves **half a wavelength** out of step cancel: destructive, {dark:**dark**}.' },
   { n: 2, title: 'Path difference', col: C.s2, body: '$δ = r_2 − r_1$\n{bright:Bright:} $δ = mλ$\n{dark:Dark:} $δ = (m + ½)λ$' },
-  { n: 3, title: 'Fringe spacing', col: C.bright, body: '$Δy = λD / d$\nValid for small angles ($D ≫ d$). The fringes are **evenly spaced**.' },
+  { n: 3, title: 'Fringe spacing', col: C.bright, body: '$Δy = λD / d$\nValid when $D ≫ d$ and $y ≪ D$ (small angles). The fringes are **evenly spaced**.' },
   { n: 4, title: 'Slit separation', col: C.dark, body: 'Larger $d$ → **closer** fringes ($Δy ∝ 1 / d$).\nLonger $λ$ or larger $D$ → **wider** fringes.' },
 ];
 

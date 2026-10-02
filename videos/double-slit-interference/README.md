@@ -16,7 +16,7 @@ Chromium and encoded to MP4 with ffmpeg. No AI image generation, stock footage o
 | 1 | When waves meet | Superposition. In phase → constructive (double amplitude, 4× brightness); ½λ out → destructive; a whole λ shift → constructive again. |
 | 2 | Two slits, two sources | Top-view wave field: diffraction at each slit, coherent (in-step) sources, lines of constructive and destructive interference, fringes where they meet the screen. |
 | 3 | Path difference | δ = r₂ − r₁, shown with straightened paths and the waves arriving at P. Bright: δ = mλ; dark: δ = (m + ½)λ. Misconception: dark fringes still receive light from both slits. Quick check. |
-| 4 | Where are the fringes? | Zoom on the slits: δ = d sinθ. Big triangle: tanθ = y/D. Small angles: δ ≈ dy/D → yₘ = mλD/d → Δy = λD/d, evenly spaced. |
+| 4 | Where are the fringes? | Zoom on the slits: δ = d sinθ. Big triangle: tanθ = y/D. Small angles (D ≫ d and y ≪ D): δ ≈ dy/D → yₘ = mλD/d → Δy = λD/d, evenly spaced. |
 | 5 | Slit separation | Live field with changing d; graph of δ against y explains *why* larger d gives closer fringes; real-scale strips with a millimetre ruler (d = 0.40 mm vs 0.80 mm → Δy ≈ 2.0 mm vs 1.0 mm); effect of λ and D. Quick check. |
 | 6 | Try a calculation | λ = 600 nm, d = 0.30 mm, D = 1.5 m → Δy = 3.0 mm, with a measuring tip. |
 | 7 | Summary | Four key ideas, then the answer to the opening question (energy is redistributed, not destroyed). |
@@ -69,7 +69,7 @@ time in seconds. To change a scene's length, edit its `dur` and the timings insi
 
 ```bash
 npm run render                               # full film → out/double-slit-interference.mp4
-node render/render.mjs --from 60 --to 90     # a section only
+node render/render.mjs --from 60 --to 90     # a section only → out/partial-60-90.mp4
 node render/stills.mjs out/stills 30 95 200  # review frames at given times (seconds)
 ```
 
