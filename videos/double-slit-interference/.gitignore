@@ -1,0 +1,4 @@
+node_modules/
+out/.segments/
+out/stills/
+out/partial-*.mp4

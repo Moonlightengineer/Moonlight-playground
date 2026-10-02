@@ -1,0 +1,14 @@
+{
+  "name": "double-slit-interference-film",
+  "private": true,
+  "type": "module",
+  "description": "Silent motion-design lesson on Young's double-slit interference, authored in code (Canvas 2D) and rendered to MP4.",
+  "scripts": {
+    "preview": "node render/server.mjs 8080",
+    "stills": "node render/stills.mjs out/stills 10 60 120 200 300 400 500",
+    "render": "node render/render.mjs --workers 4 --crf 22"
+  },
+  "devDependencies": {
+    "playwright": "1.55.0"
+  }
+}
