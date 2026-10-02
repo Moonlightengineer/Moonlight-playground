@@ -36,6 +36,7 @@ Moonlight-playground/
 ├─ assets/                            # 首頁介面資源
 ├─ games/<slug>/                      # 各個獨立網頁遊戲
 ├─ tools/<slug>/                      # 各個獨立實用工具
+├─ videos/<slug>/                     # 以程式製作的教學影片源碼及 MP4（不部署、不登記 projects.json）
 ├─ site-packages/                     # 首次匯入大型單檔作品的傳輸封裝
 ├─ scripts/build_site.py              # 建置及完整性驗證
 ├─ tests/homepage_browser.py          # 可選的離線首頁 browser smoke test
