@@ -1,11 +1,15 @@
 
 import { GENERAL_BY_ID } from '../../../data/generals.js';
 import { TUNING } from '../../../data/tuning.js';
+import { listCells } from '../../board/board.js';
 import { canFocusEnemy } from '../../combat/targeting.js';
 import { selectCampState, selectRerollState } from './cards.js';
 
 export function selectOrderTargets(game) {
-  const empty = { focusEnemyIds: [], fortifyLanes: [], assaultLanes: [] };
+  const empty = {
+    focusEnemyIds: [], fortifyLanes: [], assaultLanes: [],
+    redeployUnitIds: [], redeployCellsByUnit: {},
+  };
   if (game?.status !== 'combat' || !game.combat?.board) return empty;
 
   const { combat } = game;
@@ -14,11 +18,27 @@ export function selectOrderTargets(game) {
     .sort((a, b) => a.lane - b.lane || a.distance - b.distance || a.id.localeCompare(b.id))
     .map(({ id }) => id);
   const lanes = Array.from({ length: combat.board.size.columns }, (_, lane) => lane);
+  const occupied = new Set([
+    ...Object.values(combat.board.units).map(({ cell }) => `${cell.column},${cell.row}`),
+    ...Object.keys(game.boardCards ?? {}),
+  ]);
+  const legalRedeployCells = listCells(combat.board)
+    .filter(({ column, row }) => !occupied.has(`${column},${row}`));
+  const redeployUnitIds = legalRedeployCells.length
+    ? Object.values(combat.board.units)
+      .filter(({ hp }) => hp > 0)
+      .map(({ id }) => id)
+      .sort()
+    : [];
 
   return {
     focusEnemyIds,
     fortifyLanes: lanes,
     assaultLanes: [...lanes],
+    redeployUnitIds,
+    redeployCellsByUnit: Object.fromEntries(
+      redeployUnitIds.map((unitId) => [unitId, legalRedeployCells.map((cell) => ({ ...cell }))]),
+    ),
   };
 }
 
@@ -30,7 +50,16 @@ function addConfigurationCommands(game, commands) {
   const boardCards = Object.keys(game.boardCards ?? {});
   const units = Object.keys(game.board?.units ?? {});
 
-  if (drawCount > 0 && hand.length < TUNING.handSize) commands.add('DRAW_CARDS');
+  const hasPersistedBudget = Object.prototype.hasOwnProperty.call(
+    game.currentBattle ?? {},
+    'drawsRemaining',
+  );
+  const drawBudgetAvailable = hasPersistedBudget
+    ? game.currentBattle.drawsRemaining > 0
+    : true;
+  if (drawBudgetAvailable && drawCount > 0 && hand.length < TUNING.handSize) {
+    commands.add('DRAW_CARDS');
+  }
   if (hand.length || camp.count) commands.add('SELECT_CARD');
   if (hand.length && !camp.isFull) commands.add('MOVE_CARD_TO_CAMP');
   if (camp.count) commands.add('RETURN_CAMP_CARD');

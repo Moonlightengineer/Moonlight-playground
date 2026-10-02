@@ -142,6 +142,7 @@ export function createCombatState({
   wallHp,
   phaseIndex,
   ordersRemaining,
+  redeployUsed = false,
   tactics = [],
 }) {
   return {
@@ -158,6 +159,7 @@ export function createCombatState({
     wallHp,
     phaseIndex,
     ordersRemaining,
+    redeployUsed: Boolean(redeployUsed),
     focus: null,
     fortify: null,
     assault: null,

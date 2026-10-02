@@ -41,6 +41,12 @@ export function buildAppViewModel(game, profile, ui) {
       focusEnemyIds: [...targets.focusEnemyIds],
       fortifyLanes: [...targets.fortifyLanes],
       assaultLanes: [...targets.assaultLanes],
+      redeployUnitIds: [...targets.redeployUnitIds],
+      redeployCellsByUnit: Object.fromEntries(
+        Object.entries(targets.redeployCellsByUnit).map(([unitId, cells]) => (
+          [unitId, cells.map((cell) => ({ ...cell }))]
+        )),
+      ),
     },
   };
 }

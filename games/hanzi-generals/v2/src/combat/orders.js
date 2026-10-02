@@ -1,4 +1,5 @@
 
+import { isValidCell, moveUnit } from '../board/board.js';
 import { gameEvent } from '../core/events.js';
 import { canFocusEnemy } from './targeting.js';
 
@@ -45,6 +46,42 @@ export function applyOrder(combat, order, context = {}) {
       'COMBAT_RECONFIGURATION_LOCKED',
       '戰鬥開始後不可部署、拆解、換位或操作軍營。',
     );
+  }
+
+  if (order?.type === 'redeploy') {
+    const unit = combat.board.units[order.unitId];
+    if (!unit || unit.hp <= 0) {
+      return fail(combat, 'MISSING_REDEPLOY_UNIT', '只可以調動戰場上存活嘅友軍。');
+    }
+    const target = order.target;
+    const sameCell = target?.column === unit.cell.column && target?.row === unit.cell.row;
+    if (!target || !isValidCell(combat.board, target) || sameCell) {
+      return fail(combat, 'ILLEGAL_REDEPLOY_TARGET', '請揀另一個合法空格調動。');
+    }
+    if (combat.redeployUsed) {
+      return fail(combat, 'REDEPLOY_ALREADY_USED', '每場戰鬥只可成功調動一次。');
+    }
+    const occupiedByUnit = Object.values(combat.board.units).some(({ id, cell }) => (
+      id !== unit.id && cell.column === target.column && cell.row === target.row
+    ));
+    const occupiedByCard = Boolean(context.boardCards?.[`${target.column},${target.row}`]);
+    if (occupiedByUnit || occupiedByCard) {
+      return fail(combat, 'REDEPLOY_TARGET_OCCUPIED', '目標格已被佔用。');
+    }
+    const next = spendOrder(combat);
+    if (!next) return fail(combat, 'NO_ORDERS', '軍令不足。');
+    const from = { ...unit.cell };
+    next.board = moveUnit(next.board, unit.id, target);
+    next.redeployUsed = true;
+    return {
+      ok: true,
+      state: next,
+      events: [gameEvent('UNIT_REDEPLOYED', {
+        unitId: unit.id,
+        from,
+        target: { ...target },
+      }, combat.turn)],
+    };
   }
 
   if (order?.type === 'fortify') {

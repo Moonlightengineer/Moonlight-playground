@@ -26,6 +26,7 @@ import {
   saveTutorial,
 } from './storage/storage.js';
 import { createCombatFeedback } from './ui/combat-feedback.js';
+import { createCodexPanel } from './ui/codex-panel.js';
 import { createHelpPanel } from './ui/help-panel.js';
 import { bindInteractions } from './ui/interactions.js';
 import { renderApp } from './ui/render-app.js';
@@ -78,6 +79,7 @@ const initialRuntime = initialRuntimeState();
 let controller = null;
 let lastViewModel = null;
 let resumeAfterHelp = false;
+let resumeAfterCodex = false;
 
 const feedback = createCombatFeedback({
   root,
@@ -102,6 +104,26 @@ const helpPanel = createHelpPanel({
       && runtime?.game.status === 'combat'
       && runtime.game.combat?.paused;
     resumeAfterHelp = false;
+    if (shouldResume) controller.dispatchIntent({ type: 'RESUME' });
+  },
+});
+
+const codexPanel = createCodexPanel({
+  panel: root.querySelector('#codex-panel'),
+  contentRoot: root.querySelector('#codex-content'),
+  getModel: () => lastViewModel?.details?.codex,
+  onOpen() {
+    feedback.clear();
+    const runtime = controller?.getRuntime();
+    resumeAfterCodex = runtime?.game.status === 'combat' && !runtime.game.combat?.paused;
+    if (resumeAfterCodex) controller.dispatchIntent({ type: 'PAUSE' });
+  },
+  onClose() {
+    const runtime = controller?.getRuntime();
+    const shouldResume = resumeAfterCodex
+      && runtime?.game.status === 'combat'
+      && runtime.game.combat?.paused;
+    resumeAfterCodex = false;
     if (shouldResume) controller.dispatchIntent({ type: 'RESUME' });
   },
 });
@@ -141,6 +163,7 @@ function eventMessage(events) {
     FOCUS_ORDERED: `集火已生效，持續 ${important.payload?.durationSeconds ?? 6} 秒。`,
     FORTIFY_ORDERED: `第 ${(important.payload?.lane ?? 0) + 1} 路已固守，持續 ${important.payload?.durationSeconds ?? 6} 秒。`,
     ASSAULT_ORDERED: `第 ${(important.payload?.lane ?? 0) + 1} 路已急攻，持續 ${important.payload?.durationSeconds ?? 6} 秒。`,
+    UNIT_REDEPLOYED: '調動完成，單位已移到新位置。',
     WALL_DAMAGED: '城牆受到攻擊。',
     BOSS_PHASE_CHANGED: '華雄進入第二階段，重騎增援到達。',
     BATTLE_COMPLETED: '戰鬥勝利，請查看戰報。',
@@ -211,7 +234,7 @@ function handleExternalUiIntent(runtime, intent) {
   if (intent.type === 'UI_OPEN_HELP') {
     return {
       runtime: cloneRuntime(runtime, { ui: { ...runtime.ui, overlay: 'help' } }),
-      effects: [{ type: 'OPEN_HELP', trigger: intent.trigger }],
+      effects: [{ type: 'CLOSE_CODEX' }, { type: 'OPEN_HELP', trigger: intent.trigger }],
     };
   }
 
@@ -219,6 +242,20 @@ function handleExternalUiIntent(runtime, intent) {
     return {
       runtime: cloneRuntime(runtime, { ui: { ...runtime.ui, overlay: null } }),
       effects: [{ type: 'CLOSE_HELP' }],
+    };
+  }
+
+  if (intent.type === 'UI_OPEN_CODEX') {
+    return {
+      runtime: cloneRuntime(runtime, { ui: { ...runtime.ui, overlay: 'codex' } }),
+      effects: [{ type: 'CLOSE_HELP' }, { type: 'OPEN_CODEX', trigger: intent.trigger }],
+    };
+  }
+
+  if (intent.type === 'UI_CLOSE_CODEX') {
+    return {
+      runtime: cloneRuntime(runtime, { ui: { ...runtime.ui, overlay: null } }),
+      effects: [{ type: 'CLOSE_CODEX' }],
     };
   }
 
@@ -248,11 +285,13 @@ function handleExternalUiIntent(runtime, intent) {
       },
     });
     resumeAfterHelp = false;
+    resumeAfterCodex = false;
     return {
       runtime: nextRuntime,
       effects: [
         { type: 'CLEAR_FEEDBACK' },
         { type: 'CLOSE_HELP' },
+        { type: 'CLOSE_CODEX' },
         { type: 'SAVE_GAME', game },
       ],
     };
@@ -299,6 +338,8 @@ function emitEffects(effects) {
   for (const effect of effects) {
     if (effect.type === 'OPEN_HELP') helpPanel.open(effect.trigger);
     if (effect.type === 'CLOSE_HELP') helpPanel.close();
+    if (effect.type === 'OPEN_CODEX') codexPanel.open(effect.trigger);
+    if (effect.type === 'CLOSE_CODEX') codexPanel.close();
     if (effect.type === 'CLEAR_FEEDBACK') feedback.clear();
     if (effect.type === 'SAVE_GAME') maybeSave(effect.game);
     if (effect.type === 'RELOAD_LATEST') {
@@ -384,6 +425,10 @@ if (!validation.ok) {
         controller.dispatchIntent({ type: 'UI_CLOSE_HELP' });
         return;
       }
+      if (codexPanel.isOpen()) {
+        controller.dispatchIntent({ type: 'UI_CLOSE_CODEX' });
+        return;
+      }
       const details = root.querySelector('#details-panel');
       if (details?.open) details.open = false;
       if (runtime.ui.rangeUnitId) controller.dispatchIntent({ type: 'UI_CLOSE_RANGE' });
@@ -391,7 +436,8 @@ if (!validation.ok) {
     if (event.code === 'Space'
       && runtime.game.status === 'combat'
       && !interactive
-      && !helpPanel.isOpen()) {
+      && !helpPanel.isOpen()
+      && !codexPanel.isOpen()) {
       event.preventDefault();
       controller.dispatchIntent({ type: runtime.game.combat.paused ? 'RESUME' : 'PAUSE' });
     }

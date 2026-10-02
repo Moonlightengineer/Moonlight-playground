@@ -157,6 +157,26 @@ test('selectOrderTargets returns deterministic focus, fortify and assault target
   assert.equal(targets.reinforce, undefined);
 });
 
+test('selectOrderTargets disables redeploy when the board has no empty destination', () => {
+  const game = configurationFixture();
+  const board = createBoard('base');
+  board.units = Object.fromEntries(
+    Array.from({ length: 9 }, (_, index) => {
+      const id = `unit-${index + 1}`;
+      return [id, unit(id, 'zhao-yun', index % 3, Math.floor(index / 3))];
+    }),
+  );
+  const targets = selectOrderTargets({
+    ...game,
+    status: 'combat',
+    boardCards: {},
+    combat: { board, enemies: [], ordersRemaining: 3 },
+  });
+
+  assert.deepEqual(targets.redeployUnitIds, []);
+  assert.deepEqual(targets.redeployCellsByUnit, {});
+});
+
 test('selectLegalCommands derives legality instead of copying stale legalActions', () => {
   const map = { ...createExpedition('selector-actions'), legalActions: [] };
   assert.equal(selectLegalCommands(map).has('START_BATTLE'), true);

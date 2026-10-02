@@ -35,6 +35,7 @@ test('v2 shell exposes the hidden game root, module entry and semantic regions',
     'primary-actions', 'orders', 'details-panel', 'action-message',
   ]) assert.match(html, new RegExp(`id="${id}"`));
   assert.match(html, /class="battle-stage"/);
+  assert.match(html, /data-wall/);
   assert.match(html, /class="command-panel"/);
   assert.match(html, /aria-live="assertive"/);
 });
@@ -51,6 +52,7 @@ test('mobile CSS preserves accessibility, vertical enemy movement and order feed
   assert.match(css, /\[data-reduced-motion="true"\]/);
   assert.match(css, /@media\s*\(max-width:\s*359px\)/);
   assert.match(css, /#enemy-field/);
+  assert.match(css, /\.wall-line/);
   assert.match(css, /\.enemy-lane-track/);
   assert.match(css, /\.enemy-token/);
   assert.match(fixCss, /transition:\s*top/);

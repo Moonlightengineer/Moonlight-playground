@@ -1,4 +1,5 @@
 import { REWARDS } from '../../data/rewards.js';
+import { normalizeDrawBudget } from '../core/draw-budget.js';
 import { normalizeRewardChoices as normalizeEligibleRewardChoices } from '../reward/reward-flow.js';
 
 export const CURRENT_SAVE_VERSION = 3;
@@ -86,7 +87,9 @@ function normalizeRewardSnapshot(game) {
 }
 
 function normalizeCurrentGame(game) {
-  return normalizeRewardSnapshot(normalizeProgressFields(stripTransientSelection(game)));
+  return normalizeDrawBudget(
+    normalizeRewardSnapshot(normalizeProgressFields(stripTransientSelection(game))),
+  );
 }
 
 function migrateV1ToV2(envelope) {

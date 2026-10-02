@@ -267,7 +267,7 @@ async function play() {
     if (!helpAtRest.passed) bug('help-at-rest-failed', 'Help does not open, render all sections, and return to the same run state', helpAtRest);
 
     await page.getByRole('button', { name: '開始下一戰', exact: true }).click();
-    await page.getByRole('button', { name: '抽牌', exact: true }).click();
+    await page.getByRole('button', { name: /^抽牌 \d+\/1$/ }).click();
 
     const firstHand = await handSymbols(page);
     const firstRecipe = findRecipe(firstHand);

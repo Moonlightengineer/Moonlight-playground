@@ -132,7 +132,15 @@ function buildBoardCells(game, board, assemblyTargets) {
 function buildBattleStage(game, orderTargets) {
   const visible = ['configuration', 'combat'].includes(game.status);
   const board = selectActiveBoard(game);
-  if (!visible || !board) return { visible: false, combat: false, warnings: [], enemies: [], columns: 0, cells: [] };
+  if (!visible || !board) return {
+    visible: false,
+    combat: false,
+    wallLabel: null,
+    warnings: [],
+    enemies: [],
+    columns: 0,
+    cells: [],
+  };
   const combat = game.status === 'combat';
   const focusable = new Set(orderTargets.focusEnemyIds);
   const laneStacks = new Map();
@@ -167,6 +175,7 @@ function buildBattleStage(game, orderTargets) {
   return {
     visible,
     combat,
+    wallLabel: `城牆防線 ${game.wallHp}/${game.wallMaxHp}`,
     columns: board.size.columns,
     warnings,
     enemies,
@@ -334,7 +343,12 @@ function buildPrimary(game, ui, legalCommands) {
   }
   if (game.status === 'configuration') {
     const selected = ui?.selectedCardIds ?? game.selection?.cardIds ?? [];
-    if (legalCommands.has('DRAW_CARDS')) actions.push(primaryAction('抽牌', 'DRAW_CARDS', true, { action: 'draw-cards', className: 'primary-button' }));
+    const drawsRemaining = game.currentBattle?.drawsRemaining ?? 0;
+    actions.push(primaryAction(`抽牌 ${drawsRemaining}/1`, 'DRAW_CARDS', legalCommands.has('DRAW_CARDS'), {
+      action: 'draw-cards',
+      className: 'primary-button',
+      disabledReason: drawsRemaining < 1 ? '本段抽牌次數已用完。' : '目前無法再抽牌。',
+    }));
     if (selected.length) {
       actions.push({ label: selected.length === 1 ? '揀空格放字' : '揀空格合成', action: 'selection-hint', data: {}, className: '', disabled: true, disabledReason: null, intent: intent('UI_SELECTION_HINT') });
       actions.push(primaryAction('取消選取', 'UI_CLEAR_SELECTION', true, { action: 'clear-selection' }));
@@ -362,7 +376,10 @@ function buildPrimary(game, ui, legalCommands) {
 }
 
 function buildOrders(game, profile, orderTargets) {
-  if (game.status !== 'combat') return { visible: false, statuses: [], actions: [], focusEnemyIds: [] };
+  if (game.status !== 'combat') return {
+    visible: false, statuses: [], actions: [], focusEnemyIds: [],
+    redeployUnitIds: [], redeployCellsByUnit: {},
+  };
   const statuses = [];
   const focusSeconds = game.combat.focus?.remainingSeconds ?? 0;
   const fortifySeconds = game.combat.fortify?.remainingSeconds ?? 0;
@@ -378,6 +395,7 @@ function buildOrders(game, profile, orderTargets) {
   if (game.combat.assault) {
     statuses.push(`急攻：第 ${game.combat.assault.lane + 1} 路，剩餘 ${assaultSeconds} 秒`);
   }
+  if (game.combat.redeployUsed) statuses.push('調動已使用');
 
   const noOrders = game.combat.ordersRemaining < 1;
   const paused = Boolean(game.combat.paused);
@@ -387,7 +405,14 @@ function buildOrders(game, profile, orderTargets) {
   const actions = [
     { label: paused ? '繼續' : '暫停', action: paused ? 'resume' : 'pause', data: {}, className: 'primary-button', disabled: false },
     { label: profile.settings.speed === 2 ? '速度 1×' : '速度 2×', action: 'set-speed', data: { speed: profile.settings.speed === 2 ? 1 : 2 }, className: '', disabled: false },
-    { label: '玩法', action: 'open-help', data: {}, className: '', disabled: false },
+    {
+      label: '調動',
+      action: 'begin-order',
+      data: { orderType: 'redeploy' },
+      className: game.combat.redeployUsed ? 'is-active-order' : '',
+      disabled: noOrders || game.combat.redeployUsed || !orderTargets.redeployUnitIds.length,
+      ariaLabel: '調動：消耗一點軍令，選擇一名友軍移到另一個空格；每場戰鬥只可成功使用一次',
+    },
     ...orderTargets.fortifyLanes.map((lane) => ({
       label: `固守${lane + 1}路`,
       action: 'issue-lane-order',
@@ -418,6 +443,12 @@ function buildOrders(game, profile, orderTargets) {
     statuses,
     actions,
     focusEnemyIds: [...orderTargets.focusEnemyIds],
+    redeployUnitIds: [...orderTargets.redeployUnitIds],
+    redeployCellsByUnit: Object.fromEntries(
+      Object.entries(orderTargets.redeployCellsByUnit).map(([unitId, cells]) => (
+        [unitId, cells.map((cell) => ({ ...cell }))]
+      )),
+    ),
   };
 }
 

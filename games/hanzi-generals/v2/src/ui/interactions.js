@@ -96,7 +96,27 @@ function enemyToken(root, enemyId) {
 function decorateOrderTargets(root, mode, getViewModel) {
   clearOrderDecorations(root);
   root.dataset.orderMode = mode.type;
-  const focusEnemyIds = getViewModel()?.orders?.focusEnemyIds ?? [];
+  const orders = getViewModel()?.orders ?? {};
+  const focusEnemyIds = orders.focusEnemyIds ?? [];
+  if (mode.type === 'redeploy') {
+    if (!mode.unitId) {
+      for (const unitId of orders.redeployUnitIds ?? []) {
+        const unit = root.querySelector(`#battle-board [data-unit-id="${escapeSelector(unitId)}"]`);
+        markTarget(unit, 'order-redeploy-source', { sourceUnitId: unitId });
+        unit?.classList.add('is-order-source');
+      }
+      addPrompt(root, '調動：先點選一名友軍。');
+      return;
+    }
+    for (const cell of orders.redeployCellsByUnit?.[mode.unitId] ?? []) {
+      const target = root.querySelector(
+        `#battle-board [data-column="${cell.column}"][data-row="${cell.row}"]`,
+      );
+      markTarget(target, 'choose-cell', { sourceUnitId: mode.unitId });
+    }
+    addPrompt(root, '調動：再點選一個空格完成換位。');
+    return;
+  }
   if (mode.type !== 'focus') return;
 
   for (const enemyId of focusEnemyIds) {
@@ -170,6 +190,17 @@ function issueLaneOrder(dataset) {
         dispatch({ type: 'SELECT_CARD', cardId: target.dataset.cardId });
         break;
       case 'choose-cell':
+        if (orderMode?.type === 'redeploy' && orderMode.unitId) {
+          finishOrder({
+            type: 'ISSUE_ORDER',
+            order: {
+              type: 'redeploy',
+              unitId: orderMode.unitId,
+              target: { column: number(target.dataset.column), row: number(target.dataset.row) },
+            },
+          });
+          break;
+        }
         dispatch({
           type: 'ASSEMBLE',
           target: { column: number(target.dataset.column), row: number(target.dataset.row) },
@@ -235,6 +266,11 @@ function issueLaneOrder(dataset) {
           order: { type: 'focus', enemyId: target.dataset.enemyId },
         });
         break;
+      case 'order-redeploy-source':
+        if (orderMode?.type !== 'redeploy') break;
+        orderMode = { ...orderMode, unitId: target.dataset.sourceUnitId };
+        decorateOrderTargets(root, orderMode, getViewModel);
+        break;
       case 'cancel-order':
         cancelOrder();
         break;
@@ -261,8 +297,14 @@ function issueLaneOrder(dataset) {
       case 'open-help':
         dispatch({ type: 'UI_OPEN_HELP', trigger: target });
         break;
+      case 'open-codex':
+        dispatch({ type: 'UI_OPEN_CODEX', trigger: target });
+        break;
       case 'close-help':
         dispatch({ type: 'UI_CLOSE_HELP' });
+        break;
+      case 'close-codex':
+        dispatch({ type: 'UI_CLOSE_CODEX' });
         break;
       case 'restart-expedition':
         dispatch({ type: 'UI_RESTART_EXPEDITION' });

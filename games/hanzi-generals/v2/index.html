@@ -20,6 +20,7 @@
       </div>
       <div class="header-actions">
         <button type="button" data-action="open-help" class="quiet-button">玩法</button>
+        <button type="button" data-action="open-codex" class="quiet-button">圖鑑</button>
         <button type="button" data-action="skip-tutorial" class="quiet-button">略過教學</button>
       </div>
     </header>
@@ -29,6 +30,7 @@
     <section class="battle-stage" aria-label="戰場">
       <section id="enemy-intents" aria-label="敵軍意圖"></section>
       <section id="enemy-field" aria-label="敵軍由上至下推進戰場"></section>
+      <section class="wall-line" data-wall aria-label="城牆防線" hidden></section>
       <section id="battle-board" aria-label="戰陣棋盤"></section>
     </section>
 
@@ -80,6 +82,19 @@
             <button type="button" data-action="clear-all-v2-data" class="danger-button">完全清除資料並測試最新版</button>
           </article>
         </section>
+      </div>
+    </section>
+
+    <section id="codex-panel" role="dialog" aria-modal="true" aria-labelledby="codex-title" hidden>
+      <div class="codex-sheet">
+        <header class="codex-header">
+          <div>
+            <p class="eyebrow">RECIPE CODEX</p>
+            <h2 id="codex-title">配方圖鑑</h2>
+          </div>
+          <button type="button" data-action="close-codex" class="quiet-button">關閉</button>
+        </header>
+        <div id="codex-content"></div>
       </div>
     </section>
   </main>
