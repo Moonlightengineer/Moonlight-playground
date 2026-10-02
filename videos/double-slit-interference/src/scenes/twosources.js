@@ -67,13 +67,13 @@ export function topViewBadge(ctx, alpha = 1) {
   ctx.globalAlpha *= alpha;
   const x = TOP.rect.x + 22;
   const y = TOP.rect.y + 22;
-  roundRect(ctx, x, y, 290, 40, 20);
+  roundRect(ctx, x, y, 320, 44, 22);
   ctx.fillStyle = 'rgba(4,7,14,0.75)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(255,255,255,0.2)';
   ctx.stroke();
-  richText(ctx, 'TOP VIEW', x + 20, y + 28, { size: 22, weight: 700, color: C.ink, family: F.display });
-  richText(ctx, 'not to scale', x + 140, y + 28, { size: 20, color: C.muted });
+  richText(ctx, 'TOP VIEW', x + 20, y + 31, { size: 24, weight: 700, color: C.ink, family: F.display });
+  richText(ctx, 'not to scale', x + 152, y + 31, { size: 23, color: C.muted });
   ctx.restore();
 }
 

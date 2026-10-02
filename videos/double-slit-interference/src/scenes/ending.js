@@ -1,5 +1,5 @@
 // Chapter 6 worked example, and the summary / closing.
-import { C, F, clamp, lerp, seg, win, easeInOut, easeOut, richText, rgba, line, panel, dimension, equation, roundRect } from '../core.js';
+import { C, F, clamp, lerp, seg, win, easeInOut, easeOut, richText, rgba, line, arrow, panel, dimension, equation, roundRect } from '../core.js';
 import { caption, fringeStrip, ruler } from '../widgets.js';
 
 export const example = {
@@ -15,6 +15,52 @@ export const example = {
     richText(ctx, 'PROBLEM', 150, 205, { size: 26, color: C.s2, weight: 700, family: F.display });
     richText(ctx, 'Orange light of wavelength $λ = 600$ nm falls on two slits $d = 0.30$ mm apart. The screen is $D = 1.5$ m away.', 150, 265, { size: 38, color: C.ink, maxW: 820 });
     richText(ctx, '**Find the fringe spacing $Δy$.**', 150, 445, { size: 40, color: C.bright });
+    // set-up sketch linking the numbers to the geometry (until the real-scale strip appears)
+    const sk = win(t, 2.5, 28.8, 0.8, 0.7);
+    if (sk > 0) {
+      ctx.save();
+      ctx.globalAlpha *= sk;
+      const or = '#ff9a3d';
+      const bx = 360;
+      const sx = 940;
+      const cy = 650;
+      // incoming light
+      arrow(ctx, 150, cy, bx - 42, cy, or, 4, 16);
+      richText(ctx, '$λ = 600$ nm', 240, cy - 22, { size: 30, color: or, align: 'center' });
+      // barrier with two slits
+      ctx.fillStyle = '#2a3550';
+      ctx.fillRect(bx - 5, 570, 10, cy - 22 - 570);
+      ctx.fillRect(bx - 5, cy - 10, 10, 20);
+      ctx.fillRect(bx - 5, cy + 22, 10, 730 - cy - 22);
+      // light spreading to the screen
+      const fan = ctx.createLinearGradient(bx, 0, sx, 0);
+      fan.addColorStop(0, 'rgba(255,154,61,0.30)');
+      fan.addColorStop(1, 'rgba(255,154,61,0.06)');
+      ctx.save();
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = fan;
+      ctx.beginPath();
+      ctx.moveTo(bx + 5, cy - 16);
+      ctx.lineTo(sx, 575);
+      ctx.lineTo(sx, 725);
+      ctx.lineTo(bx + 5, cy + 16);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+      // screen with fringe ticks
+      ctx.fillStyle = '#1b2438';
+      ctx.fillRect(sx, 570, 12, 160);
+      for (let k = -2; k <= 2; k++) line(ctx, sx - 4, cy + k * 30, sx + 16, cy + k * 30, or, 3);
+      dimension(ctx, sx + 34, cy, sx + 34, cy - 30, C.bright, { tick: 6, head: 8, lw: 2 });
+      richText(ctx, '{bright:$Δy = ?$}', sx + 50, cy - 4, { size: 30 });
+      // labels
+      dimension(ctx, bx - 22, cy - 16, bx - 22, cy + 16, C.ink, { tick: 5, head: 7, lw: 2 });
+      richText(ctx, '$d = 0.30$ mm', bx - 40, cy + 62, { size: 28, color: C.ink, align: 'right' });
+      dimension(ctx, bx + 20, 745, sx, 745, C.muted, { tick: 6, head: 9, lw: 2 });
+      richText(ctx, '$D = 1.5$ m', (bx + sx) / 2 + 10, 735, { size: 28, color: C.ink, align: 'center' });
+      richText(ctx, 'sketch, not to scale', 150, 800, { size: 24, color: C.faint });
+      ctx.restore();
+    }
     // think prompt
     const th = win(t, 4.0, 12.6, 0.6, 0.6);
     if (th > 0) {
@@ -122,17 +168,55 @@ export const summary = {
     if (cb > 0) {
       ctx.save();
       ctx.globalAlpha *= cb;
-      fringeStrip(ctx, 0, 330, 1920, 330, { spacingPx: 150, rgb: [98, 255, 158], envelopePx: 1150, r: 0, alpha: 0.9 });
-      const g = ctx.createLinearGradient(0, 300, 0, 700);
+      fringeStrip(ctx, 0, 250, 1920, 260, { spacingPx: 150, rgb: [98, 255, 158], envelopePx: 1150, r: 0, alpha: 0.9 });
+      const g = ctx.createLinearGradient(0, 230, 0, 530);
       g.addColorStop(0, 'rgba(4,7,14,1)');
-      g.addColorStop(0.12, 'rgba(4,7,14,0)');
-      g.addColorStop(0.88, 'rgba(4,7,14,0)');
+      g.addColorStop(0.15, 'rgba(4,7,14,0)');
+      g.addColorStop(0.85, 'rgba(4,7,14,0)');
       g.addColorStop(1, 'rgba(4,7,14,1)');
       ctx.fillStyle = g;
-      ctx.fillRect(0, 300, 1920, 400);
+      ctx.fillRect(0, 230, 1920, 300);
       ctx.restore();
+      // what arrives at a bright and at a dark fringe
+      const T = t;
+      const callout = (fx, a0, inPhase, title) => {
+        const a = seg(t, a0, a0 + 0.8, easeOut) * cb;
+        if (a <= 0) return;
+        ctx.save();
+        ctx.globalAlpha *= a;
+        line(ctx, fx, 470, fx, 545, 'rgba(220,230,255,0.7)', 2);
+        const bx = fx - 190;
+        const by = 545;
+        panel(ctx, bx, by, 380, 175, { fill: 'rgba(10,16,30,0.95)', r: 16 });
+        richText(ctx, title, fx, by + 38, { size: 26, color: inPhase ? C.bright : C.dark, align: 'center', weight: 700 });
+        const om = 2 * Math.PI * 0.8;
+        const wave = (y0, ph, col, amp) => {
+          ctx.strokeStyle = col;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          for (let i = 0; i <= 130; i += 2) {
+            const v = y0 - amp * Math.cos((2 * Math.PI * i) / 65 - om * T + ph);
+            if (i === 0) ctx.moveTo(bx + 30 + i, v); else ctx.lineTo(bx + 30 + i, v);
+          }
+          ctx.stroke();
+        };
+        wave(by + 82, 0, C.s1, 14);
+        wave(by + 132, inPhase ? 0 : Math.PI, C.s2, 14);
+        richText(ctx, '=', bx + 192, by + 120, { size: 40, color: C.ink, align: 'center' });
+        ctx.strokeStyle = C.ink;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        for (let i = 0; i <= 130; i += 2) {
+          const v = by + 107 - (inPhase ? 28 : 0) * Math.cos((2 * Math.PI * i) / 65 - om * T);
+          if (i === 0) ctx.moveTo(bx + 225 + i, v); else ctx.lineTo(bx + 225 + i, v);
+        }
+        ctx.stroke();
+        ctx.restore();
+      };
+      callout(810, 28.0, true, 'bright: in step, waves add');
+      callout(1335, 29.0, false, 'dark: crest + trough = 0');
       caption(ctx, t, 25.0, 44, 'So, how can adding light make darkness?', 960, 190, { size: 54, color: C.bright, align: 'center', maxW: 1600, weight: 600 });
-      caption(ctx, t, 27.5, 44, 'At a dark fringe, light from **both** slits does arrive, but crest meets trough and the waves **cancel**.', 960, 790, { size: 40, color: C.ink, align: 'center', maxW: 1500 });
+      caption(ctx, t, 27.5, 44, 'At a dark fringe, light from **both** slits does arrive, but crest meets trough and the waves **cancel**.', 960, 800, { size: 40, color: C.ink, align: 'center', maxW: 1500 });
       caption(ctx, t, 32.0, 44, 'The energy is not destroyed: it is **redistributed** into the bright fringes.', 960, 920, { size: 40, color: C.ink, align: 'center', maxW: 1500 });
     }
   },
@@ -148,6 +232,8 @@ export const endCard = {
     ctx.globalAlpha *= a;
     richText(ctx, "Young's Double-Slit Experiment", 960, 500, { size: 80, color: C.ink, weight: 700, family: F.display, align: 'center' });
     richText(ctx, 'Same light, different paths: bright where they agree, dark where they cancel.', 960, 580, { size: 36, color: C.muted, align: 'center' });
+    const hx = seg(t, 1.2, 2.2, easeOut);
+    richText(ctx, 'First shown by Thomas Young in the early 1800s, it was key evidence that light behaves as a wave.', 960, 690, { size: 30, color: C.ink, align: 'center', alpha: hx, maxW: 1500 });
     richText(ctx, 'Diagrams of the wave field are not to scale.', 960, 980, { size: 24, color: C.faint, align: 'center' });
     ctx.restore();
   },

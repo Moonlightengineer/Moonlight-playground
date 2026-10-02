@@ -18,8 +18,8 @@ Chromium and encoded to MP4 with ffmpeg. No AI image generation, stock footage o
 | 3 | Path difference | δ = r₂ − r₁, shown with straightened paths and the waves arriving at P. Bright: δ = mλ; dark: δ = (m + ½)λ. Misconception: dark fringes still receive light from both slits. Quick check. |
 | 4 | Where are the fringes? | Zoom on the slits: δ = d sinθ. Big triangle: tanθ = y/D. Small angles (D ≫ d and y ≪ D): δ ≈ dy/D → yₘ = mλD/d → Δy = λD/d, evenly spaced. |
 | 5 | Slit separation | Live field with changing d; graph of δ against y explains *why* larger d gives closer fringes; real-scale strips with a millimetre ruler (d = 0.40 mm vs 0.80 mm → Δy ≈ 2.0 mm vs 1.0 mm); effect of λ and D. Quick check. |
-| 6 | Try a calculation | λ = 600 nm, d = 0.30 mm, D = 1.5 m → Δy = 3.0 mm, with a measuring tip. |
-| 7 | Summary | Four key ideas, then the answer to the opening question (energy is redistributed, not destroyed). |
+| 6 | Try a calculation | A set-up sketch maps λ = 600 nm, d = 0.30 mm, D = 1.5 m onto the geometry → Δy = 3.0 mm, shown on a real-scale strip, with a measuring tip. |
+| 7 | Summary | Four key ideas, then the answer to the opening question: wave sketches at a bright and a dark fringe show in-step addition and crest + trough = 0; energy is redistributed, not destroyed. Closing note on Thomas Young. |
 
 "Pause and think" questions show a countdown before the answer appears, so the film also works when a teacher pauses it in class.
 

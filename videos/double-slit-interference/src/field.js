@@ -73,7 +73,7 @@ export class WaveField {
           const rev = clamp((planeFront - x) / soft + 0.5) * (p.incoming ?? 1);
           if (rev > 0) {
             u = Math.cos(k * (x - bx) - phaseT);
-            inten = 0.12 * rev;
+            inten = 0.06 * rev; // uniform incoming light, kept dim so the fan of fringes stands out
             pres = rev;
           }
         } else {

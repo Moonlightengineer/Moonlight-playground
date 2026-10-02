@@ -10,7 +10,7 @@ export const C = {
   line: 'rgba(150, 172, 215, 0.35)',
   ink: '#eef2ff',
   muted: '#9aa6c4',
-  faint: '#5b6681',
+  faint: '#7d89a8',
   s1: '#4cc9ff', // wave / path from slit 1
   s2: '#ffa04d', // wave / path from slit 2
   bright: '#ffe28a', // constructive / bright fringe

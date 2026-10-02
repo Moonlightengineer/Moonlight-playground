@@ -123,7 +123,7 @@ function partB(ctx, t, alpha) {
     }
     ctx.strokeStyle = 'rgba(255,255,255,0.2)';
     ctx.strokeRect(GX, sy, GW, 46);
-    richText(ctx, 'fringes on the screen', GX + GW + 10, sy + 32, { size: 22, color: C.muted });
+    richText(ctx, 'fringes on the screen', GX + GW + 10, sy + 32, { size: 24, color: C.muted });
     ctx.restore();
   }
   // doubling label

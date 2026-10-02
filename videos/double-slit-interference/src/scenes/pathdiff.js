@@ -86,7 +86,7 @@ function strips(ctx, T, r1, r2, alpha) {
     dot(ctx, xEnd, vEnd, 8, cols[i]);
     line(ctx, xEnd, y - 34, xEnd, y + 34, rgba(cols[i], 0.7), 2);
   }
-  richText(ctx, 'start at slits, in step', x0 - 4, ys[1] + 66, { size: 22, color: C.faint });
+  richText(ctx, 'start at slits, in step', x0 - 4, ys[1] + 66, { size: 26, color: C.faint });
   // δ bracket between the two end marks
   if (endX[1] - endX[0] > 6) {
     const yb = ys[0] + 52;
@@ -218,6 +218,7 @@ export const pathDiffScene = {
     caption(ctx, t, 8.2, 16.0, 'The two paths have lengths {s1:$r_1$} and {s2:$r_2$}. Their difference is the **path difference**, $δ$.', RX, cy, o);
     caption(ctx, t, 16.2, 24.0, 'Straighten both paths. The waves leave the slits **in step**, so only the **extra** distance $δ$ matters.', RX, cy, o);
     caption(ctx, t, 24.2, 33.0, 'At the centre, $r_1 = r_2$, so $δ = 0$. The waves arrive in step: {bright:**bright**} (the central fringe).', RX, cy, o);
+    caption(ctx, t, 33.1, 37.0, 'Now slide **P** up the screen and watch $δ$ grow…', RX, cy, o);
     caption(ctx, t, 37.2, 45.0, '$δ = ½λ$: the waves arrive half a wavelength out of step. Crest meets trough: {dark:**dark**}.', RX, cy, o);
     caption(ctx, t, 48.2, 56.0, '$δ = λ$: one whole extra wavelength. In step again: {bright:**bright**}.', RX, cy, o);
     caption(ctx, t, 56.2, 64.0, 'Keep going: $1½λ$ → {dark:**dark**}, $2λ$ → {bright:**bright**}… so the fringes **alternate**.', RX, cy, o);

@@ -68,11 +68,11 @@ export function chapterTag(ctx, num, title, alpha = 1) {
   if (alpha <= 0) return;
   ctx.save();
   ctx.globalAlpha *= alpha;
-  ctx.font = `700 24px "${F.display}"`;
+  ctx.font = `700 28px "${F.display}"`;
   ctx.fillStyle = rgba(C.light, 0.9);
   ctx.textBaseline = 'alphabetic';
   ctx.fillText(String(num).padStart(2, '0'), 72, 70);
-  richText(ctx, title, 116, 70, { size: 24, color: C.muted, weight: 600 });
+  richText(ctx, title, 122, 70, { size: 28, color: C.muted, weight: 600 });
   ctx.restore();
 }
 
@@ -206,14 +206,14 @@ export function ruler(ctx, x, y, w, pxPerMm, opts = {}) {
     ctx.lineTo(px, y + (major ? 18 : 10));
     ctx.stroke();
     if (major && opts.numbers !== false) {
-      ctx.font = `500 20px "${F.mono}"`;
+      ctx.font = `500 22px "${F.mono}"`;
       ctx.textAlign = 'center';
       ctx.fillText(String(i), px, y + 42);
     }
   }
   ctx.textAlign = 'left';
   if (opts.unit !== false) {
-    ctx.font = `500 20px "${F.mono}"`;
+    ctx.font = `500 22px "${F.mono}"`;
     ctx.fillText('mm', x + w + 12, y + 20);
   }
   ctx.restore();
